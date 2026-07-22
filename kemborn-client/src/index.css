@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+.font-brand {
+  font-family: 'Cinzel Decorative', serif;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+/* ==========================================
+   KÖKTEN ÇÖZÜM: Uzun/boşluksuz metinlerin (adres, e-posta, rastgele
+   test verisi vb.) kutularının dışına taşmasını SİTE GENELİNDE engeller.
+   Normal, düzgün cümleleri hiçbir şekilde etkilemez — sadece TEK BİR
+   "kelime" kutuya sığmayacak kadar uzunsa devreye girip onu kırar.
+   Bunu tek tek her bileşene eklemek yerine bir kere burada tanımlıyoruz,
+   böylece bu hata bir daha HİÇBİR yerde çıkmaz. ========================================== */
+* {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Kaydırılabilir alanlarda kaydırma çubuğunu görsel olarak gizler (kaydırma özelliği çalışmaya devam eder) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE ve Edge */
+  scrollbar-width: none;     /* Firefox */
+}
