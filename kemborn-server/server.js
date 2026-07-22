@@ -114,16 +114,19 @@ const upload = multer({
 // ==========================================
 const ALLOWED_ORIGINS = [
     'https://kemborn.com',        // Canlı site
-    'https://www.kemborn.com'     // Canlı site (www ile)
+    'https://www.kemborn.com',    // Canlı site (www ile)
+    'https://kemborn-a564.vercel.app' // Geçici Vercel adresi (asıl domain bağlanana kadar)
 ];
 // Yerel geliştirmede Vite bazen farklı bir port seçebiliyor (5173 doluysa 5174, 5175 vb.)
 // bu yüzden localhost'un HERHANGİ bir portuna izin veriyoruz. Canlı domainler ise sabit kalıyor.
 const isLocalhostOrigin = (origin) => /^http:\/\/localhost:\d+$/.test(origin) || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin);
+// Vercel'in kendi ürettiği önizleme adresleri de (örn. kemborn-a564-git-main-xxx.vercel.app) çalışsın diye
+const isVercelPreviewOrigin = (origin) => /^https:\/\/kemborn[a-z0-9-]*\.vercel\.app$/.test(origin);
 
 app.use(cors({ 
     origin: (origin, callback) => {
         // origin yoksa (Postman, sunucudan sunucuya istek vb.) izin ver
-        if (!origin || ALLOWED_ORIGINS.includes(origin) || isLocalhostOrigin(origin)) {
+        if (!origin || ALLOWED_ORIGINS.includes(origin) || isLocalhostOrigin(origin) || isVercelPreviewOrigin(origin)) {
             callback(null, true);
         } else {
             callback(new Error('CORS politikası bu kaynağa izin vermiyor.'));
@@ -845,9 +848,11 @@ app.post('/api/orders', verifyToken, async (req, res) => {
         const orderNumber = `KB-${seqResult.rows[0].num}`;
 
         // 1. Stok kontrolü: sepetteki her ürün için (rengi varsa o renk için) yeterli stok var mı?
+        // NOT: Burada stoktan DÜŞMÜYORUZ — sadece "böyle bir şey satın alınabilir mi" diye bakıyoruz.
+        // Gerçek stok düşürme, ödeme admin tarafından onaylandığında (aşağıdaki PUT rotasında) oluyor.
         for (const item of items) {
             if (!item.productId) continue; // productId gönderilmemişse (eski istemci) stok kontrolünü atla
-            const stockCheck = await client.query('SELECT stock_quantity, stock_by_color, name FROM products WHERE id = $1 FOR UPDATE', [item.productId]);
+            const stockCheck = await client.query('SELECT stock_quantity, stock_by_color, name FROM products WHERE id = $1', [item.productId]);
             if (stockCheck.rows.length === 0) {
                 throw new Error(`Ürün bulunamadı (ID: ${item.productId}).`);
             }
@@ -865,8 +870,11 @@ app.post('/api/orders', verifyToken, async (req, res) => {
             }
         }
 
+        // Sipariş "ÖDEME BEKLENİYOR" durumuyla oluşturuluyor. Stok düşürme ve
+        // "siparişiniz alındı" e-postası, ödeme GERÇEKTEN onaylanınca (admin
+        // panelinden durum değiştirildiğinde) tetiklenecek — bkz. PUT /api/admin/orders/:id
         const orderResult = await client.query(
-            `INSERT INTO orders (user_id, order_number, total_amount, shipping_address, payment_method, status) VALUES ($1, $2, $3, $4, $5, 'HAZIRLANIYOR') RETURNING id`,
+            `INSERT INTO orders (user_id, order_number, total_amount, shipping_address, payment_method, status) VALUES ($1, $2, $3, $4, $5, 'ÖDEME BEKLENİYOR') RETURNING id`,
             [userId, orderNumber, totalAmount, shippingAddress, paymentMethod || 'Kredi Kartı']
         );
         const orderId = orderResult.rows[0].id;
@@ -876,56 +884,10 @@ app.post('/api/orders', verifyToken, async (req, res) => {
                 'INSERT INTO order_items (order_id, product_id, product_name, quantity, price, color) VALUES ($1, $2, $3, $4, $5, $6)',
                 [orderId, item.productId || null, item.name, item.quantity, item.price, item.color || null]
             );
-
-            // 2. Stoktan düş — toplam stoktan HER ZAMAN, rengi varsa o rengin stokundan da AYRICA düş
-            if (item.productId) {
-                await client.query('UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2', [item.quantity, item.productId]);
-
-                if (item.color) {
-                    await client.query(
-                        `UPDATE products SET stock_by_color = jsonb_set(
-                            COALESCE(stock_by_color, '{}'::jsonb),
-                            ARRAY[$1],
-                            to_jsonb(GREATEST(0, COALESCE((stock_by_color->>$1)::int, 0) - $2))
-                        ) WHERE id = $3 AND stock_by_color ? $1`,
-                        [item.color, item.quantity, item.productId]
-                    );
-                }
-            }
         }
 
         await client.query('COMMIT');
-        res.status(201).json({ message: "Sipariş başarıyla oluşturuldu!", orderNumber });
-
-        // E-POSTA: Sipariş onayı (best-effort, cevabı geciktirmeden arka planda)
-        try {
-            const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [userId]);
-            if (userResult.rows.length > 0) {
-                const { email, username } = userResult.rows[0];
-                const itemsHtml = items.map(item =>
-                    `<tr>
-                        <td style="padding:8px 0; color:#3f3f46; font-size:14px;">${item.quantity}x ${item.name}</td>
-                        <td style="padding:8px 0; text-align:right; color:#18181b; font-weight:bold; font-size:14px;">${parseFloat(item.price).toLocaleString('tr-TR')} TL</td>
-                    </tr>`
-                ).join('');
-                await sendMail(
-                    email,
-                    `Siparişiniz Alındı - ${orderNumber}`,
-                    buildEmailHtml(
-                        `Teşekkürler, ${username || 'Değerli Müşterimiz'}!`,
-                        `<p style="color:#52525b; font-size:14px; line-height:1.6;">Siparişiniz başarıyla alındı ve hazırlanmaya başlandı.</p>
-                         <p style="color:#18181b; font-weight:bold; font-size:15px; margin-bottom:4px;">Sipariş No: ${orderNumber}</p>
-                         <table style="width:100%; border-collapse:collapse; margin-top:16px; border-top:1px solid #e4e4e7; padding-top:8px;">
-                            ${itemsHtml}
-                         </table>
-                         <p style="color:#18181b; font-weight:bold; font-size:16px; margin-top:16px; border-top:1px solid #e4e4e7; padding-top:12px;">Toplam: ${parseFloat(totalAmount).toLocaleString('tr-TR')} TL</p>
-                         <p style="color:#52525b; font-size:13px; margin-top:20px;">Siparişinizin durumunu hesabınızdan takip edebilirsiniz.</p>`
-                    )
-                );
-            }
-        } catch (mailErr) {
-            console.error("Sipariş onay e-postası hazırlanırken hata:", mailErr);
-        }
+        res.status(201).json({ message: "Sipariş oluşturuldu, ödeme bekleniyor.", orderNumber });
     } catch (err) {
         await client.query('ROLLBACK');
         res.status(400).json({ error: err.message || "Sipariş oluşturulamadı." });
@@ -998,18 +960,88 @@ app.get('/api/admin/orders', verifyToken, isAdmin, async (req, res) => {
 
 app.put('/api/admin/orders/:id', verifyToken, isAdmin, async (req, res) => {
     const { status, tracking_number } = req.body;
+    const orderId = req.params.id;
+
     try {
-        const result = await client.query(
-          `UPDATE orders SET status = $1, tracking_number = $2 WHERE id = $3
-           RETURNING order_number, user_id`,
-          [status, tracking_number, req.params.id]
+        // Güncellemeden ÖNCE eski durumu ve sipariş kalemlerini çekiyoruz —
+        // "ödeme az önce mi onaylandı" kararını buna göre vereceğiz.
+        const beforeResult = await client.query('SELECT status, order_number, user_id FROM orders WHERE id = $1', [orderId]);
+        if (beforeResult.rows.length === 0) {
+            return res.status(404).json({ error: "Sipariş bulunamadı." });
+        }
+        const previousStatus = (beforeResult.rows[0].status || '').toUpperCase();
+        const { order_number, user_id } = beforeResult.rows[0];
+        const newStatus = (status || '').toUpperCase();
+        const wasPending = previousStatus === 'ÖDEME BEKLENİYOR' || previousStatus === 'ODEME BEKLENIYOR';
+        const isNowConfirmed = newStatus !== 'ÖDEME BEKLENİYOR' && newStatus !== 'ODEME BEKLENIYOR';
+
+        await client.query(
+          `UPDATE orders SET status = $1, tracking_number = $2 WHERE id = $3`,
+          [status, tracking_number, orderId]
         );
         res.json({ message: "Sipariş başarıyla güncellendi!" });
 
-        // E-POSTA: Sipariş "KARGODA" durumuna geçtiyse müşteriye kargo bilgisi gönder
-        if (result.rows.length > 0 && status && status.toUpperCase() === 'KARGODA') {
+        // ====================================================================
+        // ÖDEME İLK KEZ ONAYLANIYORSA (ÖDEME BEKLENİYOR -> başka bir durum):
+        // Bu noktada stoktan düşürüyoruz ve "Siparişiniz Alındı" e-postasını
+        // ANCAK ŞİMDİ gönderiyoruz. İptal ediliyorsa hiçbir şey yapmıyoruz
+        // (stok hiç düşmemişti, düşecek bir şey yok, müşteriye de zaten hiç
+        // "alındı" maili gitmediği için "iptal" maili göndermek kafa karıştırır).
+        // ====================================================================
+        if (wasPending && isNowConfirmed && newStatus !== 'İPTAL EDİLDİ' && newStatus !== 'IPTAL EDILDI') {
             try {
-                const { order_number, user_id } = result.rows[0];
+                const itemsResult = await client.query('SELECT product_id, product_name, quantity, price, color FROM order_items WHERE order_id = $1', [orderId]);
+
+                for (const item of itemsResult.rows) {
+                    if (!item.product_id) continue;
+                    await client.query('UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2', [item.quantity, item.product_id]);
+                    if (item.color) {
+                        await client.query(
+                            `UPDATE products SET stock_by_color = jsonb_set(
+                                COALESCE(stock_by_color, '{}'::jsonb),
+                                ARRAY[$1],
+                                to_jsonb(GREATEST(0, COALESCE((stock_by_color->>$1)::int, 0) - $2))
+                            ) WHERE id = $3 AND stock_by_color ? $1`,
+                            [item.color, item.quantity, item.product_id]
+                        );
+                    }
+                }
+
+                const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
+                if (userResult.rows.length > 0 && userResult.rows[0].email) {
+                    const { email, username } = userResult.rows[0];
+                    const totalResult = await client.query('SELECT total_amount FROM orders WHERE id = $1', [orderId]);
+                    const totalAmount = totalResult.rows[0]?.total_amount || 0;
+                    const itemsHtml = itemsResult.rows.map(item =>
+                        `<tr>
+                            <td style="padding:8px 0; color:#3f3f46; font-size:14px;">${item.quantity}x ${item.product_name}</td>
+                            <td style="padding:8px 0; text-align:right; color:#18181b; font-weight:bold; font-size:14px;">${parseFloat(item.price).toLocaleString('tr-TR')} TL</td>
+                        </tr>`
+                    ).join('');
+                    await sendMail(
+                        email,
+                        `Siparişiniz Alındı - ${order_number}`,
+                        buildEmailHtml(
+                            `Teşekkürler, ${username || 'Değerli Müşterimiz'}!`,
+                            `<p style="color:#52525b; font-size:14px; line-height:1.6;">Ödemeniz onaylandı, siparişiniz hazırlanmaya başlandı.</p>
+                             <p style="color:#18181b; font-weight:bold; font-size:15px; margin-bottom:4px;">Sipariş No: ${order_number}</p>
+                             <table style="width:100%; border-collapse:collapse; margin-top:16px; border-top:1px solid #e4e4e7; padding-top:8px;">
+                                ${itemsHtml}
+                             </table>
+                             <p style="color:#18181b; font-weight:bold; font-size:16px; margin-top:16px; border-top:1px solid #e4e4e7; padding-top:12px;">Toplam: ${parseFloat(totalAmount).toLocaleString('tr-TR')} TL</p>
+                             <p style="color:#52525b; font-size:13px; margin-top:20px;">Siparişinizin durumunu hesabınızdan takip edebilirsiniz.</p>`
+                        )
+                    );
+                }
+            } catch (confirmErr) {
+                console.error("Ödeme onayı işlenirken hata (stok/e-posta):", confirmErr);
+                logToFile('error.log', `ÖDEME ONAYI HATASI (order ${orderId}): ${confirmErr.stack || confirmErr}`);
+            }
+        }
+
+        // E-POSTA: Sipariş "KARGODA" durumuna geçtiyse müşteriye kargo bilgisi gönder
+        if (status && status.toUpperCase() === 'KARGODA') {
+            try {
                 const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
                 if (userResult.rows.length > 0 && userResult.rows[0].email) {
                     const { email, username } = userResult.rows[0];
@@ -1031,9 +1063,8 @@ app.put('/api/admin/orders/:id', verifyToken, isAdmin, async (req, res) => {
 
         // E-POSTA: Sipariş "TAMAMLANDI" (teslim edildi) durumuna geçtiyse müşteriye bilgi ver
         const deliveredStatuses = ['TAMAMLANDI', 'TESLİM EDİLDİ', 'TESLIM EDILDI'];
-        if (result.rows.length > 0 && status && deliveredStatuses.includes(status.toUpperCase())) {
+        if (status && deliveredStatuses.includes(status.toUpperCase())) {
             try {
-                const { order_number, user_id } = result.rows[0];
                 const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
                 if (userResult.rows.length > 0 && userResult.rows[0].email) {
                     const { email, username } = userResult.rows[0];
@@ -1051,11 +1082,14 @@ app.put('/api/admin/orders/:id', verifyToken, isAdmin, async (req, res) => {
                 console.error("Teslim edildi e-postası hazırlanırken hata:", mailErr);
             }
         }
+
         // E-POSTA: Sipariş "İPTAL EDİLDİ" durumuna geçtiyse müşteriye bilgi ver
+        // (SADECE ödemesi zaten onaylanmış bir sipariş iptal ediliyorsa — hiç
+        // onaylanmamış/ödenmemiş bir siparişin iptali müşteriye bildirilmez,
+        // çünkü zaten "alındı" maili de hiç gitmemişti.)
         const cancelledStatuses = ['İPTAL EDİLDİ', 'IPTAL EDILDI'];
-        if (result.rows.length > 0 && status && cancelledStatuses.includes(status.toUpperCase())) {
+        if (!wasPending && status && cancelledStatuses.includes(status.toUpperCase())) {
             try {
-                const { order_number, user_id } = result.rows[0];
                 const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
                 if (userResult.rows.length > 0 && userResult.rows[0].email) {
                     const { email, username } = userResult.rows[0];
@@ -1074,6 +1108,7 @@ app.put('/api/admin/orders/:id', verifyToken, isAdmin, async (req, res) => {
             }
         }
     } catch (err) {
+        console.error("Sipariş güncelleme hatası:", err);
         res.status(500).json({ error: "Sipariş güncellenemedi." });
     }
 });
