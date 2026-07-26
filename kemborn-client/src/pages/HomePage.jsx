@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { FiShoppingCart, FiArrowRight, FiShield, FiMic, FiBatteryCharging } from 'react-icons/fi';
-import { GiMotorcycle } from 'react-icons/gi';
+import { FaMotorcycle } from 'react-icons/fa';
 import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
 
@@ -35,7 +35,7 @@ const HomePage = () => {
 
         {/* Motor temalı arka plan ikonu — markanın ne sattığını hissettiriyor
             ama düşük opaklık sayesinde metnin okunurluğunu bozmuyor. */}
-        <GiMotorcycle
+        <FaMotorcycle
           className="absolute -right-16 sm:-right-10 top-1/2 -translate-y-1/2 w-[70vw] max-w-[520px] sm:w-[45vw] md:w-[32vw] h-auto opacity-[0.05] md:opacity-[0.07] text-zinc-900 pointer-events-none select-none rotate-[-6deg]"
           aria-hidden="true"
         />
