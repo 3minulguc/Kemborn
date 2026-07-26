@@ -96,11 +96,11 @@ const HomePage = () => {
               <Link 
                 key={product.id} 
                 to={`/product/${product.id}`} 
-                className="group flex flex-col bg-white rounded-[2rem] p-4 shadow-sm border border-zinc-200 transition-all duration-300 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-900/5 relative z-10 overflow-hidden"
+                className="group flex flex-col bg-white rounded-2xl md:rounded-[2rem] p-3 md:p-4 shadow-sm border border-zinc-200 transition-all duration-300 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-900/5 relative z-10 overflow-hidden w-full max-w-[300px] sm:max-w-none mx-auto sm:mx-0"
               >
-                <div className="aspect-[4/5] bg-zinc-100 rounded-3xl mb-4 md:mb-6 relative overflow-hidden transition-colors duration-500 group-hover:bg-cyan-50 flex items-center justify-center border border-zinc-50">
+                <div className="aspect-[4/5] bg-zinc-100 rounded-xl md:rounded-3xl mb-3 md:mb-6 relative overflow-hidden transition-colors duration-500 group-hover:bg-cyan-50 flex items-center justify-center border border-zinc-50">
                   {product.badge && (
-                    <span className="absolute top-4 left-4 bg-zinc-900 text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full z-20 shadow-sm">
+                    <span className="absolute top-3 left-3 md:top-4 md:left-4 bg-zinc-900 text-white text-[9px] md:text-xs font-bold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full z-20 shadow-sm">
                       {product.badge}
                     </span>
                   )}
@@ -114,14 +114,14 @@ const HomePage = () => {
                     <span className="text-zinc-400 font-medium text-sm md:text-base group-hover:scale-110 transition-transform duration-500">Görsel</span>
                   )}
                 </div>
-                <div className="flex flex-col flex-grow px-2 pb-2">
-                  <h3 className="text-lg md:text-xl font-black text-zinc-900 mb-2">{product.name}</h3>
-                  <p className="text-xs md:text-sm text-zinc-500 mb-4 md:mb-6 line-clamp-2 leading-relaxed">
+                <div className="flex flex-col flex-grow px-1 md:px-2 pb-1 md:pb-2">
+                  <h3 className="text-base md:text-xl font-black text-zinc-900 mb-1 md:mb-2">{product.name}</h3>
+                  <p className="text-xs md:text-sm text-zinc-500 mb-3 md:mb-6 line-clamp-2 leading-relaxed">
                     {product.short_description || 'Ürün açıklaması bulunmuyor.'}
                   </p>
                   
-                  <div className="flex justify-between items-center mt-auto pt-4 border-t border-zinc-100">
-                    <span className="text-xl md:text-2xl font-black text-cyan-700 tracking-tight">
+                  <div className="flex justify-between items-center mt-auto pt-3 md:pt-4 border-t border-zinc-100">
+                    <span className="text-lg md:text-2xl font-black text-cyan-700 tracking-tight">
                       {formatPrice(product.price)} TL
                     </span>
                     
@@ -131,10 +131,10 @@ const HomePage = () => {
                         e.stopPropagation(); 
                         addToCart(product, 1, 'Siyah'); 
                       }}
-                      className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-zinc-100 text-zinc-900 rounded-xl md:rounded-2xl hover:bg-zinc-900 hover:text-white transition-all transform active:scale-95 shadow-sm"
+                      className="flex items-center justify-center w-9 h-9 md:w-12 md:h-12 bg-zinc-100 text-zinc-900 rounded-lg md:rounded-2xl hover:bg-zinc-900 hover:text-white transition-all transform active:scale-95 shadow-sm"
                       title="Hızlıca Sepete Ekle"
                     >
-                      <FiShoppingCart size={18} className="md:w-5 md:h-5" />
+                      <FiShoppingCart size={16} className="md:w-5 md:h-5" />
                     </button>
                   </div>
                 </div>
