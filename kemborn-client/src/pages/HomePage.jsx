@@ -143,8 +143,9 @@ const HomePage = () => {
           )}
         </div>
       </section>
-      <section className="relative py-12 md:py-16 mb-10 overflow-hidden bg-gradient-to-b from-cyan-50/60 via-cyan-50/20 to-white">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[140%] md:w-[900px] h-[300px] md:h-[420px] bg-cyan-400/10 blur-[100px] md:blur-[140px] rounded-full pointer-events-none"></div>
+      <section className="relative py-12 md:py-16 mb-10 overflow-hidden bg-gradient-to-b from-cyan-100/90 via-cyan-50/70 to-white">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[140%] md:w-[900px] h-[350px] md:h-[480px] bg-cyan-400/25 blur-[90px] md:blur-[120px] rounded-full pointer-events-none"></div>
+        <div className="absolute -bottom-20 -right-20 w-[400px] h-[400px] bg-blue-400/15 blur-[100px] rounded-full pointer-events-none"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
           
           <div className="text-center mb-10 md:mb-12">
