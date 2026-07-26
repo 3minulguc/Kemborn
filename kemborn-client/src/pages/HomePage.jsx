@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { FiShoppingCart, FiArrowRight, FiShield, FiMic, FiBatteryCharging } from 'react-icons/fi';
-import { FaMotorcycle } from 'react-icons/fa';
 import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
+
+// Hero görselleri — masaüstü (21:9) ve mobil (4:5) kırpımları, webp + jpg fallback
+import heroDesktopWebp from '../assets/hero/hero-desktop.webp';
+import heroDesktopJpg from '../assets/hero/hero-desktop.jpg';
+import heroMobileWebp from '../assets/hero/hero-mobile.webp';
+import heroMobileJpg from '../assets/hero/hero-mobile.jpg';
 
 const HomePage = () => {
   const { addToCart } = useCart();
@@ -28,38 +33,47 @@ const HomePage = () => {
   return (
     <main className="relative z-10 w-full font-sans">
       
-      {/* Hero / Slogan Bölümü */}
-      <section className="relative w-full px-4 sm:px-8 lg:px-16 pt-24 pb-16 md:pt-32 md:pb-24 text-center bg-gradient-to-b from-zinc-50 to-white overflow-hidden">
-        {/* Arka plan efekti mobilde taşmaması için boyutlandırıldı */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] md:w-[800px] h-[300px] md:h-[400px] bg-cyan-600/5 blur-[80px] md:blur-[120px] rounded-full pointer-events-none"></div>
+      {/* Hero / Slogan Bölümü — gerçek fotoğraf arka plan + koyu gradient */}
+      <section className="relative w-full h-[70vh] md:h-[85vh] min-h-[480px] flex items-center justify-center overflow-hidden">
+        
+        {/* Arka plan fotoğrafı — mobil ve masaüstü için ayrı kırpım */}
+        <picture className="absolute inset-0 -z-20">
+          <source media="(min-width: 768px)" srcSet={heroDesktopWebp} type="image/webp" />
+          <source media="(min-width: 768px)" srcSet={heroDesktopJpg} type="image/jpeg" />
+          <source srcSet={heroMobileWebp} type="image/webp" />
+          <img
+            src={heroMobileJpg}
+            alt="Motosikletli sürüş halinde"
+            className="h-full w-full object-cover"
+            loading="eager"
+            fetchpriority="high"
+          />
+        </picture>
 
-        {/* Motor temalı arka plan ikonu — markanın ne sattığını hissettiriyor
-            ama düşük opaklık sayesinde metnin okunurluğunu bozmuyor. */}
-        <FaMotorcycle
-          className="absolute -right-16 sm:-right-10 top-1/2 -translate-y-1/2 w-[70vw] max-w-[520px] sm:w-[45vw] md:w-[32vw] h-auto opacity-[0.05] md:opacity-[0.07] text-zinc-900 pointer-events-none select-none rotate-[-6deg]"
-          aria-hidden="true"
-        />
+        {/* Koyu geçiş efektleri — metnin her koşulda okunur kalması için */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/70 to-black/30" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/60 via-black/20 to-black/60" />
 
-        <div className="relative z-10 max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-cyan-50 text-cyan-700 font-bold text-xs md:text-sm mb-6 md:mb-8 border border-cyan-100">
-            <span className="flex h-2 w-2 rounded-full bg-cyan-600"></span>
+        <div className="relative z-10 max-w-4xl mx-auto text-center px-4 sm:px-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/10 backdrop-blur-sm text-cyan-300 font-bold text-xs md:text-sm mb-6 md:mb-8 border border-white/20">
+            <span className="flex h-2 w-2 rounded-full bg-cyan-400"></span>
             Yeni Nesil Sürüş Deneyimi
           </div>
           
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter text-zinc-900 leading-[1.15] md:leading-[1.1]">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white leading-[1.15] md:leading-[1.1] drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)]">
             Sürüşte Sınır Yok,<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-800">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">
               İletişimde Güç Var.
             </span>
           </h1>
           
-          <p className="mt-6 md:mt-8 text-base md:text-xl leading-relaxed text-zinc-500 max-w-2xl mx-auto font-medium px-2 md:px-0">
+          <p className="mt-6 md:mt-8 text-base md:text-xl leading-relaxed text-zinc-200 max-w-2xl mx-auto font-medium px-2 md:px-0 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
             Kemborn motosiklet kask bluetooth kulaklıkları Supp ve interkom sistemleri ile yollarda kesintisiz, kristal netliğinde bağlantıda kalın.
           </p>
           
           <Link 
             to="/products"
-            className="inline-flex items-center justify-center gap-2 mt-8 md:mt-10 rounded-full bg-zinc-900 px-8 py-4 md:px-10 md:py-5 text-base md:text-lg font-black text-white shadow-xl shadow-zinc-900/20 hover:bg-cyan-600 hover:shadow-cyan-600/30 transition-all transform hover:-translate-y-1 active:scale-95"
+            className="inline-flex items-center justify-center gap-2 mt-8 md:mt-10 rounded-full bg-white px-8 py-4 md:px-10 md:py-5 text-base md:text-lg font-black text-zinc-900 shadow-xl shadow-black/30 hover:bg-cyan-500 hover:text-white hover:shadow-cyan-600/30 transition-all transform hover:-translate-y-1 active:scale-95"
           >
             Tüm Ürünleri İncele <FiArrowRight size={20} />
           </Link>
