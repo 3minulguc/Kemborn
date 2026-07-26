@@ -5,7 +5,6 @@ import { FiShoppingCart, FiArrowRight, FiShield, FiMic, FiBatteryCharging } from
 import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
 
-// Hero görselleri — masaüstü (21:9) ve mobil (4:5) kırpımları, webp + jpg fallback
 import heroDesktopWebp from '../assets/hero/hero-desktop.webp';
 import heroDesktopJpg from '../assets/hero/hero-desktop.jpg';
 import heroMobileWebp from '../assets/hero/hero-mobile.webp';
@@ -14,11 +13,9 @@ import heroMobileJpg from '../assets/hero/hero-mobile.jpg';
 const HomePage = () => {
   const { addToCart } = useCart();
   
-  // Popüler ürünler için dinamik state'ler
   const [popularProducts, setPopularProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Veritabanından sadece popüler ürünleri çekiyoruz
   useEffect(() => {
     fetch(`${API_URL}/api/products/popular`)
       .then(res => {
@@ -32,27 +29,20 @@ const HomePage = () => {
 
   return (
     <main className="relative z-10 w-full font-sans">
-      
-      {/* Hero / Slogan Bölümü — gerçek fotoğraf arka plan + koyu gradient */}
       <section className="relative w-full h-[70vh] md:h-[85vh] min-h-[480px] flex items-center justify-center overflow-hidden">
-        
-        {/* Arka plan fotoğrafı — mobil ve masaüstü için ayrı kırpım */}
         <picture className="absolute inset-0 -z-20">
           <source media="(min-width: 768px)" srcSet={heroDesktopWebp} type="image/webp" />
           <source media="(min-width: 768px)" srcSet={heroDesktopJpg} type="image/jpeg" />
           <source srcSet={heroMobileWebp} type="image/webp" />
           <img
             src={heroMobileJpg}
-            alt="Motosikletli sürüş halinde"
+            alt="Virajda motosiklet süren iki sürücü"
             className="h-full w-full object-cover"
             loading="eager"
             fetchpriority="high"
           />
         </picture>
-
-        {/* Koyu geçiş efektleri — metnin her koşulda okunur kalması için */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/70 to-black/30" />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/60 via-black/20 to-black/60" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
 
         <div className="relative z-10 max-w-4xl mx-auto text-center px-4 sm:px-8">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/10 backdrop-blur-sm text-cyan-300 font-bold text-xs md:text-sm mb-6 md:mb-8 border border-white/20">
@@ -79,10 +69,7 @@ const HomePage = () => {
           </Link>
         </div>
       </section>
-
-      {/* Ürün Vitrini (Dinamik Popüler Modeller) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-12 md:py-16">
-        {/* Mobilde başlık ve link hizalaması alt alta gelecek şekilde düzeltildi */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-12 gap-4">
           <div>
             <h2 className="text-2xl md:text-4xl font-black text-zinc-900 tracking-tight">Popüler Modeller</h2>
@@ -111,7 +98,6 @@ const HomePage = () => {
                 to={`/product/${product.id}`} 
                 className="group flex flex-col bg-white rounded-[2rem] p-4 shadow-sm border border-zinc-200 transition-all duration-300 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-900/5 relative z-10 overflow-hidden"
               >
-                {/* Görsel Alanı (Mobilde biraz daha orantılı yükseklik) */}
                 <div className="aspect-[4/5] bg-zinc-100 rounded-3xl mb-4 md:mb-6 relative overflow-hidden transition-colors duration-500 group-hover:bg-cyan-50 flex items-center justify-center border border-zinc-50">
                   {product.badge && (
                     <span className="absolute top-4 left-4 bg-zinc-900 text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full z-20 shadow-sm">
@@ -128,8 +114,6 @@ const HomePage = () => {
                     <span className="text-zinc-400 font-medium text-sm md:text-base group-hover:scale-110 transition-transform duration-500">Görsel</span>
                   )}
                 </div>
-                
-                {/* İçerik */}
                 <div className="flex flex-col flex-grow px-2 pb-2">
                   <h3 className="text-lg md:text-xl font-black text-zinc-900 mb-2">{product.name}</h3>
                   <p className="text-xs md:text-sm text-zinc-500 mb-4 md:mb-6 line-clamp-2 leading-relaxed">
@@ -159,8 +143,6 @@ const HomePage = () => {
           )}
         </div>
       </section>
-
-      {/* Sınırları Aşan Teknoloji Bölümü */}
       <section className="py-12 md:py-16 mb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
           
@@ -172,7 +154,6 @@ const HomePage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            {/* Kart 1 */}
             <div className="group p-6 md:p-8 bg-zinc-50 rounded-[2rem] border border-zinc-100 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-2">
               <div className="w-14 h-14 md:w-16 md:h-16 bg-white rounded-2xl flex items-center justify-center text-cyan-600 shadow-sm mb-5 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-600 group-hover:text-white transition-all duration-300">
                 <FiMic size={24} className="md:w-7 md:h-7" />
@@ -182,8 +163,6 @@ const HomePage = () => {
                 Gelişmiş DSP ve CVC gürültü engelleme teknolojisi sayesinde, yüksek hızlarda bile rüzgar ve motor sesini filtreler.
               </p>
             </div>
-
-            {/* Kart 2 */}
             <div className="group p-6 md:p-8 bg-zinc-50 rounded-[2rem] border border-zinc-100 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-2">
               <div className="w-14 h-14 md:w-16 md:h-16 bg-white rounded-2xl flex items-center justify-center text-cyan-600 shadow-sm mb-5 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-600 group-hover:text-white transition-all duration-300">
                 <FiShield size={24} className="md:w-7 md:h-7" />
@@ -193,8 +172,6 @@ const HomePage = () => {
                 IP67 sertifikası ile suya, toza ve çamura karşı tam koruma. Sağanak yağmurda bile iletişimi koparmadan yola devam edin.
               </p>
             </div>
-
-            {/* Kart 3 */}
             <div className="group p-6 md:p-8 bg-zinc-50 rounded-[2rem] border border-zinc-100 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-2">
               <div className="w-14 h-14 md:w-16 md:h-16 bg-white rounded-2xl flex items-center justify-center text-cyan-600 shadow-sm mb-5 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-600 group-hover:text-white transition-all duration-300">
                 <FiBatteryCharging size={24} className="md:w-7 md:h-7" />
