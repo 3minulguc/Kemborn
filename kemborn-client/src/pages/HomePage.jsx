@@ -143,7 +143,7 @@ const HomePage = () => {
           )}
         </div>
       </section>
-      <section className="relative py-12 md:py-16 mb-10 overflow-hidden bg-zinc-950">
+      <section className="relative py-12 md:py-16 overflow-hidden bg-zinc-900">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[140%] md:w-[900px] h-[350px] md:h-[480px] bg-cyan-500/20 blur-[90px] md:blur-[120px] rounded-full pointer-events-none"></div>
         <div className="absolute -bottom-20 -right-20 w-[400px] h-[400px] bg-blue-500/15 blur-[100px] rounded-full pointer-events-none"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
