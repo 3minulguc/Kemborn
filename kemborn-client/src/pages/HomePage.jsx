@@ -143,8 +143,9 @@ const HomePage = () => {
           )}
         </div>
       </section>
-      <section className="py-12 md:py-16 mb-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
+      <section className="relative py-12 md:py-16 mb-10 overflow-hidden bg-gradient-to-b from-cyan-50/60 via-cyan-50/20 to-white">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[140%] md:w-[900px] h-[300px] md:h-[420px] bg-cyan-400/10 blur-[100px] md:blur-[140px] rounded-full pointer-events-none"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
           
           <div className="text-center mb-10 md:mb-12">
             <h2 className="text-2xl md:text-3xl font-black text-zinc-900 mb-3 md:mb-4">Sınırları Aşan Teknoloji</h2>
@@ -154,7 +155,7 @@ const HomePage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            <div className="group p-6 md:p-8 bg-zinc-50 rounded-[2rem] border border-zinc-100 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-2">
+            <div className="group p-6 md:p-8 bg-white/80 backdrop-blur-sm rounded-[2rem] border border-white hover:border-cyan-500 shadow-sm hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-2">
               <div className="w-14 h-14 md:w-16 md:h-16 bg-white rounded-2xl flex items-center justify-center text-cyan-600 shadow-sm mb-5 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-600 group-hover:text-white transition-all duration-300">
                 <FiMic size={24} className="md:w-7 md:h-7" />
               </div>
@@ -163,7 +164,7 @@ const HomePage = () => {
                 Gelişmiş DSP ve CVC gürültü engelleme teknolojisi sayesinde, yüksek hızlarda bile rüzgar ve motor sesini filtreler.
               </p>
             </div>
-            <div className="group p-6 md:p-8 bg-zinc-50 rounded-[2rem] border border-zinc-100 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-2">
+            <div className="group p-6 md:p-8 bg-white/80 backdrop-blur-sm rounded-[2rem] border border-white hover:border-cyan-500 shadow-sm hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-2">
               <div className="w-14 h-14 md:w-16 md:h-16 bg-white rounded-2xl flex items-center justify-center text-cyan-600 shadow-sm mb-5 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-600 group-hover:text-white transition-all duration-300">
                 <FiShield size={24} className="md:w-7 md:h-7" />
               </div>
@@ -172,7 +173,7 @@ const HomePage = () => {
                 IP67 sertifikası ile suya, toza ve çamura karşı tam koruma. Sağanak yağmurda bile iletişimi koparmadan yola devam edin.
               </p>
             </div>
-            <div className="group p-6 md:p-8 bg-zinc-50 rounded-[2rem] border border-zinc-100 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-2">
+            <div className="group p-6 md:p-8 bg-white/80 backdrop-blur-sm rounded-[2rem] border border-white hover:border-cyan-500 shadow-sm hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-2">
               <div className="w-14 h-14 md:w-16 md:h-16 bg-white rounded-2xl flex items-center justify-center text-cyan-600 shadow-sm mb-5 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-600 group-hover:text-white transition-all duration-300">
                 <FiBatteryCharging size={24} className="md:w-7 md:h-7" />
               </div>
