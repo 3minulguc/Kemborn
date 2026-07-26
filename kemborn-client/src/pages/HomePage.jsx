@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { FiShoppingCart, FiArrowRight, FiShield, FiMic, FiBatteryCharging } from 'react-icons/fi';
+import { GiMotorcycle } from 'react-icons/gi';
 import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
 
@@ -31,6 +32,13 @@ const HomePage = () => {
       <section className="relative w-full px-4 sm:px-8 lg:px-16 pt-24 pb-16 md:pt-32 md:pb-24 text-center bg-gradient-to-b from-zinc-50 to-white overflow-hidden">
         {/* Arka plan efekti mobilde taşmaması için boyutlandırıldı */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] md:w-[800px] h-[300px] md:h-[400px] bg-cyan-600/5 blur-[80px] md:blur-[120px] rounded-full pointer-events-none"></div>
+
+        {/* Motor temalı arka plan ikonu — markanın ne sattığını hissettiriyor
+            ama düşük opaklık sayesinde metnin okunurluğunu bozmuyor. */}
+        <GiMotorcycle
+          className="absolute -right-16 sm:-right-10 top-1/2 -translate-y-1/2 w-[70vw] max-w-[520px] sm:w-[45vw] md:w-[32vw] h-auto opacity-[0.05] md:opacity-[0.07] text-zinc-900 pointer-events-none select-none rotate-[-6deg]"
+          aria-hidden="true"
+        />
 
         <div className="relative z-10 max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-cyan-50 text-cyan-700 font-bold text-xs md:text-sm mb-6 md:mb-8 border border-cyan-100">
