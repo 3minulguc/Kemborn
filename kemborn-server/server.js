@@ -123,6 +123,12 @@ const isLocalhostOrigin = (origin) => /^http:\/\/localhost:\d+$/.test(origin) ||
 // Vercel'in kendi ürettiği önizleme adresleri de (örn. kemborn-a564-git-main-xxx.vercel.app) çalışsın diye
 const isVercelPreviewOrigin = (origin) => /^https:\/\/kemborn[a-z0-9-]*\.vercel\.app$/.test(origin);
 
+// Railway gibi bir proxy'nin arkasında çalıştığımız için, gerçek protokolü
+// (http/https) X-Forwarded-Proto header'ından okumasını Express'e söylüyoruz.
+// Bu olmadan req.protocol her zaman 'http' dönüyor, bu da yüklenen görsel/video
+// adreslerinin yanlışlıkla http:// ile kaydedilmesine sebep oluyordu.
+app.set('trust proxy', 1);
+
 app.use(cors({ 
     origin: (origin, callback) => {
         // origin yoksa (Postman, sunucudan sunucuya istek vb.) izin ver
