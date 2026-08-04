@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { FiShoppingCart, FiSearch, FiX, FiSliders, FiHeart } from 'react-icons/fi';
+import { FiSearch, FiX, FiSliders, FiHeart, FiPlus } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import PageHeader from '../components/PageHeader';
 import { API_URL } from '../config/api';
@@ -202,18 +202,6 @@ const ProductsPage = () => {
                     </span>
                   )}
 
-                  <button
-                    onClick={(e) => handleFavoriteToggle(e, product.id)}
-                    className={`absolute top-1.5 right-1.5 md:top-4 md:right-4 z-20 w-7 h-7 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm transition-all active:scale-90 ${
-                      favoriteIds.has(product.id)
-                        ? 'bg-red-50 text-red-500'
-                        : 'bg-white/90 text-zinc-400 hover:text-red-500'
-                    }`}
-                    title={favoriteIds.has(product.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-                  >
-                    <FiHeart className="w-3.5 h-3.5 md:w-5 md:h-5" fill={favoriteIds.has(product.id) ? 'currentColor' : 'none'} />
-                  </button>
-
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
@@ -238,22 +226,36 @@ const ProductsPage = () => {
                       {formatPrice(product.price)} TL
                     </span>
                     
-                    <button 
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        e.stopPropagation(); 
-                        if (!isProductOutOfStock) addToCart(product, 1, 'Siyah'); 
-                      }}
-                      disabled={isProductOutOfStock}
-                      className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 ${
-                        isProductOutOfStock
-                          ? 'bg-zinc-50 text-zinc-300 cursor-not-allowed'
-                          : 'bg-cyan-600 text-white hover:bg-cyan-700 shadow-cyan-600/30'
-                      }`}
-                      title={isProductOutOfStock ? 'Stokta Yok' : 'Hızlıca Sepete Ekle'}
-                    >
-                      <FiShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-                    </button>
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                      <button
+                        onClick={(e) => handleFavoriteToggle(e, product.id)}
+                        className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 border ${
+                          favoriteIds.has(product.id)
+                            ? 'bg-red-50 text-red-500 border-red-100'
+                            : 'bg-white text-zinc-400 border-zinc-200 hover:text-red-500 hover:border-red-200'
+                        }`}
+                        title={favoriteIds.has(product.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                      >
+                        <FiHeart className="w-4 h-4 md:w-5 md:h-5" fill={favoriteIds.has(product.id) ? 'currentColor' : 'none'} />
+                      </button>
+
+                      <button 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          if (!isProductOutOfStock) addToCart(product, 1, 'Siyah'); 
+                        }}
+                        disabled={isProductOutOfStock}
+                        className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 ${
+                          isProductOutOfStock
+                            ? 'bg-zinc-50 text-zinc-300 cursor-not-allowed'
+                            : 'bg-cyan-600 text-white hover:bg-cyan-700 shadow-cyan-600/30'
+                        }`}
+                        title={isProductOutOfStock ? 'Stokta Yok' : 'Hızlıca Sepete Ekle'}
+                      >
+                        <FiPlus className="w-4 h-4 md:w-6 md:h-6" strokeWidth={3} />
+                      </button>
+                    </div>
                   </div>
                 </div>
 

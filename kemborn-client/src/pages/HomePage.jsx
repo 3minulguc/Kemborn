@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { FiShoppingCart, FiArrowRight, FiShield, FiMic, FiBatteryCharging, FiHeart } from 'react-icons/fi';
+import { FiPlus, FiArrowRight, FiShield, FiMic, FiBatteryCharging, FiHeart } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
@@ -170,17 +170,6 @@ const HomePage = () => {
                       {product.badge}
                     </span>
                   )}
-                  <button
-                    onClick={(e) => handleFavoriteToggle(e, product.id)}
-                    className={`absolute top-3 right-3 md:top-4 md:right-4 z-20 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm transition-all active:scale-90 ${
-                      favoriteIds.has(product.id)
-                        ? 'bg-red-50 text-red-500'
-                        : 'bg-white/90 text-zinc-400 hover:text-red-500'
-                    }`}
-                    title={favoriteIds.has(product.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-                  >
-                    <FiHeart className="w-4 h-4 md:w-5 md:h-5" fill={favoriteIds.has(product.id) ? 'currentColor' : 'none'} />
-                  </button>
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
@@ -202,17 +191,31 @@ const HomePage = () => {
                       {formatPrice(product.price)} TL
                     </span>
                     
-                    <button 
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        e.stopPropagation(); 
-                        addToCart(product, 1, 'Siyah'); 
-                      }}
-                      className="flex items-center justify-center w-9 h-9 md:w-12 md:h-12 bg-cyan-600 text-white rounded-lg md:rounded-2xl hover:bg-cyan-700 transition-all transform active:scale-95 shadow-sm shadow-cyan-600/30"
-                      title="Hızlıca Sepete Ekle"
-                    >
-                      <FiShoppingCart size={16} className="md:w-5 md:h-5" />
-                    </button>
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                      <button
+                        onClick={(e) => handleFavoriteToggle(e, product.id)}
+                        className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 border ${
+                          favoriteIds.has(product.id)
+                            ? 'bg-red-50 text-red-500 border-red-100'
+                            : 'bg-white text-zinc-400 border-zinc-200 hover:text-red-500 hover:border-red-200'
+                        }`}
+                        title={favoriteIds.has(product.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                      >
+                        <FiHeart className="w-4 h-4 md:w-5 md:h-5" fill={favoriteIds.has(product.id) ? 'currentColor' : 'none'} />
+                      </button>
+
+                      <button 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          addToCart(product, 1, 'Siyah'); 
+                        }}
+                        className="flex items-center justify-center w-9 h-9 md:w-12 md:h-12 bg-cyan-600 text-white rounded-lg md:rounded-2xl hover:bg-cyan-700 transition-all transform active:scale-95 shadow-sm shadow-cyan-600/30"
+                        title="Hızlıca Sepete Ekle"
+                      >
+                        <FiPlus size={18} className="md:w-6 md:h-6" strokeWidth={3} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </Link>

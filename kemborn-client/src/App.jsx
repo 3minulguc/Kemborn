@@ -46,7 +46,31 @@ function App() {
       <ScrollToTop /> {/* 2. Router'ın hemen içine ekledik */}
       <AuthProvider>
         <CartProvider>
-          <Toaster position="bottom-right" />
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#18181B',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '14px',
+                borderRadius: '16px',
+                padding: '14px 18px',
+                boxShadow: '0 10px 30px -5px rgba(0,0,0,0.3)',
+                border: '1px solid rgba(255,255,255,0.06)'
+              },
+              success: {
+                iconTheme: { primary: '#06b6d4', secondary: '#18181B' }
+              },
+              error: {
+                iconTheme: { primary: '#f43f5e', secondary: '#18181B' }
+              },
+              loading: {
+                iconTheme: { primary: '#a1a1aa', secondary: '#18181B' }
+              }
+            }}
+          />
           <Routes>
             {/* Genel Site & Üye Paneli */}
             <Route element={<MainLayout />}>
