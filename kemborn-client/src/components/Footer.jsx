@@ -43,6 +43,7 @@ const Footer = () => {
           <h4 className="text-white font-bold mb-6">Yardım</h4>
           <ul className="space-y-3 text-sm">
             <li><Link to="/delivery" className="hover:text-cyan-400 transition-colors">Teslimat ve İade</Link></li>
+            <li><Link to="/kurulum-rehberi" className="hover:text-cyan-400 transition-colors">Kurulum Rehberi</Link></li>
             <li><Link to="/policy" className="hover:text-cyan-400 transition-colors">Gizlilik Politikası</Link></li>
             {/* Mesafeli Satış Sözleşmesi Linki Eklendi */}
             <li><Link to="/mesafeli-satis-sozlesmesi" className="hover:text-cyan-400 transition-colors">Mesafeli Satış Sözleşmesi</Link></li>

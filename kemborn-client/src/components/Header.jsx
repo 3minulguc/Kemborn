@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo, FiShoppingBag, FiShare2 } from 'react-icons/fi';
+import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo, FiShoppingBag, FiShare2, FiPlayCircle } from 'react-icons/fi';
 import { useCart } from '../context/CartContext'; 
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
@@ -208,6 +208,7 @@ const Header = () => {
             <Link to="/about" className={`${isActive("/about")} text-sm whitespace-nowrap`}>Hakkımızda</Link>
             <Link to="/magazalarimiz" className={`${isActive("/magazalarimiz")} text-sm whitespace-nowrap`}>Mağazalarımız</Link>
             <Link to="/sosyal-medyalarimiz" className={`${isActive("/sosyal-medyalarimiz")} text-sm whitespace-nowrap`}>Sosyal Medyalarımız</Link>
+            <Link to="/kurulum-rehberi" className={`${isActive("/kurulum-rehberi")} text-sm whitespace-nowrap`}>Kurulum Rehberi</Link>
           </div>
         </nav>
       </header>
@@ -312,6 +313,7 @@ const Header = () => {
               { path: "/about", label: "Hakkımızda", icon: FiInfo },
               { path: "/magazalarimiz", label: "Mağazalarımız", icon: FiShoppingBag },
               { path: "/sosyal-medyalarimiz", label: "Sosyal Medyalarımız", icon: FiShare2 },
+              { path: "/kurulum-rehberi", label: "Kurulum Rehberi", icon: FiPlayCircle },
             ].map((link) => {
               const ItemIcon = link.icon;
               return (
