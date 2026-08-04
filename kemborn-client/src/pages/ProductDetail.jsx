@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext'; 
-import { FiHeart, FiTruck, FiShield, FiShoppingCart, FiPlayCircle, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiHeart, FiTruck, FiShield, FiPlayCircle, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import toast from 'react-hot-toast'; 
 import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
+import ProductCard from '../components/ProductCard';
+import { useFavorites } from '../hooks/useFavorites';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const { addToCart } = useCart();
   const { user } = useAuth(); 
+  const { favoriteIds, toggleFavorite } = useFavorites();
   
   // VERİ DURUMLARI (STATE)
   const [product, setProduct] = useState(null);
@@ -433,38 +436,12 @@ const ProductDetail = () => {
               .filter(p => p.id.toString() !== product.id.toString())
               .slice(0, 4)
               .map((item) => (
-                <div 
-                  key={item.id} 
-                  className="group block bg-white p-3 md:p-4 rounded-3xl border border-zinc-200 hover:border-cyan-500 transition-all shadow-sm hover:shadow-md"
-                >
-                  <Link to={`/product/${item.id}`} className="block">
-                    <div className="aspect-[4/5] bg-zinc-100 rounded-2xl mb-4 overflow-hidden relative">
-                      {item.image_url ? (
-                        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-400 text-sm">Görsel Yok</div>
-                      )}
-                    </div>
-                    <h3 className="font-bold text-sm md:text-base mb-1 text-zinc-900 line-clamp-1">{item.name}</h3>
-                    <p className="text-xs text-zinc-500 mb-3 h-8 line-clamp-2">
-                      {item.short_description || "Açıklama yok."}
-                    </p>
-                  </Link>
-                  
-                  <div className="flex items-center justify-between mt-auto pt-2 border-t border-zinc-50">
-                    <p className="text-cyan-700 font-black text-sm md:text-base">{formatPrice(item.price)} TL</p>
-                    <button 
-                      onClick={() => addToCart({
-                        ...item, 
-                        quantity: 1, 
-                        color: (item.colors && item.colors.length > 0) ? item.colors[0] : 'Standart'
-                      })}
-                      className="p-2 bg-zinc-900 text-white rounded-xl hover:bg-cyan-600 transition-colors"
-                    >
-                      <FiShoppingCart size={16} />
-                    </button>
-                  </div>
-                </div>
+                <ProductCard
+                  key={item.id}
+                  product={item}
+                  favoriteIds={favoriteIds}
+                  onToggleFavorite={toggleFavorite}
+                />
               ))}
           </div>
         </section>

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
-import { FiShoppingBag, FiArrowRight, FiShield, FiMic, FiBatteryCharging, FiHeart } from 'react-icons/fi';
-import toast from 'react-hot-toast';
+import { FiArrowRight, FiShield, FiMic, FiBatteryCharging } from 'react-icons/fi';
+import ProductCard from '../components/ProductCard';
+import { useFavorites } from '../hooks/useFavorites';
 import { API_URL } from '../config/api';
-import { formatPrice } from '../utils/format';
 
 import heroDesktopWebp from '../assets/hero/hero-desktop.webp';
 import heroDesktopJpg from '../assets/hero/hero-desktop.jpg';
@@ -13,12 +11,9 @@ import heroMobileWebp from '../assets/hero/hero-mobile.webp';
 import heroMobileJpg from '../assets/hero/hero-mobile.jpg';
 
 const HomePage = () => {
-  const { addToCart } = useCart();
-  const { user } = useAuth();
-  
   const [popularProducts, setPopularProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [favoriteIds, setFavoriteIds] = useState(new Set());
+  const { favoriteIds, toggleFavorite } = useFavorites();
 
   useEffect(() => {
     fetch(`${API_URL}/api/products/popular`)
@@ -30,68 +25,6 @@ const HomePage = () => {
       .catch(err => console.error("Popüler ürünler yüklenemedi:", err))
       .finally(() => setLoading(false));
   }, []);
-
-  // Kullanıcı giriş yapmışsa favori ürün id'lerini çek (kartlarda kalbin dolu/boş görünmesi için)
-  useEffect(() => {
-    if (!user) {
-      setFavoriteIds(new Set());
-      return;
-    }
-    const token = sessionStorage.getItem('kemborn_token');
-    fetch(`${API_URL}/api/favorites/${user.id}`, {
-      headers: { 'Authorization': token ? `Bearer ${token}` : '' }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setFavoriteIds(new Set(data.map(p => p.id)));
-        }
-      })
-      .catch(() => {});
-  }, [user]);
-
-  const handleFavoriteToggle = async (e, productId) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!user) {
-      toast.error("Favorilere eklemek için giriş yapmalısınız.");
-      return;
-    }
-    const token = sessionStorage.getItem('kemborn_token');
-    if (!token) {
-      toast.error("Oturum süresi dolmuş, lütfen tekrar giriş yapın.");
-      return;
-    }
-
-    const isFav = favoriteIds.has(productId);
-    try {
-      if (isFav) {
-        const res = await fetch(`${API_URL}/api/favorites/${user.id}/${productId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error();
-        setFavoriteIds(prev => {
-          const next = new Set(prev);
-          next.delete(productId);
-          return next;
-        });
-        toast.success("Favorilerden çıkarıldı.");
-      } else {
-        const res = await fetch(`${API_URL}/api/favorites`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ userId: user.id, productId })
-        });
-        if (!res.ok) throw new Error();
-        setFavoriteIds(prev => new Set(prev).add(productId));
-        toast.success("Favorilere eklendi.");
-      }
-    } catch {
-      toast.error("İşlem sırasında bir hata oluştu.");
-    }
-  };
 
   return (
     <main className="relative z-10 w-full font-sans">
@@ -159,73 +92,12 @@ const HomePage = () => {
             </div>
           ) : (
             popularProducts.map((product) => (
-              <Link 
-                key={product.id} 
-                to={`/product/${product.id}`} 
-                className="group flex flex-col bg-white rounded-2xl md:rounded-[2rem] p-3 md:p-4 shadow-sm border border-zinc-200 transition-all duration-300 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-900/5 relative z-10 overflow-hidden w-full max-w-[300px] sm:max-w-none mx-auto sm:mx-0"
-              >
-                {/* 1. FİYAT */}
-                <div className="flex items-center justify-between mb-2 md:mb-3">
-                  <span className="text-lg md:text-2xl font-black text-cyan-700 tracking-tight">
-                    {formatPrice(product.price)} TL
-                  </span>
-                  {product.badge && (
-                    <span className="bg-zinc-900 text-white text-[9px] md:text-xs font-bold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full shadow-sm">
-                      {product.badge}
-                    </span>
-                  )}
-                </div>
-
-                {/* 2. GÖRSEL */}
-                <div className="aspect-[4/5] bg-zinc-100 rounded-xl md:rounded-3xl mb-3 md:mb-4 relative overflow-hidden transition-colors duration-500 group-hover:bg-cyan-50 flex items-center justify-center border border-zinc-50">
-                  {product.image_url ? (
-                    <img 
-                      src={product.image_url} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <span className="text-zinc-400 font-medium text-sm md:text-base group-hover:scale-110 transition-transform duration-500">Görsel</span>
-                  )}
-                </div>
-                <div className="flex flex-col flex-grow px-1 md:px-2 pb-1 md:pb-2">
-                  {/* 3. ÜRÜN MODELİ */}
-                  <h3 className="text-base md:text-xl font-black text-zinc-900 mb-1 md:mb-2">{product.name}</h3>
-
-                  {/* 4. AÇIKLAMA */}
-                  <p className="text-xs md:text-sm text-zinc-500 mb-3 md:mb-6 line-clamp-2 leading-relaxed">
-                    {product.short_description || 'Ürün açıklaması bulunmuyor.'}
-                  </p>
-                  
-                  {/* 5. BUTONLAR */}
-                  <div className="flex items-center justify-end gap-2 mt-auto pt-3 md:pt-4 border-t border-zinc-100">
-                    <button
-                      onClick={(e) => handleFavoriteToggle(e, product.id)}
-                      className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 border flex-shrink-0 ${
-                        favoriteIds.has(product.id)
-                          ? 'bg-red-50 text-red-500 border-red-100'
-                          : 'bg-white text-zinc-400 border-zinc-200 hover:text-red-500 hover:border-red-200'
-                      }`}
-                      title={favoriteIds.has(product.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-                    >
-                      <FiHeart className="w-4 h-4 md:w-5 md:h-5" fill={favoriteIds.has(product.id) ? 'currentColor' : 'none'} />
-                    </button>
-
-                    <button 
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        e.stopPropagation(); 
-                        addToCart(product, 1, 'Siyah'); 
-                      }}
-                      className="flex-1 flex items-center justify-center gap-1.5 h-9 md:h-12 px-3 bg-cyan-600 text-white rounded-lg md:rounded-2xl hover:bg-cyan-700 transition-all transform active:scale-95 shadow-sm shadow-cyan-600/30"
-                      title="Hızlıca Sepete Ekle"
-                    >
-                      <FiShoppingBag size={16} className="md:w-5 md:h-5 flex-shrink-0" />
-                      <span className="text-xs md:text-sm font-bold">Sepete Ekle</span>
-                    </button>
-                  </div>
-                </div>
-              </Link>
+              <ProductCard
+                key={product.id}
+                product={product}
+                favoriteIds={favoriteIds}
+                onToggleFavorite={toggleFavorite}
+              />
             ))
           )}
         </div>
