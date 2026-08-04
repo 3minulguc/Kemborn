@@ -262,6 +262,62 @@ const sendMail = async (to, subject, html) => {
 };
 
 // ==========================================
+// ÖDEME ONAYI ORTAK MANTIĞI (stok düşürme + "Siparişiniz Alındı" e-postası)
+// ==========================================
+// Bu fonksiyon İKİ farklı yerden çağrılır:
+//   1) Admin panelinden elle durum değiştirildiğinde (PUT /api/admin/orders/:id)
+//   2) PayTR'nin otomatik ödeme bildiriminde (POST /api/paytr-notify)
+// Böylece hangi yoldan onaylanırsa onaylansın (elle ya da otomatik), stok
+// düşürme ve e-posta gönderme davranışı HER ZAMAN aynı olur.
+const confirmOrderPayment = async (orderId) => {
+    const orderResult = await client.query('SELECT order_number, user_id, total_amount FROM orders WHERE id = $1', [orderId]);
+    if (orderResult.rows.length === 0) return;
+    const { order_number, user_id, total_amount } = orderResult.rows[0];
+
+    const itemsResult = await client.query('SELECT product_id, product_name, quantity, price, color FROM order_items WHERE order_id = $1', [orderId]);
+
+    for (const item of itemsResult.rows) {
+        if (!item.product_id) continue;
+        await client.query('UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2', [item.quantity, item.product_id]);
+        if (item.color) {
+            await client.query(
+                `UPDATE products SET stock_by_color = jsonb_set(
+                    COALESCE(stock_by_color, '{}'::jsonb),
+                    ARRAY[$1],
+                    to_jsonb(GREATEST(0, COALESCE((stock_by_color->>$1)::int, 0) - $2))
+                ) WHERE id = $3 AND stock_by_color ? $1`,
+                [item.color, item.quantity, item.product_id]
+            );
+        }
+    }
+
+    const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
+    if (userResult.rows.length > 0 && userResult.rows[0].email) {
+        const { email, username } = userResult.rows[0];
+        const itemsHtml = itemsResult.rows.map(item =>
+            `<tr>
+                <td style="padding:8px 0; color:#3f3f46; font-size:14px;">${item.quantity}x ${item.product_name}</td>
+                <td style="padding:8px 0; text-align:right; color:#18181b; font-weight:bold; font-size:14px;">${parseFloat(item.price).toLocaleString('tr-TR')} TL</td>
+            </tr>`
+        ).join('');
+        await sendMail(
+            email,
+            `Siparişiniz Alındı - ${order_number}`,
+            buildEmailHtml(
+                `Teşekkürler, ${username || 'Değerli Müşterimiz'}!`,
+                `<p style="color:#52525b; font-size:14px; line-height:1.6;">Ödemeniz onaylandı, siparişiniz hazırlanmaya başlandı.</p>
+                 <p style="color:#18181b; font-weight:bold; font-size:15px; margin-bottom:4px;">Sipariş No: ${order_number}</p>
+                 <table style="width:100%; border-collapse:collapse; margin-top:16px; border-top:1px solid #e4e4e7; padding-top:8px;">
+                    ${itemsHtml}
+                 </table>
+                 <p style="color:#18181b; font-weight:bold; font-size:16px; margin-top:16px; border-top:1px solid #e4e4e7; padding-top:12px;">Toplam: ${parseFloat(total_amount).toLocaleString('tr-TR')} TL</p>
+                 <p style="color:#52525b; font-size:13px; margin-top:20px;">Siparişinizin durumunu hesabınızdan takip edebilirsiniz.</p>`
+            )
+        );
+    }
+};
+
+// ==========================================
 // --- MEDYA YÜKLEME ROTASI (GÖRSEL / VİDEO) ---
 // ==========================================
 app.post('/api/upload', verifyToken, isAdmin, (req, res) => {
@@ -996,49 +1052,7 @@ app.put('/api/admin/orders/:id', verifyToken, isAdmin, async (req, res) => {
         // ====================================================================
         if (wasPending && isNowConfirmed && newStatus !== 'İPTAL EDİLDİ' && newStatus !== 'IPTAL EDILDI') {
             try {
-                const itemsResult = await client.query('SELECT product_id, product_name, quantity, price, color FROM order_items WHERE order_id = $1', [orderId]);
-
-                for (const item of itemsResult.rows) {
-                    if (!item.product_id) continue;
-                    await client.query('UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2', [item.quantity, item.product_id]);
-                    if (item.color) {
-                        await client.query(
-                            `UPDATE products SET stock_by_color = jsonb_set(
-                                COALESCE(stock_by_color, '{}'::jsonb),
-                                ARRAY[$1],
-                                to_jsonb(GREATEST(0, COALESCE((stock_by_color->>$1)::int, 0) - $2))
-                            ) WHERE id = $3 AND stock_by_color ? $1`,
-                            [item.color, item.quantity, item.product_id]
-                        );
-                    }
-                }
-
-                const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
-                if (userResult.rows.length > 0 && userResult.rows[0].email) {
-                    const { email, username } = userResult.rows[0];
-                    const totalResult = await client.query('SELECT total_amount FROM orders WHERE id = $1', [orderId]);
-                    const totalAmount = totalResult.rows[0]?.total_amount || 0;
-                    const itemsHtml = itemsResult.rows.map(item =>
-                        `<tr>
-                            <td style="padding:8px 0; color:#3f3f46; font-size:14px;">${item.quantity}x ${item.product_name}</td>
-                            <td style="padding:8px 0; text-align:right; color:#18181b; font-weight:bold; font-size:14px;">${parseFloat(item.price).toLocaleString('tr-TR')} TL</td>
-                        </tr>`
-                    ).join('');
-                    await sendMail(
-                        email,
-                        `Siparişiniz Alındı - ${order_number}`,
-                        buildEmailHtml(
-                            `Teşekkürler, ${username || 'Değerli Müşterimiz'}!`,
-                            `<p style="color:#52525b; font-size:14px; line-height:1.6;">Ödemeniz onaylandı, siparişiniz hazırlanmaya başlandı.</p>
-                             <p style="color:#18181b; font-weight:bold; font-size:15px; margin-bottom:4px;">Sipariş No: ${order_number}</p>
-                             <table style="width:100%; border-collapse:collapse; margin-top:16px; border-top:1px solid #e4e4e7; padding-top:8px;">
-                                ${itemsHtml}
-                             </table>
-                             <p style="color:#18181b; font-weight:bold; font-size:16px; margin-top:16px; border-top:1px solid #e4e4e7; padding-top:12px;">Toplam: ${parseFloat(totalAmount).toLocaleString('tr-TR')} TL</p>
-                             <p style="color:#52525b; font-size:13px; margin-top:20px;">Siparişinizin durumunu hesabınızdan takip edebilirsiniz.</p>`
-                        )
-                    );
-                }
+                await confirmOrderPayment(orderId);
             } catch (confirmErr) {
                 console.error("Ödeme onayı işlenirken hata (stok/e-posta):", confirmErr);
                 logToFile('error.log', `ÖDEME ONAYI HATASI (order ${orderId}): ${confirmErr.stack || confirmErr}`);
@@ -1169,6 +1183,15 @@ app.get('/api/admin/customers', verifyToken, isAdmin, async (req, res) => {
 // Link API kullanıyoruz. Pro API onaylanınca bu rotayı iframe/get-token
 // akışına geri çevireceğiz (kodu arşivde duruyor).
 // ==========================================
+// ==========================================
+// PAYTR — iFRAME API (Direkt API / Sanal POS entegrasyonu)
+// ==========================================
+// NOT: Bu, PayTR'nin "Link ile Ödeme" API'sinden FARKLI bir entegrasyondur.
+// Müşteri PayTR'nin kendi sayfasına yönlendirilmiyor — ödeme formu doğrudan
+// kemborn.com üzerinde (iframe içinde) açılıyor. Bunun çalışabilmesi için
+// PayTR Mağaza Paneli'nde "Direkt API / iFrame" servisinin mağaza için
+// (445827 - kemborn.com) AÇIK/onaylı olması şart. Kapalıysa PayTR şu hatayı
+// döner: "Magaziniz icin ... servis yetkisi bulunmuyor."
 app.post('/api/payment', verifyToken, async (req, res) => {
   const { price, basketId, customer, items } = req.body;
 
@@ -1178,46 +1201,66 @@ app.post('/api/payment', verifyToken, async (req, res) => {
   if (!PAYTR_MERCHANT_ID || !PAYTR_MERCHANT_KEY || !PAYTR_MERCHANT_SALT) {
     return res.status(500).json({ error: "Ödeme sistemi henüz yapılandırılmamış (PayTR bilgileri eksik)." });
   }
+  if (!customer?.email || !customer?.adres || !customer?.telefon) {
+    return res.status(400).json({ error: "Müşteri bilgileri eksik (e-posta/adres/telefon)." });
+  }
 
   try {
+    // PayTR merchant_oid: sadece harf/rakam kabul ediyor, '-' işareti YASAK.
+    // Bu yüzden sipariş numaramızdaki (KB-1000) tireyi siliyoruz. Bildirim
+    // (webhook) geldiğinde de aynı şekilde tiresiz karşılaştırıyoruz.
+    const merchantOid = String(basketId).replace(/-/g, '');
     const priceInKurus = Math.round(parseFloat(price) * 100);
-    const itemNames = items.map(i => i.name).join(', ');
-    let name = `Kemborn Siparis ${basketId} - ${itemNames}`;
-    if (name.length > 200) name = name.slice(0, 200);
-    if (name.length < 4) name = `Kemborn Siparis ${basketId}`;
+    const userIp = req.ip || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || '127.0.0.1';
+    const userName = `${customer.ad || ''} ${customer.soyad || ''}`.trim() || 'Kemborn Müşterisi';
+
+    // PayTR sepet formatı: [ [ürün adı, birim fiyat(TL, string), adet], ... ]
+    const userBasket = items.map(i => [
+      String(i.name).slice(0, 100),
+      parseFloat(i.price ?? i.parsedPrice ?? 0).toFixed(2),
+      i.quantity || 1
+    ]);
+    const userBasketBase64 = Buffer.from(JSON.stringify(userBasket)).toString('base64');
 
     const currency = 'TL';
+    const noInstallment = '0';
     const maxInstallment = '12';
-    const linkType = 'product';
-    const lang = 'tr';
-    const minCount = '1';
 
-    const required = `${name}${priceInKurus}${currency}${maxInstallment}${linkType}${lang}${minCount}`;
+    // PayTR iFrame API hash formülü (dokümandaki sıra ile BİREBİR aynı olmalı)
+    const hashStr = `${PAYTR_MERCHANT_ID}${userIp}${merchantOid}${customer.email}${priceInKurus}${userBasketBase64}${noInstallment}${maxInstallment}${currency}${PAYTR_TEST_MODE}`;
     const paytrToken = crypto
       .createHmac('sha256', PAYTR_MERCHANT_KEY)
-      .update(required + PAYTR_MERCHANT_SALT)
+      .update(hashStr + PAYTR_MERCHANT_SALT)
       .digest('base64');
+
+    const frontendBase = process.env.FRONTEND_URL || 'https://kemborn.com';
 
     const body = new URLSearchParams({
       merchant_id: PAYTR_MERCHANT_ID,
-      name,
-      price: priceInKurus.toString(),
-      currency,
-      max_installment: maxInstallment,
-      link_type: linkType,
-      lang,
-      min_count: minCount,
-      max_count: '1', // Bu link sadece 1 kez kullanılabilsin (her siparişte yeni link üretiliyor)
+      user_ip: userIp,
+      merchant_oid: merchantOid,
+      email: customer.email,
+      payment_amount: priceInKurus.toString(),
+      paytr_token: paytrToken,
+      user_basket: userBasketBase64,
       debug_on: '1',
-      paytr_token: paytrToken
-      // NOT: callback_link BİLEREK gönderilmiyor — PayTR bunun localhost/port
-      // içermeyen GERÇEK bir adres olmasını şart koşuyor. Site yayına alınınca
-      // callback_link + callback_id ekleyip otomatik "ÖDENDİ" güncellemesini
-      // buraya da bağlayacağız. Şimdilik ödeme durumunu PayTR panelinden
-      // kontrol edip admin panelinden elle "TAMAMLANDI/ÖDENDİ" yapman gerekiyor.
+      no_installment: noInstallment,
+      max_installment: maxInstallment,
+      user_name: userName,
+      user_address: customer.adres,
+      user_phone: customer.telefon,
+      merchant_ok_url: `${frontendBase}/success`,
+      merchant_fail_url: `${frontendBase}/checkout`,
+      timeout_limit: '30',
+      currency,
+      test_mode: PAYTR_TEST_MODE,
+      lang: 'tr'
+      // NOT: Bildirim (webhook) adresi buradan değil, PayTR Mağaza Paneli >
+      // Ayarlar > Bildirim URL kısmından ayarlanıyor. O adresin
+      // https://<backend-adresin>/api/paytr-notify olarak girilmesi gerekiyor.
     });
 
-    const paytrResponse = await fetch('https://www.paytr.com/odeme/api/link/create', {
+    const paytrResponse = await fetch('https://www.paytr.com/odeme/api/get-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body
@@ -1225,11 +1268,11 @@ app.post('/api/payment', verifyToken, async (req, res) => {
     const result = await paytrResponse.json();
 
     if (result.status === 'success') {
-      res.json({ paymentPageUrl: result.link });
+      res.json({ token: result.token });
     } else {
-      console.error("PayTR Link oluşturma hatası:", result.reason || result.err_msg);
-      logToFile('error.log', `PAYTR LINK CREATE HATASI: ${result.reason || result.err_msg}`);
-      res.status(500).json({ error: "Ödeme linki oluşturulamadı, lütfen tekrar deneyin." });
+      console.error("PayTR token oluşturma hatası:", result.reason);
+      logToFile('error.log', `PAYTR GET-TOKEN HATASI: ${result.reason}`);
+      res.status(500).json({ error: result.reason || "Ödeme başlatılamadı, lütfen tekrar deneyin." });
     }
   } catch (err) {
     console.error("PayTR isteği sırasında hata:", err);
@@ -1259,14 +1302,28 @@ app.post('/api/paytr-notify', express.urlencoded({ extended: false }), async (re
     // merchant_oid içindeki '-' karakterleri istek atarken temizlenmişti,
     // bu yüzden order_number'daki '-' işaretlerini yok sayarak eşleştiriyoruz.
     const ordersResult = await client.query(
-      `SELECT id, order_number, user_id FROM orders WHERE REPLACE(order_number, '-', '') = $1`,
+      `SELECT id, order_number, status FROM orders WHERE REPLACE(order_number, '-', '') = $1`,
       [merchant_oid]
     );
 
     if (ordersResult.rows.length > 0) {
       const order = ordersResult.rows[0];
+      const previousStatus = (order.status || '').toUpperCase();
+      const wasPending = previousStatus === 'ÖDEME BEKLENİYOR' || previousStatus === 'ODEME BEKLENIYOR';
+
       if (status === 'success') {
         await client.query("UPDATE orders SET status = 'ÖDENDİ' WHERE id = $1", [order.id]);
+        // Sadece hâlâ "ÖDEME BEKLENİYOR" durumundaysa stok düş + mail gönder.
+        // (PayTR aynı bildirimi tekrar tekrar gönderebilir — wasPending kontrolü
+        // olmadan aynı siparişin stoğu birden fazla kez düşer, aynı mail tekrar gider.)
+        if (wasPending) {
+            try {
+                await confirmOrderPayment(order.id);
+            } catch (confirmErr) {
+                console.error("Otomatik ödeme onayı işlenirken hata (stok/e-posta):", confirmErr);
+                logToFile('error.log', `PAYTR OTOMATIK ONAY HATASI (order ${order.id}): ${confirmErr.stack || confirmErr}`);
+            }
+        }
       } else {
         await client.query("UPDATE orders SET status = 'ÖDEME BAŞARISIZ' WHERE id = $1", [order.id]);
       }

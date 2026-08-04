@@ -11,6 +11,28 @@ const CheckoutPage = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ ad: '', soyad: '', email: '', telefon: '', adres: '' });
+  // PayTR iFrame API: token alındığında ödeme formu PayTR'nin sayfasına
+  // yönlendirmek yerine DOĞRUDAN bu sayfanın içinde (iframe ile) açılır.
+  const [paytrToken, setPaytrToken] = useState(null);
+
+  // PayTR'nin iframe'i otomatik yükseklik ayarlaması için resmi script'i (bir
+  // kere) sayfaya ekliyoruz, token geldiğinde de iframe'e bağlıyoruz.
+  useEffect(() => {
+    if (!paytrToken) return;
+    const scriptId = 'paytr-iframe-resizer';
+    const initResizer = () => {
+      if (window.iFrameResize) window.iFrameResize({}, '#paytriframe');
+    };
+    if (document.getElementById(scriptId)) {
+      initResizer();
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = 'https://www.paytr.com/js/iframeResizer.min.js';
+    script.onload = initResizer;
+    document.body.appendChild(script);
+  }, [paytrToken]);
 
   // Kargo ücreti ve bedava kargo sınırı artık admin panelinden (Ayarlar) geliyor
   const [shippingSettings, setShippingSettings] = useState({ shipping_fee: 99.90, free_shipping_threshold: 1000 });
@@ -143,11 +165,12 @@ const CheckoutPage = () => {
 
       const paymentData = await paymentResponse.json();
 
-      if (paymentResponse.ok && paymentData?.paymentPageUrl) {
+      if (paymentResponse.ok && paymentData?.token) {
         toast.dismiss(loadingToast);
-        window.location.href = paymentData.paymentPageUrl; 
+        setPaytrToken(paymentData.token);
+        setLoading(false);
       } else {
-        throw new Error(paymentData.error || "Ödeme linki alınamadı");
+        throw new Error(paymentData.error || "Ödeme formu alınamadı");
       }
     } catch (error) {
       console.error("Ödeme/Kayıt hatası:", error);
@@ -195,6 +218,30 @@ const CheckoutPage = () => {
         >
           Ürünlere Göz At
         </Link>
+      </main>
+    );
+  }
+
+  // Token geldiyse, sipariş bilgi formu yerine doğrudan PayTR'nin güvenli
+  // ödeme formunu (iframe) gösteriyoruz — müşteri siteden hiç ayrılmıyor.
+  if (paytrToken) {
+    return (
+      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-12 min-h-[60vh]">
+        <h1 className="text-3xl sm:text-4xl font-black mb-6 text-zinc-900 tracking-tight">Güvenli Ödeme</h1>
+        <div className="bg-white p-2 sm:p-4 rounded-[2rem] border border-zinc-200 shadow-sm">
+          <iframe
+            src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
+            id="paytriframe"
+            title="PayTR Güvenli Ödeme"
+            frameBorder="0"
+            scrolling="no"
+            style={{ width: '100%', minHeight: '600px' }}
+          />
+        </div>
+        <div className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-zinc-400">
+          <FiShield size={18} className="text-cyan-600" />
+          <span>Kart bilgileriniz PayTR güvencesiyle 256-bit SSL ile korunmaktadır.</span>
+        </div>
       </main>
     );
   }
