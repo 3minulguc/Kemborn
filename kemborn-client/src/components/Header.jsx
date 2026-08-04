@@ -86,7 +86,7 @@ const Header = () => {
     <>
       <header className="w-full bg-white shadow-sm font-sans relative z-[60]">
         <div className="bg-[#18181B] w-full relative">
-          <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between gap-4 md:gap-6">
+          <div className="max-w-7xl mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4 md:gap-6">
             
             <button 
               className="md:hidden text-zinc-300 hover:text-white p-2 -ml-2"
@@ -96,7 +96,7 @@ const Header = () => {
             </button>
 
             <Link to="/" className="shrink-0 flex items-center justify-center absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
-              <img src="/logo.png" alt="KEMBORN" className="h-10 md:h-14 w-auto object-contain"/>
+              <img src="/logo.png" alt="KEMBORN" className="h-8 md:h-14 w-auto object-contain"/>
             </Link>
             
             <div className="hidden md:block flex-1 max-w-xl mx-8 relative group" ref={searchRef}>
@@ -218,16 +218,16 @@ const Header = () => {
         }`}
       />
 
-      {/* MOBİL MENÜ — SAĞDAN AÇILAN PANEL */}
+      {/* MOBİL MENÜ — SOLDAN AÇILAN PANEL (hamburger butonuyla aynı taraf) */}
       <div
-        className={`md:hidden fixed top-0 right-0 h-full w-[82%] max-w-sm z-[101] bg-white shadow-2xl transition-transform duration-300 ease-out flex flex-col ${
-          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`md:hidden fixed top-0 left-0 h-full w-[82%] max-w-sm z-[101] bg-white shadow-2xl transition-transform duration-300 ease-out flex flex-col ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Üst kısım: hesap özeti */}
-        <div className="bg-[#18181B] px-5 pt-6 pb-5 flex items-start justify-between">
+        <div className="bg-[#18181B] px-5 pt-8 pb-6 flex items-start justify-between">
           <div>
-            <img src="/logo.png" alt="KEMBORN" className="h-8 w-auto object-contain mb-3" />
+            <img src="/logo.png" alt="KEMBORN" className="h-10 w-auto object-contain mb-4" />
             {isAuthenticated ? (
               <Link to="/profile" onClick={closeMobileMenu} className="flex items-center gap-2 text-cyan-400 font-bold text-sm">
                 <FiUser size={16} /> Hesabım

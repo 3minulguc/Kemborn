@@ -28,7 +28,7 @@ const HomePage = () => {
 
   return (
     <main className="relative z-10 w-full font-sans">
-      <section className="relative w-full h-[70vh] md:h-[85vh] min-h-[480px] flex items-center justify-center overflow-hidden">
+      <section className="relative w-full h-[52vh] md:h-[85vh] min-h-[420px] flex items-center justify-center overflow-hidden">
         <picture className="absolute inset-0 -z-20">
           <source media="(min-width: 768px)" srcSet={heroDesktopWebp} type="image/webp" />
           <source media="(min-width: 768px)" srcSet={heroDesktopJpg} type="image/jpeg" />
@@ -49,7 +49,7 @@ const HomePage = () => {
             Yeni Nesil Sürüş Deneyimi
           </div>
           
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white leading-[1.15] md:leading-[1.1] drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)]">
+          <h1 className="text-3xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white leading-[1.15] md:leading-[1.1] drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)]">
             Sürüşte Sınır Yok,<br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">
               İletişimde Güç Var.
@@ -62,7 +62,7 @@ const HomePage = () => {
           
           <Link 
             to="/products"
-            className="inline-flex items-center justify-center gap-2 mt-8 md:mt-10 rounded-full bg-white px-8 py-4 md:px-10 md:py-5 text-base md:text-lg font-black text-zinc-900 shadow-xl shadow-black/30 hover:bg-cyan-500 hover:text-white hover:shadow-cyan-600/30 transition-all transform hover:-translate-y-1 active:scale-95"
+            className="inline-flex items-center justify-center gap-2 mt-6 md:mt-10 rounded-full bg-white px-6 py-3 md:px-10 md:py-5 text-sm md:text-lg font-black text-zinc-900 shadow-xl shadow-black/30 hover:bg-cyan-500 hover:text-white hover:shadow-cyan-600/30 transition-all transform hover:-translate-y-1 active:scale-95"
           >
             Tüm Ürünleri İncele <FiArrowRight size={20} />
           </Link>
