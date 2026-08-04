@@ -294,7 +294,7 @@ const ProductDetail = () => {
                 className={`flex-grow rounded-2xl font-black text-base md:text-lg transition-all shadow-lg active:scale-[0.98] ${
                   isOutOfStock 
                     ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed shadow-none' 
-                    : 'bg-zinc-900 text-white hover:bg-cyan-600 shadow-zinc-200'
+                    : 'bg-cyan-600 text-white hover:bg-cyan-700 shadow-cyan-600/30'
                 }`}
               >
                 {isOutOfStock ? 'Stokta Yok' : 'Sepete Ekle'}

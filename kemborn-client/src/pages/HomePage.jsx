@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { FiShoppingCart, FiArrowRight, FiShield, FiMic, FiBatteryCharging } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
+import { FiShoppingCart, FiArrowRight, FiShield, FiMic, FiBatteryCharging, FiHeart } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
 
@@ -12,9 +14,11 @@ import heroMobileJpg from '../assets/hero/hero-mobile.jpg';
 
 const HomePage = () => {
   const { addToCart } = useCart();
+  const { user } = useAuth();
   
   const [popularProducts, setPopularProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [favoriteIds, setFavoriteIds] = useState(new Set());
 
   useEffect(() => {
     fetch(`${API_URL}/api/products/popular`)
@@ -26,6 +30,68 @@ const HomePage = () => {
       .catch(err => console.error("Popüler ürünler yüklenemedi:", err))
       .finally(() => setLoading(false));
   }, []);
+
+  // Kullanıcı giriş yapmışsa favori ürün id'lerini çek (kartlarda kalbin dolu/boş görünmesi için)
+  useEffect(() => {
+    if (!user) {
+      setFavoriteIds(new Set());
+      return;
+    }
+    const token = sessionStorage.getItem('kemborn_token');
+    fetch(`${API_URL}/api/favorites/${user.id}`, {
+      headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setFavoriteIds(new Set(data.map(p => p.id)));
+        }
+      })
+      .catch(() => {});
+  }, [user]);
+
+  const handleFavoriteToggle = async (e, productId) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      toast.error("Favorilere eklemek için giriş yapmalısınız.");
+      return;
+    }
+    const token = sessionStorage.getItem('kemborn_token');
+    if (!token) {
+      toast.error("Oturum süresi dolmuş, lütfen tekrar giriş yapın.");
+      return;
+    }
+
+    const isFav = favoriteIds.has(productId);
+    try {
+      if (isFav) {
+        const res = await fetch(`${API_URL}/api/favorites/${user.id}/${productId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error();
+        setFavoriteIds(prev => {
+          const next = new Set(prev);
+          next.delete(productId);
+          return next;
+        });
+        toast.success("Favorilerden çıkarıldı.");
+      } else {
+        const res = await fetch(`${API_URL}/api/favorites`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ userId: user.id, productId })
+        });
+        if (!res.ok) throw new Error();
+        setFavoriteIds(prev => new Set(prev).add(productId));
+        toast.success("Favorilere eklendi.");
+      }
+    } catch {
+      toast.error("İşlem sırasında bir hata oluştu.");
+    }
+  };
 
   return (
     <main className="relative z-10 w-full font-sans">
@@ -104,6 +170,17 @@ const HomePage = () => {
                       {product.badge}
                     </span>
                   )}
+                  <button
+                    onClick={(e) => handleFavoriteToggle(e, product.id)}
+                    className={`absolute top-3 right-3 md:top-4 md:right-4 z-20 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm transition-all active:scale-90 ${
+                      favoriteIds.has(product.id)
+                        ? 'bg-red-50 text-red-500'
+                        : 'bg-white/90 text-zinc-400 hover:text-red-500'
+                    }`}
+                    title={favoriteIds.has(product.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                  >
+                    <FiHeart className="w-4 h-4 md:w-5 md:h-5" fill={favoriteIds.has(product.id) ? 'currentColor' : 'none'} />
+                  </button>
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
@@ -131,7 +208,7 @@ const HomePage = () => {
                         e.stopPropagation(); 
                         addToCart(product, 1, 'Siyah'); 
                       }}
-                      className="flex items-center justify-center w-9 h-9 md:w-12 md:h-12 bg-zinc-100 text-zinc-900 rounded-lg md:rounded-2xl hover:bg-zinc-900 hover:text-white transition-all transform active:scale-95 shadow-sm"
+                      className="flex items-center justify-center w-9 h-9 md:w-12 md:h-12 bg-cyan-600 text-white rounded-lg md:rounded-2xl hover:bg-cyan-700 transition-all transform active:scale-95 shadow-sm shadow-cyan-600/30"
                       title="Hızlıca Sepete Ekle"
                     >
                       <FiShoppingCart size={16} className="md:w-5 md:h-5" />

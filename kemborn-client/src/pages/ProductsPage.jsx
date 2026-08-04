@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { FiShoppingCart, FiSearch, FiX, FiSliders } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
+import { FiShoppingCart, FiSearch, FiX, FiSliders, FiHeart } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import PageHeader from '../components/PageHeader';
 import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
 
 const ProductsPage = () => {
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const [products, setProducts] = useState([]); 
   const [loading, setLoading] = useState(true); 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('default'); // default | price-asc | price-desc | name
   const [onlyInStock, setOnlyInStock] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState(new Set());
 
   useEffect(() => {
     fetch(`${API_URL}/api/products`)
@@ -26,6 +30,68 @@ const ProductsPage = () => {
         setLoading(false);
       });
   }, []);
+
+  // Kullanıcı giriş yapmışsa favori ürün id'lerini çek (kartlarda kalbin dolu/boş görünmesi için)
+  useEffect(() => {
+    if (!user) {
+      setFavoriteIds(new Set());
+      return;
+    }
+    const token = sessionStorage.getItem('kemborn_token');
+    fetch(`${API_URL}/api/favorites/${user.id}`, {
+      headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setFavoriteIds(new Set(data.map(p => p.id)));
+        }
+      })
+      .catch(() => {});
+  }, [user]);
+
+  const handleFavoriteToggle = async (e, productId) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      toast.error("Favorilere eklemek için giriş yapmalısınız.");
+      return;
+    }
+    const token = sessionStorage.getItem('kemborn_token');
+    if (!token) {
+      toast.error("Oturum süresi dolmuş, lütfen tekrar giriş yapın.");
+      return;
+    }
+
+    const isFav = favoriteIds.has(productId);
+    try {
+      if (isFav) {
+        const res = await fetch(`${API_URL}/api/favorites/${user.id}/${productId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error();
+        setFavoriteIds(prev => {
+          const next = new Set(prev);
+          next.delete(productId);
+          return next;
+        });
+        toast.success("Favorilerden çıkarıldı.");
+      } else {
+        const res = await fetch(`${API_URL}/api/favorites`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ userId: user.id, productId })
+        });
+        if (!res.ok) throw new Error();
+        setFavoriteIds(prev => new Set(prev).add(productId));
+        toast.success("Favorilere eklendi.");
+      }
+    } catch {
+      toast.error("İşlem sırasında bir hata oluştu.");
+    }
+  };
 
   const visibleProducts = useMemo(() => {
     let list = [...products];
@@ -136,6 +202,18 @@ const ProductsPage = () => {
                     </span>
                   )}
 
+                  <button
+                    onClick={(e) => handleFavoriteToggle(e, product.id)}
+                    className={`absolute top-1.5 right-1.5 md:top-4 md:right-4 z-20 w-7 h-7 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm transition-all active:scale-90 ${
+                      favoriteIds.has(product.id)
+                        ? 'bg-red-50 text-red-500'
+                        : 'bg-white/90 text-zinc-400 hover:text-red-500'
+                    }`}
+                    title={favoriteIds.has(product.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                  >
+                    <FiHeart className="w-3.5 h-3.5 md:w-5 md:h-5" fill={favoriteIds.has(product.id) ? 'currentColor' : 'none'} />
+                  </button>
+
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
@@ -167,14 +245,14 @@ const ProductsPage = () => {
                         if (!isProductOutOfStock) addToCart(product, 1, 'Siyah'); 
                       }}
                       disabled={isProductOutOfStock}
-                      className={`flex items-center justify-center w-7 h-7 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 ${
+                      className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 ${
                         isProductOutOfStock
                           ? 'bg-zinc-50 text-zinc-300 cursor-not-allowed'
-                          : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-950 hover:text-white'
+                          : 'bg-cyan-600 text-white hover:bg-cyan-700 shadow-cyan-600/30'
                       }`}
                       title={isProductOutOfStock ? 'Stokta Yok' : 'Hızlıca Sepete Ekle'}
                     >
-                      <FiShoppingCart className="w-3.5 h-3.5 md:w-5 md:h-5" />
+                      <FiShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
                   </div>
                 </div>
