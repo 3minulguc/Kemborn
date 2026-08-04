@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo } from 'react-icons/fi';
+import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo, FiShoppingBag, FiShare2 } from 'react-icons/fi';
 import { useCart } from '../context/CartContext'; 
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
@@ -206,6 +206,8 @@ const Header = () => {
             <Link to="/mesafeli-satis-sozlesmesi" className={`${isActive("/mesafeli-satis-sozlesmesi")} text-sm whitespace-nowrap`}>Mesafeli Satış Sözleşmesi</Link>
             <Link to="/contact" className={`${isActive("/contact")} text-sm whitespace-nowrap`}>İletişim</Link>
             <Link to="/about" className={`${isActive("/about")} text-sm whitespace-nowrap`}>Hakkımızda</Link>
+            <Link to="/magazalarimiz" className={`${isActive("/magazalarimiz")} text-sm whitespace-nowrap`}>Mağazalarımız</Link>
+            <Link to="/sosyal-medyalarimiz" className={`${isActive("/sosyal-medyalarimiz")} text-sm whitespace-nowrap`}>Sosyal Medyalarımız</Link>
           </div>
         </nav>
       </header>
@@ -308,6 +310,8 @@ const Header = () => {
               { path: "/mesafeli-satis-sozlesmesi", label: "Satış Sözleşmesi", icon: FiFileText },
               { path: "/contact", label: "İletişim", icon: FiPhone },
               { path: "/about", label: "Hakkımızda", icon: FiInfo },
+              { path: "/magazalarimiz", label: "Mağazalarımız", icon: FiShoppingBag },
+              { path: "/sosyal-medyalarimiz", label: "Sosyal Medyalarımız", icon: FiShare2 },
             ].map((link) => {
               const ItemIcon = link.icon;
               return (

@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { FiTrash2, FiShoppingBag, FiMinus, FiPlus, FiArrowRight, FiLock, FiShield } from 'react-icons/fi';
 import { formatPrice } from '../utils/format';
 import { API_URL } from '../config/api';
+import PageHeader from '../components/PageHeader';
 
 const CartPage = () => {
   const { cart, increaseQuantity, decreaseQuantity, removeFromCart, updateColor, clearCart } = useCart();
@@ -35,32 +36,32 @@ const CartPage = () => {
   const grandTotal = subtotal + shipping;
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 min-h-[70vh]">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-8 sm:pb-12 min-h-[70vh]">
       
-      {/* Sayfa Başlığı */}
-      <div className="flex items-center justify-between gap-4 mb-8 sm:mb-10">
-        <h1 className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight">Sepetim</h1>
-        {cart.length > 0 && (
+      <PageHeader title="Sepetim" />
+
+      {cart.length > 0 && (
+        <div className="flex justify-end -mt-6 mb-6">
           <button 
             onClick={clearCart} 
             className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-red-500 transition-colors bg-zinc-50 hover:bg-red-50 px-4 py-2 rounded-xl"
           >
             <FiTrash2 size={16} /> <span className="hidden sm:inline">Sepeti Temizle</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {cart.length === 0 ? (
         // BOŞ SEPET
-        <div className="text-center py-24 bg-white rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col items-center justify-center px-4">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-zinc-50 rounded-full flex items-center justify-center mb-6">
-            <FiShoppingBag className="text-zinc-300" size={40} />
+        <div className="text-center py-16 sm:py-24 bg-white rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col items-center justify-center px-4">
+          <div className="w-16 h-16 sm:w-24 sm:h-24 bg-zinc-50 rounded-full flex items-center justify-center mb-4 sm:mb-6">
+            <FiShoppingBag className="text-zinc-300" size={30} />
           </div>
-          <h2 className="text-2xl font-black text-zinc-900 mb-2">Sepetiniz şu an boş</h2>
-          <p className="text-zinc-500 font-medium mb-8">Kemborn dünyasını keşfetmek için ürünlerimize göz atın.</p>
+          <h2 className="text-lg sm:text-2xl font-black text-zinc-900 mb-1.5 sm:mb-2">Sepetiniz şu an boş</h2>
+          <p className="text-sm sm:text-base text-zinc-500 font-medium mb-5 sm:mb-8">Kemborn dünyasını keşfetmek için ürünlerimize göz atın.</p>
           <Link 
             to="/products" 
-            className="inline-flex items-center justify-center bg-cyan-600 text-white px-8 py-4 rounded-2xl font-black text-lg hover:bg-cyan-700 transition-all shadow-lg hover:shadow-cyan-600/30 active:scale-95"
+            className="inline-flex items-center justify-center bg-cyan-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-2xl font-black text-sm sm:text-lg hover:bg-cyan-700 transition-colors shadow-lg hover:shadow-cyan-600/30 active:scale-95"
           >
             Alışverişe Başla
           </Link>

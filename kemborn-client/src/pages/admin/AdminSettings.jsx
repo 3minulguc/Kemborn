@@ -19,7 +19,10 @@ const AdminSettings = () => {
     delivery_return_policy: '',
     trendyol_url: '',
     hepsiburada_url: '',
-    n11_url: ''
+    n11_url: '',
+    instagram_url: '',
+    youtube_url: '',
+    tiktok_url: ''
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +64,10 @@ const AdminSettings = () => {
           delivery_return_policy: data.delivery_return_policy || '',
           trendyol_url: data.trendyol_url || '',
           hepsiburada_url: data.hepsiburada_url || '',
-          n11_url: data.n11_url || ''
+          n11_url: data.n11_url || '',
+          instagram_url: data.instagram_url || '',
+          youtube_url: data.youtube_url || '',
+          tiktok_url: data.tiktok_url || ''
         });
       }
     } catch (error) {
@@ -254,6 +260,47 @@ const AdminSettings = () => {
               <input
                 type="text" name="n11_url" value={settings.n11_url} onChange={handleChange}
                 placeholder="https://www.n11.com/magaza/..."
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 font-medium"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* --- SOSYAL MEDYA BAĞLANTILARI --- */}
+        <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col gap-6">
+          <div className="border-b border-zinc-100 pb-4">
+            <h2 className="text-xl font-black text-zinc-800 mb-1">Sosyal Medya Bağlantıları</h2>
+            <p className="text-sm text-zinc-500 font-medium">"Sosyal Medyalarımız" sayfasında ve sitenin ilgili yerlerinde bu linkler kullanılır. Boş bırakılan platform gösterilmez.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="flex items-center gap-2 text-sm font-bold text-zinc-900 mb-2">
+                Instagram Linki
+              </label>
+              <input
+                type="text" name="instagram_url" value={settings.instagram_url} onChange={handleChange}
+                placeholder="https://www.instagram.com/kembornn/"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 font-medium"
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-sm font-bold text-zinc-900 mb-2">
+                YouTube Linki
+              </label>
+              <input
+                type="text" name="youtube_url" value={settings.youtube_url} onChange={handleChange}
+                placeholder="https://www.youtube.com/@kemborn"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 font-medium"
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-sm font-bold text-zinc-900 mb-2">
+                TikTok Linki
+              </label>
+              <input
+                type="text" name="tiktok_url" value={settings.tiktok_url} onChange={handleChange}
+                placeholder="https://www.tiktok.com/@kemborn"
                 className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 font-medium"
               />
             </div>

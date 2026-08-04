@@ -71,7 +71,7 @@ const ContactPage = () => {
       <PageHeader title="İletişim" />
       
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-2 gap-3 sm:gap-8">
           
           {contactInfo.map((item, index) => (
             <a 
@@ -79,24 +79,25 @@ const ContactPage = () => {
               href={item.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative overflow-hidden flex flex-col items-center justify-center p-12 bg-white rounded-[2.5rem] border border-zinc-100 hover:border-cyan-200 hover:shadow-2xl hover:shadow-cyan-900/5 transition-all duration-500 text-center cursor-pointer"
+              className="group relative overflow-hidden flex flex-col items-center justify-center p-4 sm:p-12 bg-white rounded-2xl sm:rounded-[2.5rem] border border-zinc-100 hover:border-cyan-200 hover:shadow-2xl hover:shadow-cyan-900/5 transition-all duration-500 text-center cursor-pointer"
             >
               <div className="absolute inset-0 bg-gradient-to-b from-cyan-50/0 to-cyan-50/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-              <div className="relative z-10 w-20 h-20 bg-zinc-50 text-zinc-500 group-hover:scale-110 group-hover:bg-cyan-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-cyan-600/30 rounded-3xl flex items-center justify-center mb-6 transition-all duration-500">
-                {item.icon}
+              <div className="relative z-10 w-11 h-11 sm:w-20 sm:h-20 bg-zinc-50 text-zinc-500 group-hover:scale-110 group-hover:bg-cyan-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-cyan-600/30 rounded-xl sm:rounded-3xl flex items-center justify-center mb-2.5 sm:mb-6 transition-all duration-500">
+                {React.cloneElement(item.icon, { size: 18, className: 'sm:hidden' })}
+                <span className="hidden sm:block">{item.icon}</span>
               </div>
 
-              <p className="relative z-10 text-xs text-zinc-400 uppercase tracking-[0.2em] font-black mb-3 group-hover:text-cyan-700 transition-colors duration-300">
+              <p className="relative z-10 text-[9px] sm:text-xs text-zinc-400 uppercase tracking-[0.1em] sm:tracking-[0.2em] font-black mb-1 sm:mb-3 group-hover:text-cyan-700 transition-colors duration-300">
                 {item.label}
               </p>
-              <p className="relative z-10 text-2xl sm:text-3xl text-zinc-900 font-black tracking-tight mb-2">
+              <p className="relative z-10 text-xs sm:text-3xl text-zinc-900 font-black tracking-tight mb-1 sm:mb-2 break-words leading-tight px-1">
                 {item.value}
               </p>
 
-              <div className="relative z-10 overflow-hidden h-6 mt-4">
-                <span className="flex items-center justify-center gap-2 text-sm font-black text-cyan-600 translate-y-8 group-hover:translate-y-0 transition-transform duration-500">
-                  {item.actionText} <FiArrowRight size={16} />
+              <div className="relative z-10 overflow-hidden h-5 sm:h-6 mt-1.5 sm:mt-4">
+                <span className="flex items-center justify-center gap-1 sm:gap-2 text-[10px] sm:text-sm font-black text-cyan-600 translate-y-8 group-hover:translate-y-0 transition-transform duration-500 whitespace-nowrap">
+                  {item.actionText} <FiArrowRight size={12} className="sm:hidden" /><FiArrowRight size={16} className="hidden sm:block" />
                 </span>
               </div>
 

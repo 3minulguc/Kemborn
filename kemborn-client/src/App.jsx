@@ -16,6 +16,8 @@ import HomePage from './pages/HomePage';
 import ProductDetail from './pages/ProductDetail';
 import ProductsPage from './pages/ProductsPage';
 import AboutPage from './pages/AboutPage';
+import StoresPage from './pages/StoresPage';
+import SocialMediaPage from './pages/SocialMediaPage';
 import ContactPage from './pages/ContactPage';
 import PolicyPage from './pages/PolicyPage';
 import DeliveryPage from './pages/DeliveryPage';
@@ -78,6 +80,8 @@ function App() {
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/about" element={<AboutPage />} />
+              <Route path="/magazalarimiz" element={<StoresPage />} />
+              <Route path="/sosyal-medyalarimiz" element={<SocialMediaPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/policy" element={<PolicyPage />} />
               <Route path="/delivery" element={<DeliveryPage />} />

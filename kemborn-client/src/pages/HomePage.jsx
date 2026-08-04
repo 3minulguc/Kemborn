@@ -81,7 +81,7 @@ const HomePage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {loading ? (
             <div className="col-span-full text-center py-12 font-bold text-zinc-400 animate-pulse">
               Popüler Modeller Yükleniyor...
@@ -92,24 +92,23 @@ const HomePage = () => {
             </div>
           ) : (
             popularProducts.map((product) => (
-              <div key={product.id} className="w-full max-w-[280px] mx-auto sm:max-w-none">
-                <ProductCard
-                  product={product}
-                  favoriteIds={favoriteIds}
-                  onToggleFavorite={toggleFavorite}
-                />
-              </div>
+              <ProductCard
+                key={product.id}
+                product={product}
+                favoriteIds={favoriteIds}
+                onToggleFavorite={toggleFavorite}
+              />
             ))
           )}
         </div>
       </section>
-      <section className="relative py-8 md:py-16 overflow-hidden bg-zinc-900">
+      <section className="relative py-6 md:py-16 overflow-hidden bg-zinc-900">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[140%] md:w-[900px] h-[350px] md:h-[480px] bg-cyan-500/20 blur-[90px] md:blur-[120px] rounded-full pointer-events-none"></div>
         <div className="absolute -bottom-20 -right-20 w-[400px] h-[400px] bg-blue-500/15 blur-[100px] rounded-full pointer-events-none"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
           
           <div className="text-center mb-6 md:mb-12">
-            <h2 className="text-xl md:text-3xl font-black text-white mb-2 md:mb-4">Sınırları Aşan Teknoloji</h2>
+            <h2 className="text-lg md:text-3xl font-black text-white mb-1.5 md:mb-4">Sınırları Aşan Teknoloji</h2>
             <p className="text-zinc-400 font-bold max-w-2xl mx-auto text-sm md:text-base">
               Kemborn interkom sistemleri, en zorlu yolculuklarınızda bile sizi dünyaya ve sevdiklerinize kesintisiz bağlar.
             </p>
@@ -117,28 +116,28 @@ const HomePage = () => {
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-8">
             <div className="group p-4 md:p-8 bg-white/5 backdrop-blur-sm rounded-2xl md:rounded-[2rem] border border-white/10 hover:border-cyan-500 shadow-sm hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-300 hover:-translate-y-2">
-              <div className="w-10 h-10 md:w-16 md:h-16 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center text-cyan-400 shadow-sm mb-3 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-500 group-hover:text-white transition-all duration-300">
-                <FiMic size={24} className="md:w-7 md:h-7" />
+              <div className="w-8 h-8 md:w-16 md:h-16 bg-white/10 rounded-lg md:rounded-2xl flex items-center justify-center text-cyan-400 shadow-sm mb-2 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-500 group-hover:text-white transition-all duration-300">
+                <FiMic size={16} className="md:w-7 md:h-7" />
               </div>
-              <h3 className="text-base md:text-xl font-black text-white mb-1.5 md:mb-3">Kristal Netliğinde Ses</h3>
+              <h3 className="text-sm md:text-xl font-black text-white mb-1 md:mb-3">Kristal Netliğinde Ses</h3>
               <p className="text-zinc-400 font-bold leading-relaxed text-xs md:text-sm">
                 Gelişmiş DSP ve CVC gürültü engelleme teknolojisi sayesinde, yüksek hızlarda bile rüzgar ve motor sesini filtreler.
               </p>
             </div>
             <div className="group p-4 md:p-8 bg-white/5 backdrop-blur-sm rounded-2xl md:rounded-[2rem] border border-white/10 hover:border-cyan-500 shadow-sm hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-300 hover:-translate-y-2">
-              <div className="w-10 h-10 md:w-16 md:h-16 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center text-cyan-400 shadow-sm mb-3 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-500 group-hover:text-white transition-all duration-300">
-                <FiShield size={24} className="md:w-7 md:h-7" />
+              <div className="w-8 h-8 md:w-16 md:h-16 bg-white/10 rounded-lg md:rounded-2xl flex items-center justify-center text-cyan-400 shadow-sm mb-2 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-500 group-hover:text-white transition-all duration-300">
+                <FiShield size={16} className="md:w-7 md:h-7" />
               </div>
-              <h3 className="text-base md:text-xl font-black text-white mb-1.5 md:mb-3">Zorlu Şartlara Hazır</h3>
+              <h3 className="text-sm md:text-xl font-black text-white mb-1 md:mb-3">Zorlu Şartlara Hazır</h3>
               <p className="text-zinc-400 font-bold leading-relaxed text-xs md:text-sm">
                 IP67 sertifikası ile suya, toza ve çamura karşı tam koruma. Sağanak yağmurda bile iletişimi koparmadan yola devam edin.
               </p>
             </div>
             <div className="group p-4 md:p-8 bg-white/5 backdrop-blur-sm rounded-2xl md:rounded-[2rem] border border-white/10 hover:border-cyan-500 shadow-sm hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-300 hover:-translate-y-2">
-              <div className="w-10 h-10 md:w-16 md:h-16 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center text-cyan-400 shadow-sm mb-3 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-500 group-hover:text-white transition-all duration-300">
-                <FiBatteryCharging size={24} className="md:w-7 md:h-7" />
+              <div className="w-8 h-8 md:w-16 md:h-16 bg-white/10 rounded-lg md:rounded-2xl flex items-center justify-center text-cyan-400 shadow-sm mb-2 md:mb-6 group-hover:scale-110 group-hover:bg-cyan-500 group-hover:text-white transition-all duration-300">
+                <FiBatteryCharging size={16} className="md:w-7 md:h-7" />
               </div>
-              <h3 className="text-base md:text-xl font-black text-white mb-1.5 md:mb-3">Gün Boyu Kesintisiz</h3>
+              <h3 className="text-sm md:text-xl font-black text-white mb-1 md:mb-3">Gün Boyu Kesintisiz</h3>
               <p className="text-zinc-400 font-bold leading-relaxed text-xs md:text-sm">
                 Yüksek kapasiteli bataryası ile tek şarjda 15 saate kadar kesintisiz konuşma ve yüzlerce saat bekleme süresi sunar.
               </p>
