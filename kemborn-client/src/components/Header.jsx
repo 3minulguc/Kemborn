@@ -86,7 +86,7 @@ const Header = () => {
     <>
       <header className="w-full bg-white shadow-sm font-sans relative z-[60]">
         <div className="bg-[#18181B] w-full relative">
-          <div className="max-w-7xl mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4 md:gap-6">
+          <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between gap-4 md:gap-6">
             
             <button 
               className="md:hidden text-zinc-300 hover:text-white p-2 -ml-2"
@@ -96,7 +96,7 @@ const Header = () => {
             </button>
 
             <Link to="/" className="shrink-0 flex items-center justify-center absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
-              <img src="/logo.png" alt="KEMBORN" className="h-8 md:h-14 w-auto object-contain"/>
+              <img src="/logo.png" alt="KEMBORN" className="h-10 md:h-14 w-auto object-contain"/>
             </Link>
             
             <div className="hidden md:block flex-1 max-w-xl mx-8 relative group" ref={searchRef}>
@@ -224,21 +224,10 @@ const Header = () => {
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Üst kısım: hesap özeti */}
-        <div className="bg-[#18181B] px-5 pt-8 pb-6 flex items-start justify-between">
-          <div>
-            <img src="/logo.png" alt="KEMBORN" className="h-10 w-auto object-contain mb-4" />
-            {isAuthenticated ? (
-              <Link to="/profile" onClick={closeMobileMenu} className="flex items-center gap-2 text-cyan-400 font-bold text-sm">
-                <FiUser size={16} /> Hesabım
-              </Link>
-            ) : (
-              <Link to="/auth" onClick={closeMobileMenu} className="flex items-center gap-2 text-white font-bold text-sm">
-                <FiUser size={16} /> Giriş Yap / Kayıt Ol
-              </Link>
-            )}
-          </div>
-          <button onClick={closeMobileMenu} className="text-zinc-400 hover:text-white p-1 -mr-1 -mt-1">
+        {/* Üst kısım: logo */}
+        <div className="bg-[#18181B] px-5 pt-8 pb-6 flex items-center justify-between">
+          <img src="/logo.png" alt="KEMBORN" className="h-10 w-auto object-contain" />
+          <button onClick={closeMobileMenu} className="text-zinc-400 hover:text-white p-1">
             <FiX size={24} />
           </button>
         </div>
@@ -337,7 +326,16 @@ const Header = () => {
         </div>
 
         {/* Alt kısım: Instagram */}
-        <div className="p-4 border-t border-zinc-100">
+        <div className="p-4 border-t border-zinc-100 space-y-2">
+          {isAuthenticated ? (
+            <Link to="/profile" onClick={closeMobileMenu} className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-zinc-100 text-zinc-900 font-bold text-sm">
+              <FiUser size={18} /> Hesabım
+            </Link>
+          ) : (
+            <Link to="/auth" onClick={closeMobileMenu} className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-cyan-600 text-white font-bold text-sm shadow-sm shadow-cyan-600/30">
+              <FiUser size={18} /> Giriş Yap / Kayıt Ol
+            </Link>
+          )}
           <a href="https://www.instagram.com/kembornn/" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-zinc-900 text-white font-bold text-sm">
             <FiInstagram size={18} className="text-pink-400" /> Bizi Takip Edin
           </a>
