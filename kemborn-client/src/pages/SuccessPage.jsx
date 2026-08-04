@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext'; 
 import { FiPackage, FiShoppingBag, FiCheckCircle } from 'react-icons/fi';
 
 const SuccessPage = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { clearCart } = useCart(); 
   const [verifying, setVerifying] = useState(true);
@@ -53,14 +52,14 @@ const SuccessPage = () => {
       <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
         
         <button 
-          onClick={() => navigate('/profile/orders')} 
+          onClick={() => { window.location.href = '/profile/orders'; }} 
           className="flex-1 bg-zinc-900 text-white px-6 py-4 rounded-2xl font-black hover:bg-cyan-600 transition-all shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2 active:scale-95"
         >
           <FiPackage size={20} /> Siparişlerimi Gör
         </button>
         
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => { window.location.href = '/'; }}
           className="flex-1 bg-zinc-50 text-zinc-900 border border-zinc-200 px-6 py-4 rounded-2xl font-black hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 active:scale-95"
         >
           <FiShoppingBag size={20} /> Alışverişe Dön
