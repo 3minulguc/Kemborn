@@ -40,7 +40,7 @@ const MarketplaceWidget = () => {
   if (activeMarketplaces.length === 0) return null;
 
   return (
-    <div ref={wrapperRef} className="fixed right-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-end">
+    <div ref={wrapperRef} className="fixed right-0 bottom-28 sm:bottom-32 z-40 flex flex-col items-end pointer-events-none">
       {/* Açılan panel */}
       <div
         className={`mb-2 mr-3 bg-white rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden transition-all duration-200 origin-bottom-right ${
@@ -73,11 +73,10 @@ const MarketplaceWidget = () => {
       {/* Sabit buton */}
       <button
         onClick={() => setIsOpen((v) => !v)}
-        className="flex items-center gap-2 bg-zinc-900 hover:bg-cyan-600 text-white pl-3.5 pr-3 py-3 rounded-l-2xl shadow-lg transition-all"
+        className="pointer-events-auto flex items-center gap-2 bg-zinc-900 hover:bg-cyan-600 text-white pl-4 pr-3.5 py-3 rounded-l-2xl shadow-lg transition-all"
         title="Diğer mağazalarımız"
       >
         <FiShoppingBag size={18} />
-        <span className="text-xs font-black [writing-mode:vertical-rl] rotate-180 hidden sm:block">MAĞAZALARIMIZ</span>
       </button>
     </div>
   );

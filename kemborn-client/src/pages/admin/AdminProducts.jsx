@@ -652,7 +652,7 @@ const AdminProducts = () => {
               Popüler<br/>Modeller
             </div>
             <div className="flex gap-2 h-full">
-              {[0, 1, 2].map((index) => {
+              {[0, 1, 2, 3].map((index) => {
                 const popProduct = popularProducts[index];
                 return (
                   <div key={index} className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center overflow-hidden transition-all border-2 ${popProduct ? 'border-amber-400 bg-amber-50 shadow-sm' : 'border-dashed border-zinc-200 bg-zinc-50 group-hover:border-cyan-300 group-hover:bg-cyan-50'}`}>
