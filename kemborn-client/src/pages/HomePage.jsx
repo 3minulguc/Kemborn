@@ -164,12 +164,20 @@ const HomePage = () => {
                 to={`/product/${product.id}`} 
                 className="group flex flex-col bg-white rounded-2xl md:rounded-[2rem] p-3 md:p-4 shadow-sm border border-zinc-200 transition-all duration-300 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-900/5 relative z-10 overflow-hidden w-full max-w-[300px] sm:max-w-none mx-auto sm:mx-0"
               >
-                <div className="aspect-[4/5] bg-zinc-100 rounded-xl md:rounded-3xl mb-3 md:mb-6 relative overflow-hidden transition-colors duration-500 group-hover:bg-cyan-50 flex items-center justify-center border border-zinc-50">
+                {/* 1. FİYAT */}
+                <div className="flex items-center justify-between mb-2 md:mb-3">
+                  <span className="text-lg md:text-2xl font-black text-cyan-700 tracking-tight">
+                    {formatPrice(product.price)} TL
+                  </span>
                   {product.badge && (
-                    <span className="absolute top-3 left-3 md:top-4 md:left-4 bg-zinc-900 text-white text-[9px] md:text-xs font-bold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full z-20 shadow-sm">
+                    <span className="bg-zinc-900 text-white text-[9px] md:text-xs font-bold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full shadow-sm">
                       {product.badge}
                     </span>
                   )}
+                </div>
+
+                {/* 2. GÖRSEL */}
+                <div className="aspect-[4/5] bg-zinc-100 rounded-xl md:rounded-3xl mb-3 md:mb-4 relative overflow-hidden transition-colors duration-500 group-hover:bg-cyan-50 flex items-center justify-center border border-zinc-50">
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
@@ -179,16 +187,17 @@ const HomePage = () => {
                   ) : (
                     <span className="text-zinc-400 font-medium text-sm md:text-base group-hover:scale-110 transition-transform duration-500">Görsel</span>
                   )}
-                  <span className="absolute bottom-3 left-3 md:bottom-4 md:left-4 bg-white/95 text-cyan-700 text-sm md:text-lg font-black px-2.5 md:px-3.5 py-1 md:py-1.5 rounded-lg md:rounded-xl z-20 shadow-sm">
-                    {formatPrice(product.price)} TL
-                  </span>
                 </div>
                 <div className="flex flex-col flex-grow px-1 md:px-2 pb-1 md:pb-2">
+                  {/* 3. ÜRÜN MODELİ */}
                   <h3 className="text-base md:text-xl font-black text-zinc-900 mb-1 md:mb-2">{product.name}</h3>
+
+                  {/* 4. AÇIKLAMA */}
                   <p className="text-xs md:text-sm text-zinc-500 mb-3 md:mb-6 line-clamp-2 leading-relaxed">
                     {product.short_description || 'Ürün açıklaması bulunmuyor.'}
                   </p>
                   
+                  {/* 5. BUTONLAR */}
                   <div className="flex items-center justify-end gap-2 mt-auto pt-3 md:pt-4 border-t border-zinc-100">
                     <button
                       onClick={(e) => handleFavoriteToggle(e, product.id)}

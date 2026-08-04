@@ -189,19 +189,25 @@ const ProductsPage = () => {
                 to={`/product/${product.id}`} 
                 className="group flex flex-col bg-white rounded-xl md:rounded-[2rem] p-2 md:p-4 shadow-sm border border-zinc-200 transition-all duration-300 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-900/5 relative z-10 overflow-hidden"
               >
-                
-                <div className="aspect-[4/5] bg-zinc-50 rounded-lg md:rounded-3xl mb-2 md:mb-6 relative overflow-hidden transition-colors duration-500 group-hover:bg-cyan-50 flex items-center justify-center border border-zinc-100">
+                {/* 1. FİYAT */}
+                <div className="flex items-center justify-between mb-1.5 md:mb-3">
+                  <span className="text-sm md:text-2xl font-black text-cyan-700 tracking-tight">
+                    {formatPrice(product.price)} TL
+                  </span>
                   {product.badge && !isProductOutOfStock && (
-                    <span className="absolute top-1.5 left-1.5 md:top-4 md:left-4 bg-zinc-900 text-white text-[8px] md:text-[10px] font-black px-1.5 md:px-2.5 py-1 md:py-1.5 rounded-full z-20 uppercase tracking-wider shadow-sm">
+                    <span className="bg-zinc-900 text-white text-[8px] md:text-[10px] font-black px-1.5 md:px-2.5 py-1 md:py-1.5 rounded-full uppercase tracking-wider">
                       {product.badge}
                     </span>
                   )}
                   {isProductOutOfStock && (
-                    <span className="absolute top-1.5 left-1.5 md:top-4 md:left-4 bg-red-600 text-white text-[8px] md:text-[10px] font-black px-1.5 md:px-2.5 py-1 md:py-1.5 rounded-full z-20 uppercase tracking-wider shadow-sm">
+                    <span className="bg-red-600 text-white text-[8px] md:text-[10px] font-black px-1.5 md:px-2.5 py-1 md:py-1.5 rounded-full uppercase tracking-wider">
                       Tükendi
                     </span>
                   )}
+                </div>
 
+                {/* 2. GÖRSEL */}
+                <div className="aspect-[4/5] bg-zinc-50 rounded-lg md:rounded-3xl mb-2 md:mb-4 relative overflow-hidden transition-colors duration-500 group-hover:bg-cyan-50 flex items-center justify-center border border-zinc-100">
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
@@ -211,22 +217,20 @@ const ProductsPage = () => {
                   ) : (
                     <span className="text-zinc-300 font-medium group-hover:scale-110 transition-transform duration-500 text-xs md:text-base">Görsel Yok</span>
                   )}
-
-                  {!isProductOutOfStock && (
-                    <span className="absolute bottom-1.5 left-1.5 md:bottom-4 md:left-4 bg-white/95 text-cyan-700 text-xs md:text-lg font-black px-2 md:px-3.5 py-1 md:py-1.5 rounded-lg md:rounded-xl z-20 shadow-sm">
-                      {formatPrice(product.price)} TL
-                    </span>
-                  )}
                 </div>
                 
                 <div className="flex flex-col flex-grow px-0.5 md:px-2 pb-0.5 md:pb-2">
+                  {/* 3. ÜRÜN MODELİ */}
                   <h3 className="text-xs md:text-xl font-black text-zinc-900 mb-0.5 md:mb-2 line-clamp-1 group-hover:text-cyan-600 transition-colors">
                     {product.name}
                   </h3>
+
+                  {/* 4. AÇIKLAMA */}
                   <p className="hidden md:block text-xs md:text-sm text-zinc-500 mb-4 md:mb-6 line-clamp-2 leading-relaxed">
                     {product.short_description || 'Ürün açıklaması bulunmuyor.'}
                   </p>
                   
+                  {/* 5. BUTONLAR */}
                   <div className="flex items-center justify-end gap-2 mt-auto pt-1.5 md:pt-4 border-t border-zinc-100 relative z-20">
                     <button
                       onClick={(e) => handleFavoriteToggle(e, product.id)}
