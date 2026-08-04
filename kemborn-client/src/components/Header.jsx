@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiChevronRight } from 'react-icons/fi';
+import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo } from 'react-icons/fi';
 import { useCart } from '../context/CartContext'; 
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
@@ -210,94 +210,137 @@ const Header = () => {
         </nav>
       </header>
 
-      {/* MOBİL MENÜ */}
-      <div 
-        className={`md:hidden fixed inset-0 z-[100] bg-[#18181B] transition-transform duration-300 ease-in-out ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      {/* MOBİL MENÜ — ARKA PLAN (dokununca kapanır) */}
+      <div
+        onClick={closeMobileMenu}
+        className={`md:hidden fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      />
+
+      {/* MOBİL MENÜ — SAĞDAN AÇILAN PANEL */}
+      <div
+        className={`md:hidden fixed top-0 right-0 h-full w-[82%] max-w-sm z-[101] bg-white shadow-2xl transition-transform duration-300 ease-out flex flex-col ${
+          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between h-20 px-4 border-b border-zinc-800">
-          <Link to="/" onClick={closeMobileMenu}>
-            <img src="/logo.png" alt="KEMBORN" className="h-10 w-auto object-contain"/>
-          </Link>
-          <button onClick={closeMobileMenu} className="text-zinc-400 hover:text-white p-2">
-            <FiX size={32} />
+        {/* Üst kısım: hesap özeti */}
+        <div className="bg-[#18181B] px-5 pt-6 pb-5 flex items-start justify-between">
+          <div>
+            <img src="/logo.png" alt="KEMBORN" className="h-8 w-auto object-contain mb-3" />
+            {isAuthenticated ? (
+              <Link to="/profile" onClick={closeMobileMenu} className="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+                <FiUser size={16} /> Hesabım
+              </Link>
+            ) : (
+              <Link to="/auth" onClick={closeMobileMenu} className="flex items-center gap-2 text-white font-bold text-sm">
+                <FiUser size={16} /> Giriş Yap / Kayıt Ol
+              </Link>
+            )}
+          </div>
+          <button onClick={closeMobileMenu} className="text-zinc-400 hover:text-white p-1 -mr-1 -mt-1">
+            <FiX size={24} />
           </button>
         </div>
 
-        <div className="flex flex-col h-[calc(100vh-5rem)] overflow-y-auto">
-          <div className="p-6 pb-2">
+        <div className="flex-1 overflow-y-auto">
+          {/* Arama */}
+          <div className="p-4">
             <div className="relative">
-              <FiSearch className="absolute left-4 top-4 text-zinc-500" size={20} />
-              <input 
-                type="text" 
+              <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+              <input
+                type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[#0A0A0A] text-white border border-zinc-800 font-medium focus:outline-none focus:border-cyan-600 transition-all placeholder:text-zinc-600" 
-                placeholder="Model ara..." 
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-100 text-zinc-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-cyan-600/30 transition-all placeholder:text-zinc-500"
+                placeholder="Model ara..."
               />
             </div>
-            
+
             {searchQuery.trim().length > 0 && (
-               <div className="mt-4 bg-[#0A0A0A] rounded-2xl border border-zinc-800 overflow-hidden">
-                 {filteredProducts.length > 0 ? (
-                   filteredProducts.map(product => (
-                     <Link 
-                       key={product.id} 
-                       to={`/product/${product.id}`}
-                       onClick={closeMobileMenu}
-                       className="flex items-center gap-4 p-4 border-b border-zinc-800/50 last:border-0"
-                     >
-                       <img src={product.image_url || "/logo.png"} alt={product.name} className="w-12 h-12 rounded-xl object-cover bg-zinc-900" />
-                       <div className="flex-1 min-w-0">
-                         <div className="text-base font-bold text-white truncate">{product.name}</div>
-                         <div className="text-sm font-black text-cyan-500">{product.price} TL</div>
-                       </div>
-                     </Link>
-                   ))
-                 ) : (
-                   <div className="p-4 text-center text-sm text-zinc-500 font-bold">Sonuç bulunamadı</div>
-                 )}
-               </div>
+              <div className="mt-3 bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map(product => (
+                    <Link
+                      key={product.id}
+                      to={`/product/${product.id}`}
+                      onClick={closeMobileMenu}
+                      className="flex items-center gap-3 p-3 border-b border-zinc-100 last:border-0"
+                    >
+                      <img src={product.image_url || "/logo.png"} alt={product.name} className="w-10 h-10 rounded-lg object-cover bg-zinc-100 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-zinc-900 truncate">{product.name}</div>
+                        <div className="text-xs font-black text-cyan-600">{product.price} TL</div>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="p-3 text-center text-xs text-zinc-500 font-bold">Sonuç bulunamadı</div>
+                )}
+              </div>
             )}
           </div>
 
-          <div className="flex flex-col px-6 mt-6 gap-2 flex-grow">
+          {/* Ana Navigasyon */}
+          <div className="px-4">
             {[
-              { path: "/", label: "Ana Sayfa" },
-              { path: "/products", label: "Tüm Ürünler" },
-              { path: "/delivery", label: "Teslimat ve İade" },
-              { path: "/policy", label: "Gizlilik Politikası" },
-              { path: "/mesafeli-satis-sozlesmesi", label: "Satış Sözleşmesi" },
-              { path: "/contact", label: "İletişim" },
-              { path: "/about", label: "Hakkımızda" },
-            ].map((link, idx) => (
-              <Link 
-                key={idx}
-                to={link.path} 
-                onClick={closeMobileMenu} // <-- Linklere eklendi
-                className="group flex items-center justify-between py-4 text-2xl font-black text-zinc-400 hover:text-white transition-colors border-b border-zinc-800/50"
-              >
-                {link.label}
-                <FiChevronRight size={24} className="text-zinc-700 group-hover:text-cyan-500 transition-colors" />
-              </Link>
-            ))}
+              { path: "/", label: "Ana Sayfa", icon: FiHome },
+              { path: "/products", label: "Tüm Ürünler", icon: FiGrid },
+              { path: "/cart", label: "Sepetim", icon: FiShoppingCart, badge: cartCount > 0 ? cartCount : null },
+            ].map((link) => {
+              const ItemIcon = link.icon;
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={closeMobileMenu}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl mb-1 transition-colors ${
+                    location.pathname === link.path ? 'bg-cyan-50 text-cyan-700' : 'text-zinc-800 hover:bg-zinc-50'
+                  }`}
+                >
+                  <ItemIcon size={19} className="flex-shrink-0" />
+                  <span className="font-bold text-[15px] flex-1">{link.label}</span>
+                  {link.badge && (
+                    <span className="bg-cyan-600 text-white text-[11px] font-black w-5 h-5 rounded-full flex items-center justify-center">
+                      {link.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
 
-          <div className="p-6 mt-8 space-y-4">
-             {isAuthenticated ? (
-                <Link to="/profile" onClick={closeMobileMenu} className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-zinc-900 text-white font-bold text-lg border border-zinc-800">
-                  <FiUser size={22} /> Hesabım
+          {/* Kurumsal / Bilgi */}
+          <div className="px-4 mt-4 pt-4 border-t border-zinc-100">
+            <p className="px-3 mb-1.5 text-[11px] font-black text-zinc-400 uppercase tracking-widest">Kurumsal</p>
+            {[
+              { path: "/delivery", label: "Teslimat ve İade", icon: FiTruck },
+              { path: "/policy", label: "Gizlilik Politikası", icon: FiShield },
+              { path: "/mesafeli-satis-sozlesmesi", label: "Satış Sözleşmesi", icon: FiFileText },
+              { path: "/contact", label: "İletişim", icon: FiPhone },
+              { path: "/about", label: "Hakkımızda", icon: FiInfo },
+            ].map((link) => {
+              const ItemIcon = link.icon;
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-600 hover:bg-zinc-50 transition-colors"
+                >
+                  <ItemIcon size={17} className="flex-shrink-0 text-zinc-400" />
+                  <span className="font-semibold text-sm">{link.label}</span>
                 </Link>
-              ) : (
-                <Link to="/auth" onClick={closeMobileMenu} className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-cyan-600 text-white font-black text-lg shadow-lg shadow-cyan-900/20">
-                  <FiUser size={22} /> Giriş Yap / Kayıt Ol
-                </Link>
-              )}
-            <a href="https://www.instagram.com/kembornn/" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-zinc-900 text-pink-500 font-bold text-lg border border-zinc-800">
-              <FiInstagram size={22} /> Bizi Takip Edin
-            </a>
+              );
+            })}
           </div>
+        </div>
+
+        {/* Alt kısım: Instagram */}
+        <div className="p-4 border-t border-zinc-100">
+          <a href="https://www.instagram.com/kembornn/" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-zinc-900 text-white font-bold text-sm">
+            <FiInstagram size={18} className="text-pink-400" /> Bizi Takip Edin
+          </a>
         </div>
       </div>
     </>

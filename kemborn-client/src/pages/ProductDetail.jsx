@@ -32,6 +32,7 @@ const ProductDetail = () => {
   const [selectedColor, setSelectedColor] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -171,7 +172,21 @@ const ProductDetail = () => {
         
         {/* Görsel Alanı */}
         <div className="bg-white p-5 md:p-8 rounded-3xl border border-zinc-200 shadow-sm">
-          <div className="w-full aspect-[4/5] max-h-[70vh] bg-zinc-50 rounded-2xl flex items-center justify-center relative overflow-hidden">
+          <div 
+            className="w-full aspect-[4/5] max-h-[70vh] bg-zinc-50 rounded-2xl flex items-center justify-center relative overflow-hidden touch-pan-y"
+            onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+            onTouchEnd={(e) => {
+              if (touchStartX === null || galleryMedia.length <= 1) return;
+              const deltaX = e.changedTouches[0].clientX - touchStartX;
+              const SWIPE_THRESHOLD = 40;
+              if (deltaX > SWIPE_THRESHOLD) {
+                setSelectedMediaIndex((prev) => (prev - 1 + galleryMedia.length) % galleryMedia.length);
+              } else if (deltaX < -SWIPE_THRESHOLD) {
+                setSelectedMediaIndex((prev) => (prev + 1) % galleryMedia.length);
+              }
+              setTouchStartX(null);
+            }}
+          >
             {isEntirelyOutOfStock && (
               <div className="absolute inset-0 bg-white/50 backdrop-blur-[2px] flex items-center justify-center z-10">
                 <span className="bg-black text-white font-black px-6 py-3 rounded-xl text-xl md:text-2xl rotate-[-5deg] tracking-widest">TÜKENDİ</span>
