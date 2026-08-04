@@ -16,7 +16,10 @@ const AdminSettings = () => {
     office_address: '',
     distance_selling_policy: '',
     privacy_policy: '',
-    delivery_return_policy: ''
+    delivery_return_policy: '',
+    trendyol_url: '',
+    hepsiburada_url: '',
+    n11_url: ''
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -55,7 +58,10 @@ const AdminSettings = () => {
           office_address: data.office_address || '',
           distance_selling_policy: data.distance_selling_policy || '',
           privacy_policy: data.privacy_policy || '',
-          delivery_return_policy: data.delivery_return_policy || ''
+          delivery_return_policy: data.delivery_return_policy || '',
+          trendyol_url: data.trendyol_url || '',
+          hepsiburada_url: data.hepsiburada_url || '',
+          n11_url: data.n11_url || ''
         });
       }
     } catch (error) {
@@ -207,6 +213,47 @@ const AdminSettings = () => {
               <input 
                 type="text" name="office_address" value={settings.office_address} onChange={handleChange}
                 placeholder="Örn: Manisa, Türkiye"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 font-medium"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* --- PAZARYERİ BAĞLANTILARI --- */}
+        <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col gap-6">
+          <div className="border-b border-zinc-100 pb-4">
+            <h2 className="text-xl font-black text-zinc-800 mb-1">Pazaryeri Bağlantıları</h2>
+            <p className="text-sm text-zinc-500 font-medium">Buraya girdiğin linkler, sitenin sağ kenarındaki vitrin butonunda otomatik görünür. Boş bıraktığın pazaryeri butonda hiç çıkmaz.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="flex items-center gap-2 text-sm font-bold text-zinc-900 mb-2">
+                Trendyol Mağaza Linki
+              </label>
+              <input
+                type="text" name="trendyol_url" value={settings.trendyol_url} onChange={handleChange}
+                placeholder="https://www.trendyol.com/magaza/..."
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 font-medium"
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-sm font-bold text-zinc-900 mb-2">
+                Hepsiburada Mağaza Linki
+              </label>
+              <input
+                type="text" name="hepsiburada_url" value={settings.hepsiburada_url} onChange={handleChange}
+                placeholder="https://www.hepsiburada.com/magaza/..."
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 font-medium"
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-sm font-bold text-zinc-900 mb-2">
+                n11 Mağaza Linki
+              </label>
+              <input
+                type="text" name="n11_url" value={settings.n11_url} onChange={handleChange}
+                placeholder="https://www.n11.com/magaza/..."
                 className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 font-medium"
               />
             </div>
