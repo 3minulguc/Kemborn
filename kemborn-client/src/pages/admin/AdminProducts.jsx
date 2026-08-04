@@ -574,8 +574,8 @@ const AdminProducts = () => {
     if (popularDraft.includes(productId)) {
       setPopularDraft(popularDraft.filter(id => id !== productId));
     } else {
-      if (popularDraft.length >= 3) {
-        alert("Maksimum 3 adet popüler model seçebilirsiniz!");
+      if (popularDraft.length >= 4) {
+        alert("Maksimum 4 adet popüler model seçebilirsiniz!");
         return;
       }
       setPopularDraft([...popularDraft, productId]);
@@ -814,7 +814,7 @@ const AdminProducts = () => {
             <div className="flex justify-between items-center p-6 border-b border-zinc-100">
               <div>
                 <h2 className="text-2xl font-black text-zinc-900">Popüler Modeller</h2>
-                <p className="text-sm text-zinc-500 mt-1">Ana sayfada sergilenecek en fazla 3 popüler ürün seçin (1 veya 2 tane de seçebilirsiniz). ({popularDraft.length}/3 Seçildi)</p>
+                <p className="text-sm text-zinc-500 mt-1">Ana sayfada sergilenecek en fazla 4 popüler ürün seçin (1, 2 veya 3 tane de seçebilirsiniz). ({popularDraft.length}/4 Seçildi)</p>
               </div>
               <button onClick={() => setIsPopularModalOpen(false)} className="p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 rounded-xl transition-all">
                 <FiX size={24} />
@@ -824,7 +824,7 @@ const AdminProducts = () => {
             <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 gap-3 bg-zinc-50">
               {products.map((product) => {
                 const isSelected = popularDraft.includes(product.id);
-                const isDisabled = !isSelected && popularDraft.length >= 3;
+                const isDisabled = !isSelected && popularDraft.length >= 4;
 
                 return (
                   <div 
