@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext'; 
@@ -32,7 +32,7 @@ const ProductDetail = () => {
   const [selectedColor, setSelectedColor] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
-  const [touchStartX, setTouchStartX] = useState(null);
+  const touchStartXRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -174,17 +174,17 @@ const ProductDetail = () => {
         <div className="bg-white p-5 md:p-8 rounded-3xl border border-zinc-200 shadow-sm">
           <div 
             className="w-full aspect-[4/5] max-h-[70vh] bg-zinc-50 rounded-2xl flex items-center justify-center relative overflow-hidden touch-pan-y"
-            onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+            onTouchStart={(e) => { touchStartXRef.current = e.touches[0].clientX; }}
             onTouchEnd={(e) => {
-              if (touchStartX === null || galleryMedia.length <= 1) return;
-              const deltaX = e.changedTouches[0].clientX - touchStartX;
+              if (touchStartXRef.current === null || galleryMedia.length <= 1) return;
+              const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
               const SWIPE_THRESHOLD = 40;
               if (deltaX > SWIPE_THRESHOLD) {
                 setSelectedMediaIndex((prev) => (prev - 1 + galleryMedia.length) % galleryMedia.length);
               } else if (deltaX < -SWIPE_THRESHOLD) {
                 setSelectedMediaIndex((prev) => (prev + 1) % galleryMedia.length);
               }
-              setTouchStartX(null);
+              touchStartXRef.current = null;
             }}
           >
             {isEntirelyOutOfStock && (
