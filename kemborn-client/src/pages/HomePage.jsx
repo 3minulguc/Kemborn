@@ -179,6 +179,9 @@ const HomePage = () => {
                   ) : (
                     <span className="text-zinc-400 font-medium text-sm md:text-base group-hover:scale-110 transition-transform duration-500">Görsel</span>
                   )}
+                  <span className="absolute bottom-3 left-3 md:bottom-4 md:left-4 bg-white/95 text-cyan-700 text-sm md:text-lg font-black px-2.5 md:px-3.5 py-1 md:py-1.5 rounded-lg md:rounded-xl z-20 shadow-sm">
+                    {formatPrice(product.price)} TL
+                  </span>
                 </div>
                 <div className="flex flex-col flex-grow px-1 md:px-2 pb-1 md:pb-2">
                   <h3 className="text-base md:text-xl font-black text-zinc-900 mb-1 md:mb-2">{product.name}</h3>
@@ -186,37 +189,31 @@ const HomePage = () => {
                     {product.short_description || 'Ürün açıklaması bulunmuyor.'}
                   </p>
                   
-                  <div className="flex flex-col gap-2 md:flex-row md:justify-between md:items-center mt-auto pt-3 md:pt-4 border-t border-zinc-100">
-                    <span className="text-lg md:text-2xl font-black text-cyan-700 tracking-tight">
-                      {formatPrice(product.price)} TL
-                    </span>
-                    
-                    <div className="flex items-center gap-2 md:gap-3">
-                      <button
-                        onClick={(e) => handleFavoriteToggle(e, product.id)}
-                        className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 border flex-shrink-0 ${
-                          favoriteIds.has(product.id)
-                            ? 'bg-red-50 text-red-500 border-red-100'
-                            : 'bg-white text-zinc-400 border-zinc-200 hover:text-red-500 hover:border-red-200'
-                        }`}
-                        title={favoriteIds.has(product.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-                      >
-                        <FiHeart className="w-4 h-4 md:w-5 md:h-5" fill={favoriteIds.has(product.id) ? 'currentColor' : 'none'} />
-                      </button>
+                  <div className="flex items-center justify-end gap-2 mt-auto pt-3 md:pt-4 border-t border-zinc-100">
+                    <button
+                      onClick={(e) => handleFavoriteToggle(e, product.id)}
+                      className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 border flex-shrink-0 ${
+                        favoriteIds.has(product.id)
+                          ? 'bg-red-50 text-red-500 border-red-100'
+                          : 'bg-white text-zinc-400 border-zinc-200 hover:text-red-500 hover:border-red-200'
+                      }`}
+                      title={favoriteIds.has(product.id) ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                    >
+                      <FiHeart className="w-4 h-4 md:w-5 md:h-5" fill={favoriteIds.has(product.id) ? 'currentColor' : 'none'} />
+                    </button>
 
-                      <button 
-                        onClick={(e) => { 
-                          e.preventDefault(); 
-                          e.stopPropagation(); 
-                          addToCart(product, 1, 'Siyah'); 
-                        }}
-                        className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 h-9 md:w-12 md:h-12 px-3 md:px-0 bg-cyan-600 text-white rounded-lg md:rounded-2xl hover:bg-cyan-700 transition-all transform active:scale-95 shadow-sm shadow-cyan-600/30"
-                        title="Hızlıca Sepete Ekle"
-                      >
-                        <FiShoppingBag size={16} className="md:w-5 md:h-5 flex-shrink-0" />
-                        <span className="text-xs font-bold md:hidden">Sepete Ekle</span>
-                      </button>
-                    </div>
+                    <button 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        addToCart(product, 1, 'Siyah'); 
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1.5 h-9 md:h-12 px-3 bg-cyan-600 text-white rounded-lg md:rounded-2xl hover:bg-cyan-700 transition-all transform active:scale-95 shadow-sm shadow-cyan-600/30"
+                      title="Hızlıca Sepete Ekle"
+                    >
+                      <FiShoppingBag size={16} className="md:w-5 md:h-5 flex-shrink-0" />
+                      <span className="text-xs md:text-sm font-bold">Sepete Ekle</span>
+                    </button>
                   </div>
                 </div>
               </Link>
