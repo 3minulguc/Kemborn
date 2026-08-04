@@ -33,6 +33,7 @@ const ProductDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const touchStartXRef = useRef(null);
+  const touchStartYRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -174,17 +175,26 @@ const ProductDetail = () => {
         <div className="bg-white p-5 md:p-8 rounded-3xl border border-zinc-200 shadow-sm">
           <div 
             className="w-full aspect-[4/5] max-h-[70vh] bg-zinc-50 rounded-2xl flex items-center justify-center relative overflow-hidden touch-pan-y"
-            onTouchStart={(e) => { touchStartXRef.current = e.touches[0].clientX; }}
+            onTouchStart={(e) => {
+              touchStartXRef.current = e.touches[0].clientX;
+              touchStartYRef.current = e.touches[0].clientY;
+            }}
             onTouchEnd={(e) => {
               if (touchStartXRef.current === null || galleryMedia.length <= 1) return;
               const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
-              const SWIPE_THRESHOLD = 40;
-              if (deltaX > SWIPE_THRESHOLD) {
-                setSelectedMediaIndex((prev) => (prev - 1 + galleryMedia.length) % galleryMedia.length);
-              } else if (deltaX < -SWIPE_THRESHOLD) {
-                setSelectedMediaIndex((prev) => (prev + 1) % galleryMedia.length);
+              const deltaY = e.changedTouches[0].clientY - (touchStartYRef.current ?? 0);
+              const SWIPE_THRESHOLD = 45;
+              // Yatay hareket dikey hareketten belirgin şekilde fazlaysa (sayfa kaydırma
+              // ile karışmasın diye) ve eşiği geçtiyse galeri gezinmesini tetikle.
+              if (Math.abs(deltaX) > SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+                if (deltaX > 0) {
+                  setSelectedMediaIndex((prev) => (prev - 1 + galleryMedia.length) % galleryMedia.length);
+                } else {
+                  setSelectedMediaIndex((prev) => (prev + 1) % galleryMedia.length);
+                }
               }
               touchStartXRef.current = null;
+              touchStartYRef.current = null;
             }}
           >
             {isEntirelyOutOfStock && (
@@ -222,6 +232,22 @@ const ProductDetail = () => {
               </>
             )}
           </div>
+
+          {/* KAYDIRMA NOKTALARI */}
+          {galleryMedia.length > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-3">
+              {galleryMedia.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedMediaIndex(index)}
+                  aria-label={`${index + 1}. görsele git`}
+                  className={`rounded-full transition-all ${
+                    index === selectedMediaIndex ? 'w-6 h-2 bg-cyan-600' : 'w-2 h-2 bg-zinc-200 hover:bg-zinc-300'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
 
           {/* GALERİ KÜÇÜK RESİMLERİ */}
           {galleryMedia.length > 1 && (
