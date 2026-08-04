@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { FiPlus, FiArrowRight, FiShield, FiMic, FiBatteryCharging, FiHeart } from 'react-icons/fi';
+import { FiShoppingBag, FiArrowRight, FiShield, FiMic, FiBatteryCharging, FiHeart } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
@@ -191,7 +191,7 @@ const HomePage = () => {
                       {formatPrice(product.price)} TL
                     </span>
                     
-                    <div className="flex items-center gap-1.5 md:gap-2">
+                    <div className="flex items-center gap-3 md:gap-3">
                       <button
                         onClick={(e) => handleFavoriteToggle(e, product.id)}
                         className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 border ${
@@ -213,7 +213,7 @@ const HomePage = () => {
                         className="flex items-center justify-center w-9 h-9 md:w-12 md:h-12 bg-cyan-600 text-white rounded-lg md:rounded-2xl hover:bg-cyan-700 transition-all transform active:scale-95 shadow-sm shadow-cyan-600/30"
                         title="Hızlıca Sepete Ekle"
                       >
-                        <FiPlus size={18} className="md:w-6 md:h-6" strokeWidth={3} />
+                        <FiShoppingBag size={16} className="md:w-5 md:h-5" />
                       </button>
                     </div>
                   </div>

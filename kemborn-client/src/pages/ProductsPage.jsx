@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { FiSearch, FiX, FiSliders, FiHeart, FiPlus } from 'react-icons/fi';
+import { FiSearch, FiX, FiSliders, FiHeart, FiShoppingBag } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import PageHeader from '../components/PageHeader';
 import { API_URL } from '../config/api';
@@ -226,7 +226,7 @@ const ProductsPage = () => {
                       {formatPrice(product.price)} TL
                     </span>
                     
-                    <div className="flex items-center gap-1.5 md:gap-2">
+                    <div className="flex items-center gap-3 md:gap-3">
                       <button
                         onClick={(e) => handleFavoriteToggle(e, product.id)}
                         className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 border ${
@@ -253,7 +253,7 @@ const ProductsPage = () => {
                         }`}
                         title={isProductOutOfStock ? 'Stokta Yok' : 'Hızlıca Sepete Ekle'}
                       >
-                        <FiPlus className="w-4 h-4 md:w-6 md:h-6" strokeWidth={3} />
+                        <FiShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
                       </button>
                     </div>
                   </div>
