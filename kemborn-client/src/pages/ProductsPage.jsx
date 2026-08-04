@@ -221,15 +221,15 @@ const ProductsPage = () => {
                     {product.short_description || 'Ürün açıklaması bulunmuyor.'}
                   </p>
                   
-                  <div className="flex justify-between items-center mt-auto pt-1.5 md:pt-4 border-t border-zinc-100 relative z-20">
-                    <span className="text-sm md:text-2xl font-black text-cyan-700 tracking-tight">
+                  <div className="flex flex-col gap-2 md:flex-row md:justify-between md:items-center mt-auto pt-1.5 md:pt-4 border-t border-zinc-100 relative z-20">
+                    <span className="text-base md:text-2xl font-black text-cyan-700 tracking-tight">
                       {formatPrice(product.price)} TL
                     </span>
                     
-                    <div className="flex items-center gap-3 md:gap-3">
+                    <div className="flex items-center gap-2 md:gap-3">
                       <button
                         onClick={(e) => handleFavoriteToggle(e, product.id)}
-                        className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 border ${
+                        className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 border flex-shrink-0 ${
                           favoriteIds.has(product.id)
                             ? 'bg-red-50 text-red-500 border-red-100'
                             : 'bg-white text-zinc-400 border-zinc-200 hover:text-red-500 hover:border-red-200'
@@ -246,14 +246,15 @@ const ProductsPage = () => {
                           if (!isProductOutOfStock) addToCart(product, 1, 'Siyah'); 
                         }}
                         disabled={isProductOutOfStock}
-                        className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 ${
+                        className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 h-9 md:w-12 md:h-12 px-3 md:px-0 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 ${
                           isProductOutOfStock
                             ? 'bg-zinc-50 text-zinc-300 cursor-not-allowed'
                             : 'bg-cyan-600 text-white hover:bg-cyan-700 shadow-cyan-600/30'
                         }`}
                         title={isProductOutOfStock ? 'Stokta Yok' : 'Hızlıca Sepete Ekle'}
                       >
-                        <FiShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
+                        <FiShoppingBag className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+                        <span className="text-xs font-bold md:hidden">{isProductOutOfStock ? 'Stokta Yok' : 'Sepete Ekle'}</span>
                       </button>
                     </div>
                   </div>
