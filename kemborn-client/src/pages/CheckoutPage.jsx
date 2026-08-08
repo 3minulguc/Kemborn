@@ -14,6 +14,9 @@ const CheckoutPage = () => {
   // PayTR iFrame API: token alındığında ödeme formu PayTR'nin sayfasına
   // yönlendirmek yerine DOĞRUDAN bu sayfanın içinde (iframe ile) açılır.
   const [paytrToken, setPaytrToken] = useState(null);
+  // Sunucu, sepetteki fiyatların değiştiğini bildirirse doğru tutarı buraya
+  // yazıyoruz ve müşteriye güncel tutarı gösteriyoruz.
+  const [serverTotal, setServerTotal] = useState(null);
 
   // PayTR'nin iframe'i otomatik yükseklik ayarlaması için resmi script'i (bir
   // kere) sayfaya ekliyoruz, token geldiğinde de iframe'e bağlıyoruz.
@@ -100,6 +103,16 @@ const CheckoutPage = () => {
   const shipping = subtotal > shippingSettings.free_shipping_threshold ? 0 : shippingSettings.shipping_fee;
   const grandTotal = subtotal + shipping;
 
+  // Sepetin o anki içeriğini tek bir metinle temsil ediyoruz. Sunucudan gelen
+  // tutar düzeltmesi HANGİ sepete aitse onu da saklıyoruz; sepet değişirse
+  // düzeltme kendiliğinden geçersiz olur (ayrıca sıfırlamaya gerek kalmaz).
+  const cartSignature = cart.map(i => `${i.id}:${i.color || ''}:${i.quantity}`).join('|');
+  const priceCorrection = serverTotal?.signature === cartSignature ? serverTotal.total : null;
+
+  // Ödenecek tutar: normalde bizim hesabımız, sunucu düzeltme bildirdiyse onunki.
+  // Nihai tutarı her zaman sunucu belirler; buradaki hesap sadece gösterim içindir.
+  const displayedTotal = priceCorrection ?? grandTotal;
+
   const handleCompleteOrder = async () => {
     if (isCartEmpty) return;
 
@@ -127,39 +140,51 @@ const CheckoutPage = () => {
       const fullAddress = `${formData.ad} ${formData.soyad}\n${formData.telefon}\n${formData.adres}`;
       const token = sessionStorage.getItem('kemborn_token'); 
 
+      // NOT: Fiyat ve tutar BİLEREK gönderilmiyor. Sunucu bunları kendi
+      // veritabanından hesaplıyor. Buradan sadece "hangi üründen kaç adet"
+      // bilgisi ve ekranda gösterdiğimiz tutar (doğrulama amaçlı) gidiyor.
       const dbResponse = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-            userId: user?.id,
-            items: cart.map(item => ({ productId: item.id, name: item.name, quantity: item.quantity, price: parsePrice(item.price), color: item.color })),
-            totalAmount: grandTotal,
+            items: cart.map(item => ({ productId: item.id, quantity: item.quantity, color: item.color })),
+            expectedTotal: displayedTotal,
             shippingAddress: fullAddress,
             paymentMethod: "Kredi Kartı"
         })
       });
 
-      if (!dbResponse.ok) {
-        throw new Error("Sipariş veritabanına kaydedilemedi. Token süresi dolmuş olabilir.");
+      const dbData = await dbResponse.json();
+
+      // Sunucunun hesapladığı tutar bizim gösterdiğimizden farklıysa (ürünün
+      // fiyatı sepette beklerken değişmişse) sipariş oluşturulmaz. Müşteriye
+      // doğru tutarı gösterip onayını bekliyoruz.
+      if (dbResponse.status === 409 && dbData?.priceChanged) {
+        setServerTotal({ total: dbData.totalAmount, signature: cartSignature });
+        toast.dismiss(loadingToast);
+        toast.error(dbData.error || "Fiyatlar güncellendi, lütfen tekrar deneyin.", { duration: 6000 });
+        setLoading(false);
+        return;
       }
 
-      const dbData = await dbResponse.json();
-      const generatedOrderNumber = dbData.orderNumber; 
+      if (!dbResponse.ok) {
+        throw new Error(dbData?.error || "Sipariş veritabanına kaydedilemedi. Token süresi dolmuş olabilir.");
+      }
+
+      const generatedOrderNumber = dbData.orderNumber;
 
       const paymentResponse = await fetch(`${API_URL}/api/payment`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          price: grandTotal.toString(),
-          basketId: generatedOrderNumber, 
-          customer: formData,
-          items: cart
+          basketId: generatedOrderNumber,
+          customer: formData
         })
       });
 
@@ -175,7 +200,9 @@ const CheckoutPage = () => {
     } catch (error) {
       console.error("Ödeme/Kayıt hatası:", error);
       toast.dismiss(loadingToast);
-      toast.error("İşlem başlatılamadı, lütfen tekrar deneyin.");
+      // Sunucudan gelen açıklayıcı mesajı (stok yetersiz, ürün satışta değil vb.)
+      // müşteriye olduğu gibi gösteriyoruz; yoksa genel mesaja düşüyoruz.
+      toast.error(error.message || "İşlem başlatılamadı, lütfen tekrar deneyin.", { duration: 5000 });
       setLoading(false);
     }
   };
@@ -342,9 +369,18 @@ const CheckoutPage = () => {
               <div className="flex justify-between items-end">
                 <span className="font-bold text-zinc-500 pb-1">Genel Toplam</span>
                 <span className="text-3xl font-black text-cyan-600 tracking-tight">
-                  {grandTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                  {displayedTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
                 </span>
               </div>
+
+              {priceCorrection !== null && (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                  <p className="text-sm font-bold text-amber-800">
+                    Sepetinizdeki ürünlerin fiyatı güncellendi. Ödenecek güncel tutar yukarıda gösterilmektedir.
+                    Devam etmek için "Siparişi Tamamla" butonuna tekrar basın.
+                  </p>
+                </div>
+              )}
             </div>
             
             <button 

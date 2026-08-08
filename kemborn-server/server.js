@@ -177,7 +177,24 @@ const isAdmin = (req, res, next) => {
     if (!req.user || req.user.role !== 'admin') {
         return res.status(403).json({ error: "Yetkisiz erişim! Sadece yöneticiler girebilir." });
     }
-    next(); 
+    next();
+};
+
+// --- SAHİPLİK KONTROLÜ ---
+// verifyToken "geçerli bir üye mi?" sorusunu cevaplıyor ama "bu veri ONA mı ait?"
+// sorusunu cevaplamıyordu. Bu eksik yüzünden bir üye, adresteki id'yi değiştirerek
+// BAŞKASININ profiline / siparişlerine / favorilerine erişebiliyordu (IDOR).
+// Aşağıdaki yardımcı, token'daki id ile adresteki id'yi karşılaştırır.
+// NOT: Token'dan gelen id sayı, adresten gelen id metin olduğu için String() ile eşitliyoruz.
+const isSelf = (req, paramName) => String(req.user?.id) === String(req.params[paramName]);
+const isAdminUser = (req) => req.user?.role === 'admin';
+
+// Rota parametresindeki kullanıcı id'si, isteği yapan kişinin kendisi (ya da admin) olmalı.
+const verifyOwnership = (paramName) => (req, res, next) => {
+    if (!isSelf(req, paramName) && !isAdminUser(req)) {
+        return res.status(403).json({ error: "Bu bilgiye erişim yetkiniz yok." });
+    }
+    next();
 };
 
 // ==========================================
@@ -615,7 +632,7 @@ app.put('/api/settings', verifyToken, isAdmin, async (req, res) => {
 // ==========================================
 // --- FAVORİLER ROTALARI ---
 // ==========================================
-app.get('/api/favorites/:userId', verifyToken, async (req, res) => {
+app.get('/api/favorites/:userId', verifyToken, verifyOwnership('userId'), async (req, res) => {
   try {
     const result = await client.query(`SELECT p.* FROM products p JOIN favorites f ON p.id = f.product_id WHERE f.user_id = $1`, [req.params.userId]);
     res.json(result.rows);
@@ -625,7 +642,11 @@ app.get('/api/favorites/:userId', verifyToken, async (req, res) => {
 });
 
 app.post('/api/favorites', verifyToken, async (req, res) => {
-  const { userId, productId } = req.body;
+  const { productId } = req.body;
+  // GÜVENLİK: userId artık istekten OKUNMUYOR, token'dan alınıyor.
+  // Aksi halde bir üye, body'ye başka bir userId yazarak başkasının
+  // favori listesine ürün ekleyebiliyordu.
+  const userId = req.user.id;
   try {
     await client.query('INSERT INTO favorites (user_id, product_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, productId]);
     res.status(201).json({ message: "Favorilere eklendi" });
@@ -634,7 +655,7 @@ app.post('/api/favorites', verifyToken, async (req, res) => {
   }
 });
 
-app.delete('/api/favorites/:userId/:productId', verifyToken, async (req, res) => {
+app.delete('/api/favorites/:userId/:productId', verifyToken, verifyOwnership('userId'), async (req, res) => {
   try {
     await client.query('DELETE FROM favorites WHERE user_id = $1 AND product_id = $2', [req.params.userId, req.params.productId]);
     res.status(200).json({ message: "Favorilerden silindi" });
@@ -783,7 +804,7 @@ app.post('/api/reset-password', resetPasswordLimiter, async (req, res) => {
 // ==========================================
 // --- KULLANICI PROFİL ROTALARI ---
 // ==========================================
-app.get('/api/users/:id', verifyToken, async (req, res) => {
+app.get('/api/users/:id', verifyToken, verifyOwnership('id'), async (req, res) => {
     try {
         const result = await client.query('SELECT id, username, email, phone, address, role FROM users WHERE id = $1', [req.params.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
@@ -793,7 +814,7 @@ app.get('/api/users/:id', verifyToken, async (req, res) => {
     }
 });
 
-app.put('/api/users/:id', verifyToken, async (req, res) => {
+app.put('/api/users/:id', verifyToken, verifyOwnership('id'), async (req, res) => {
     const { username, phone, address } = req.body;
     try {
         const result = await client.query('UPDATE users SET username = $1, phone = $2, address = $3 WHERE id = $4 RETURNING id, username, email, role, phone, address', [username, phone, address, req.params.id]);
@@ -807,7 +828,7 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
 // ==========================================
 // --- ŞİFRE GÜNCELLEME ROTASI (DÜZELTİLDİ) ---
 // ==========================================
-app.put('/api/users/:id/password', verifyToken, async (req, res) => {
+app.put('/api/users/:id/password', verifyToken, verifyOwnership('id'), async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
@@ -863,7 +884,7 @@ app.put('/api/users/:id/password', verifyToken, async (req, res) => {
 // ==========================================
 // --- SİPARİŞ ROTALARI ---
 // ==========================================
-app.get('/api/orders/user/:userId', verifyToken, async (req, res) => {
+app.get('/api/orders/user/:userId', verifyToken, verifyOwnership('userId'), async (req, res) => {
     try {
         const result = await client.query('SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC', [req.params.userId]);
         res.json(result.rows);
@@ -882,6 +903,16 @@ app.get('/api/orders/:orderId', verifyToken, async (req, res) => {
           [orderId]
         );
         if (orderResult.rows.length === 0) return res.status(404).json({ error: "Sipariş bulunamadı." });
+
+        // GÜVENLİK: Bu sipariş isteği yapan kişiye mi ait? Değilse (ve admin de
+        // değilse) erişimi kes. Bu kontrol olmadan herhangi bir üye, adresteki
+        // sipariş numarasını değiştirerek başka müşterilerin adını, e-postasını,
+        // telefonunu ve teslimat adresini okuyabiliyordu.
+        const order = orderResult.rows[0];
+        if (String(order.user_id) !== String(req.user.id) && !isAdminUser(req)) {
+            return res.status(403).json({ error: "Bu siparişe erişim yetkiniz yok." });
+        }
+
         const itemsResult = await client.query(
           `SELECT oi.*, p.image_url
            FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id
@@ -894,62 +925,161 @@ app.get('/api/orders/:orderId', verifyToken, async (req, res) => {
     }
 });
 
+// ==========================================
+// SİPARİŞ TUTARI HESAPLAMA — TEK DOĞRU KAYNAK: VERİTABANI
+// ==========================================
+// ÖNEMLİ: İstemciden gelen fiyat/tutar bilgisi ASLA kullanılmaz. Sepetten
+// sadece "hangi üründen, hangi renkten, kaç adet" bilgisi dikkate alınır;
+// birim fiyatlar products tablosundan, kargo ücreti store_settings
+// tablosundan okunur. Böylece tarayıcıdan sahte fiyat göndererek ürünü
+// bedavaya almak mümkün değildir.
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+const buildOrderFromCart = async (items) => {
+    // 1) Aynı ürün+renk birden fazla satır halinde gönderilmiş olabilir.
+    //    (Stok kontrolünü atlatmak için kasıtlı olarak da yapılabilir: tek tek
+    //    bakıldığında her satır stoğa uyar ama toplamı stoğu aşar.)
+    //    Bu yüzden önce adetleri birleştiriyoruz.
+    const merged = new Map();
+    for (const item of items) {
+        const productId = parseInt(item.productId, 10);
+        const quantity = parseInt(item.quantity, 10);
+
+        if (!Number.isInteger(productId) || productId <= 0) {
+            throw new Error("Sepette geçersiz bir ürün var, lütfen sepetinizi yenileyin.");
+        }
+        if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 99) {
+            throw new Error("Ürün adedi 1 ile 99 arasında olmalıdır.");
+        }
+
+        const color = item.color || null;
+        const key = `${productId}-${color || ''}`;
+        const existing = merged.get(key);
+        if (existing) {
+            existing.quantity += quantity;
+        } else {
+            merged.set(key, { productId, quantity, color });
+        }
+    }
+
+    const lines = [];
+    let subtotal = 0;
+
+    for (const line of merged.values()) {
+        const productRes = await client.query(
+            'SELECT id, name, price, stock_quantity, stock_by_color, is_visible FROM products WHERE id = $1',
+            [line.productId]
+        );
+        if (productRes.rows.length === 0) {
+            throw new Error("Sepetinizdeki bir ürün artık mevcut değil, lütfen sepetinizi güncelleyin.");
+        }
+        const product = productRes.rows[0];
+
+        // Müşterilere kapalı (gizli) ürünler sipariş edilemez. Daha önce bu
+        // kontrol yoktu; gizlenmiş bir ürünün id'si bilinerek sipariş edilebiliyordu.
+        if (!product.is_visible) {
+            throw new Error(`"${product.name}" şu anda satışta değil.`);
+        }
+
+        // Stok kontrolü: rengi varsa o rengin stoğuna, yoksa toplam stoğa bakılır.
+        // NOT: Burada stoktan DÜŞMÜYORUZ — gerçek düşüş ödeme onaylanınca oluyor.
+        const stockByColor = product.stock_by_color || {};
+        const usesColorStock = line.color && Object.keys(stockByColor).length > 0;
+
+        if (usesColorStock) {
+            const colorStock = parseInt(stockByColor[line.color], 10) || 0;
+            if (colorStock < line.quantity) {
+                throw new Error(`"${product.name}" (${line.color}) için yeterli stok yok. Kalan: ${colorStock}`);
+            }
+        } else if ((parseInt(product.stock_quantity, 10) || 0) < line.quantity) {
+            throw new Error(`"${product.name}" için yeterli stok yok. Kalan: ${product.stock_quantity}`);
+        }
+
+        // FİYAT BURADAN GELİYOR — istemciden değil, veritabanından.
+        const unitPrice = parseFloat(product.price) || 0;
+        subtotal += unitPrice * line.quantity;
+
+        lines.push({
+            productId: product.id,
+            name: product.name,
+            quantity: line.quantity,
+            color: line.color,
+            unitPrice
+        });
+    }
+
+    subtotal = round2(subtotal);
+
+    // Kargo ücreti ve bedava kargo sınırı da istemciden değil, admin ayarlarından.
+    const settingsRes = await client.query('SELECT shipping_fee, free_shipping_threshold FROM store_settings WHERE id = 1');
+    const settings = settingsRes.rows[0] || {};
+    const shippingFee = parseFloat(settings.shipping_fee) || 0;
+    const freeThreshold = parseFloat(settings.free_shipping_threshold) || 0;
+    const shipping = subtotal > freeThreshold ? 0 : shippingFee;
+
+    return { lines, subtotal, shipping, total: round2(subtotal + shipping) };
+};
+
 app.post('/api/orders', verifyToken, async (req, res) => {
-    const { items, totalAmount, shippingAddress, paymentMethod } = req.body;
+    // DİKKAT: body'deki totalAmount / price alanları BİLEREK okunmuyor.
+    const { items, shippingAddress, paymentMethod, expectedTotal } = req.body;
     const userId = req.user.id; // Token'dan gelen güvenli ID!
 
     if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: "Sepet boş, sipariş oluşturulamaz." });
     }
+    if (!shippingAddress || !String(shippingAddress).trim()) {
+        return res.status(400).json({ error: "Teslimat adresi zorunludur." });
+    }
 
     try {
         await client.query('BEGIN');
 
+        const { lines, subtotal, shipping, total } = await buildOrderFromCart(items);
+
+        // Müşterinin ekranda gördüğü tutar ile sunucunun hesapladığı tutar
+        // uyuşmuyorsa (örn. ürün sepette beklerken fiyatı değiştiyse), siparişi
+        // OLUŞTURMADAN duruyoruz ve doğru tutarı bildiriyoruz. Böylece kimse
+        // gördüğünden farklı bir tutarla karşılaşmıyor.
+        if (expectedTotal !== undefined && Math.abs((parseFloat(expectedTotal) || 0) - total) > 0.01) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({
+                error: "Sepetinizdeki ürünlerin fiyatı güncellendi. Lütfen yeni tutarı kontrol edip tekrar deneyin.",
+                priceChanged: true,
+                totalAmount: total,
+                subtotal,
+                shipping
+            });
+        }
+
         // Sıralı, benzersiz sipariş numarası üret: KB-1000, KB-1001, KB-1002...
+        // (Fiyat kontrolünden SONRA üretiliyor ki başarısız denemelerde numara yanmasın.)
         const seqResult = await client.query("SELECT nextval('order_number_seq') as num");
         const orderNumber = `KB-${seqResult.rows[0].num}`;
 
-        // 1. Stok kontrolü: sepetteki her ürün için (rengi varsa o renk için) yeterli stok var mı?
-        // NOT: Burada stoktan DÜŞMÜYORUZ — sadece "böyle bir şey satın alınabilir mi" diye bakıyoruz.
-        // Gerçek stok düşürme, ödeme admin tarafından onaylandığında (aşağıdaki PUT rotasında) oluyor.
-        for (const item of items) {
-            if (!item.productId) continue; // productId gönderilmemişse (eski istemci) stok kontrolünü atla
-            const stockCheck = await client.query('SELECT stock_quantity, stock_by_color, name FROM products WHERE id = $1', [item.productId]);
-            if (stockCheck.rows.length === 0) {
-                throw new Error(`Ürün bulunamadı (ID: ${item.productId}).`);
-            }
-            const product = stockCheck.rows[0];
-            const stockByColor = product.stock_by_color || {};
-            const usesColorStock = item.color && Object.keys(stockByColor).length > 0;
-
-            if (usesColorStock) {
-                const colorStock = parseInt(stockByColor[item.color], 10) || 0;
-                if (colorStock < item.quantity) {
-                    throw new Error(`"${product.name}" (${item.color}) için yeterli stok yok. Kalan: ${colorStock}`);
-                }
-            } else if (product.stock_quantity < item.quantity) {
-                throw new Error(`"${product.name}" için yeterli stok yok. Kalan: ${product.stock_quantity}`);
-            }
-        }
-
         // Sipariş "ÖDEME BEKLENİYOR" durumuyla oluşturuluyor. Stok düşürme ve
-        // "siparişiniz alındı" e-postası, ödeme GERÇEKTEN onaylanınca (admin
-        // panelinden durum değiştirildiğinde) tetiklenecek — bkz. PUT /api/admin/orders/:id
+        // "siparişiniz alındı" e-postası, ödeme GERÇEKTEN onaylanınca tetiklenecek.
         const orderResult = await client.query(
             `INSERT INTO orders (user_id, order_number, total_amount, shipping_address, payment_method, status) VALUES ($1, $2, $3, $4, $5, 'ÖDEME BEKLENİYOR') RETURNING id`,
-            [userId, orderNumber, totalAmount, shippingAddress, paymentMethod || 'Kredi Kartı']
+            [userId, orderNumber, total, shippingAddress, paymentMethod || 'Kredi Kartı']
         );
         const orderId = orderResult.rows[0].id;
 
-        for (const item of items) {
+        for (const line of lines) {
             await client.query(
                 'INSERT INTO order_items (order_id, product_id, product_name, quantity, price, color) VALUES ($1, $2, $3, $4, $5, $6)',
-                [orderId, item.productId || null, item.name, item.quantity, item.price, item.color || null]
+                [orderId, line.productId, line.name, line.quantity, line.unitPrice, line.color]
             );
         }
 
         await client.query('COMMIT');
-        res.status(201).json({ message: "Sipariş oluşturuldu, ödeme bekleniyor.", orderNumber });
+        res.status(201).json({
+            message: "Sipariş oluşturuldu, ödeme bekleniyor.",
+            orderNumber,
+            totalAmount: total,
+            subtotal,
+            shipping
+        });
     } catch (err) {
         await client.query('ROLLBACK');
         res.status(400).json({ error: err.message || "Sipariş oluşturulamadı." });
@@ -1193,10 +1323,12 @@ app.get('/api/admin/customers', verifyToken, isAdmin, async (req, res) => {
 // (445827 - kemborn.com) AÇIK/onaylı olması şart. Kapalıysa PayTR şu hatayı
 // döner: "Magaziniz icin ... servis yetkisi bulunmuyor."
 app.post('/api/payment', verifyToken, async (req, res) => {
-  const { price, basketId, customer, items } = req.body;
+  // DİKKAT: body'deki price / items alanları BİLEREK okunmuyor. Tahsil edilecek
+  // tutar ve sepet içeriği, veritabanındaki kayıtlı siparişten alınıyor.
+  const { basketId, customer } = req.body;
 
-  if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: "Sepet bilgisi eksik, ödeme başlatılamadı." });
+  if (!basketId) {
+    return res.status(400).json({ error: "Sipariş bilgisi eksik, ödeme başlatılamadı." });
   }
   if (!PAYTR_MERCHANT_ID || !PAYTR_MERCHANT_KEY || !PAYTR_MERCHANT_SALT) {
     return res.status(500).json({ error: "Ödeme sistemi henüz yapılandırılmamış (PayTR bilgileri eksik)." });
@@ -1206,20 +1338,57 @@ app.post('/api/payment', verifyToken, async (req, res) => {
   }
 
   try {
+    // GÜVENLİK: Sipariş hem NUMARASIYLA hem de İSTEK SAHİBİNİN id'siyle aranıyor.
+    // Böylece bir üye, başkasının sipariş numarası için ödeme başlatamaz.
+    const orderRes = await client.query(
+      'SELECT id, order_number, total_amount, status FROM orders WHERE order_number = $1 AND user_id = $2',
+      [String(basketId), req.user.id]
+    );
+    if (orderRes.rows.length === 0) {
+      return res.status(404).json({ error: "Sipariş bulunamadı." });
+    }
+    const order = orderRes.rows[0];
+
+    // Zaten ödenmiş bir siparişin tekrar ödenmesini engelliyoruz.
+    const orderStatus = (order.status || '').toUpperCase();
+    const payableStatuses = ['ÖDEME BEKLENİYOR', 'ODEME BEKLENIYOR', 'ÖDEME BAŞARISIZ', 'ODEME BASARISIZ'];
+    if (!payableStatuses.includes(orderStatus)) {
+      return res.status(409).json({ error: "Bu sipariş için ödeme zaten alınmış." });
+    }
+
+    const itemsRes = await client.query(
+      'SELECT product_name, quantity, price FROM order_items WHERE order_id = $1',
+      [order.id]
+    );
+    if (itemsRes.rows.length === 0) {
+      return res.status(400).json({ error: "Sipariş içeriği bulunamadı, ödeme başlatılamadı." });
+    }
+
     // PayTR merchant_oid: sadece harf/rakam kabul ediyor, '-' işareti YASAK.
     // Bu yüzden sipariş numaramızdaki (KB-1000) tireyi siliyoruz. Bildirim
     // (webhook) geldiğinde de aynı şekilde tiresiz karşılaştırıyoruz.
-    const merchantOid = String(basketId).replace(/-/g, '');
-    const priceInKurus = Math.round(parseFloat(price) * 100);
+    const merchantOid = order.order_number.replace(/-/g, '');
+    // TUTAR BURADAN GELİYOR — istemciden değil, veritabanındaki siparişten.
+    const orderTotal = parseFloat(order.total_amount) || 0;
+    const priceInKurus = Math.round(orderTotal * 100);
     const userIp = req.ip || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || '127.0.0.1';
     const userName = `${customer.ad || ''} ${customer.soyad || ''}`.trim() || 'Kemborn Müşterisi';
 
     // PayTR sepet formatı: [ [ürün adı, birim fiyat(TL, string), adet], ... ]
-    const userBasket = items.map(i => [
-      String(i.name).slice(0, 100),
-      parseFloat(i.price ?? i.parsedPrice ?? 0).toFixed(2),
+    const userBasket = itemsRes.rows.map(i => [
+      String(i.product_name).slice(0, 100),
+      (parseFloat(i.price) || 0).toFixed(2),
       i.quantity || 1
     ]);
+
+    // Sepet satırlarının toplamı ile siparişin toplamı arasındaki fark kargo
+    // ücretidir; PayTR sepetinde de görünsün diye ayrı bir satır olarak ekliyoruz.
+    const itemsTotal = itemsRes.rows.reduce((sum, i) => sum + (parseFloat(i.price) || 0) * (i.quantity || 1), 0);
+    const shippingLine = round2(orderTotal - itemsTotal);
+    if (shippingLine > 0) {
+      userBasket.push(['Kargo Ücreti', shippingLine.toFixed(2), 1]);
+    }
+
     const userBasketBase64 = Buffer.from(JSON.stringify(userBasket)).toString('base64');
 
     const currency = 'TL';
@@ -1302,7 +1471,7 @@ app.post('/api/paytr-notify', express.urlencoded({ extended: false }), async (re
     // merchant_oid içindeki '-' karakterleri istek atarken temizlenmişti,
     // bu yüzden order_number'daki '-' işaretlerini yok sayarak eşleştiriyoruz.
     const ordersResult = await client.query(
-      `SELECT id, order_number, status FROM orders WHERE REPLACE(order_number, '-', '') = $1`,
+      `SELECT id, order_number, status, total_amount FROM orders WHERE REPLACE(order_number, '-', '') = $1`,
       [merchant_oid]
     );
 
@@ -1310,6 +1479,18 @@ app.post('/api/paytr-notify', express.urlencoded({ extended: false }), async (re
       const order = ordersResult.rows[0];
       const previousStatus = (order.status || '').toUpperCase();
       const wasPending = previousStatus === 'ÖDEME BEKLENİYOR' || previousStatus === 'ODEME BEKLENIYOR';
+
+      // GÜVENLİK: Tahsil edilen tutar, siparişin tutarıyla aynı mı? Hash doğru
+      // olsa bile tutar farklıysa siparişi ONAYLAMIYORUZ. (PayTR kuruş cinsinden
+      // gönderiyor, biz de TL tutarını kuruşa çevirip karşılaştırıyoruz.)
+      const expectedKurus = Math.round((parseFloat(order.total_amount) || 0) * 100);
+      const paidKurus = parseInt(total_amount, 10);
+      if (status === 'success' && paidKurus !== expectedKurus) {
+        console.error(`PayTR tutar uyuşmazlığı! Sipariş ${order.order_number}: beklenen ${expectedKurus} kuruş, gelen ${paidKurus} kuruş.`);
+        logToFile('error.log', `PAYTR TUTAR UYUSMAZLIGI (order ${order.order_number}): beklenen ${expectedKurus}, gelen ${paidKurus}`);
+        await client.query("UPDATE orders SET status = 'TUTAR UYUŞMAZLIĞI' WHERE id = $1", [order.id]);
+        return res.send('OK'); // PayTR tekrar denemesin; inceleme admin tarafında yapılacak
+      }
 
       if (status === 'success') {
         await client.query("UPDATE orders SET status = 'ÖDENDİ' WHERE id = $1", [order.id]);
