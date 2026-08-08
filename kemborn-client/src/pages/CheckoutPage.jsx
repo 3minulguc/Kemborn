@@ -17,6 +17,10 @@ const CheckoutPage = () => {
   // Sunucu, sepetteki fiyatların değiştiğini bildirirse doğru tutarı buraya
   // yazıyoruz ve müşteriye güncel tutarı gösteriyoruz.
   const [serverTotal, setServerTotal] = useState(null);
+  // 6502 sayılı Tüketicinin Korunması Hakkında Kanun gereği, ödeme alınmadan
+  // ÖNCE müşterinin mesafeli satış sözleşmesini ve ön bilgilendirmeyi
+  // onaylaması zorunludur. Onay verilmeden ödeme adımına geçilmez.
+  const [sozlesmeOnayi, setSozlesmeOnayi] = useState(false);
 
   // PayTR'nin iframe'i otomatik yükseklik ayarlaması için resmi script'i (bir
   // kere) sayfaya ekliyoruz, token geldiğinde de iframe'e bağlıyoruz.
@@ -130,6 +134,12 @@ const CheckoutPage = () => {
     const rawPhone = formData.telefon.replace(/\D/g, '');
     if (rawPhone.length !== 11) {
       toast.error("Lütfen telefon numaranızı 10 haneli olarak (başında 0 ile) eksiksiz girin.");
+      return;
+    }
+
+    // Sözleşme onayı olmadan ödeme başlatmak yasal olarak mümkün değil.
+    if (!sozlesmeOnayi) {
+      toast.error("Devam etmek için Mesafeli Satış Sözleşmesi'ni onaylamanız gerekiyor.");
       return;
     }
 
@@ -383,12 +393,45 @@ const CheckoutPage = () => {
               )}
             </div>
             
-            <button 
-              disabled={loading}
+            {/* Yasal onay — ödeme alınmadan önce zorunlu */}
+            <label className="flex items-start gap-3 mb-5 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={sozlesmeOnayi}
+                onChange={(e) => setSozlesmeOnayi(e.target.checked)}
+                disabled={loading}
+                className="mt-0.5 w-5 h-5 shrink-0 accent-cyan-600 cursor-pointer"
+              />
+              <span className="text-xs sm:text-sm font-medium text-zinc-600 leading-relaxed">
+                <Link
+                  to="/mesafeli-satis-sozlesmesi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-black text-cyan-600 hover:text-cyan-700 underline underline-offset-2"
+                >
+                  Mesafeli Satış Sözleşmesi
+                </Link>
+                'ni ve{' '}
+                <Link
+                  to="/delivery"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-black text-cyan-600 hover:text-cyan-700 underline underline-offset-2"
+                >
+                  Teslimat ve İade Koşulları
+                </Link>
+                'nı okudum, onaylıyorum.
+              </span>
+            </label>
+
+            <button
+              disabled={loading || !sozlesmeOnayi}
               onClick={handleCompleteOrder}
               className={`w-full flex items-center justify-center gap-2 py-4 sm:py-5 rounded-2xl font-black text-lg transition-all shadow-lg active:scale-[0.98] ${
-                loading 
-                  ? 'bg-zinc-400 text-white shadow-none cursor-not-allowed' 
+                loading || !sozlesmeOnayi
+                  ? 'bg-zinc-300 text-zinc-500 shadow-none cursor-not-allowed'
                   : 'bg-zinc-900 text-white hover:bg-cyan-600 hover:shadow-cyan-600/30'
               }`}
             >

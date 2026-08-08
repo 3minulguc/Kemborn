@@ -16,6 +16,9 @@ const AuthPage = () => {
   const [formData, setFormData] = useState({
     ad: '', soyad: '', email: '', password: '', telefon: ''
   });
+  // KVKK gereği, kişisel veri toplamadan (kayıt) önce kullanıcının
+  // aydınlatma metnini okuduğunu onaylaması gerekiyor.
+  const [kvkkOnayi, setKvkkOnayi] = useState(false);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -75,6 +78,11 @@ const AuthPage = () => {
         return;
     }
 
+    if (!isLogin && !kvkkOnayi) {
+        toast.error("Kayıt olabilmek için Gizlilik Politikası ve KVKK Aydınlatma Metni'ni onaylamanız gerekiyor.");
+        return;
+    }
+
     if (!isLogin && formData.telefon.replace(/\D/g, '').length !== 11) {
         toast.error("Lütfen geçerli bir telefon numarası girin (0 ile başlayan 11 hane).");
         return;
@@ -114,8 +122,9 @@ const AuthPage = () => {
           }
         } else {
           toast.success("Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
-          setIsLogin(true); 
+          setIsLogin(true);
           setFormData({ ad: '', soyad: '', email: '', password: '', telefon: '' });
+          setKvkkOnayi(false);
         }
       } else {
         toast.error(data.error || "Giriş bilgileri hatalı.");
@@ -238,12 +247,39 @@ const AuthPage = () => {
                 </div>
               )}
 
+              {/* KVKK onayı — sadece kayıt olurken, kişisel veri toplandığı için zorunlu */}
+              {!isLogin && !isForgotPassword && (
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={kvkkOnayi}
+                    onChange={(e) => setKvkkOnayi(e.target.checked)}
+                    disabled={loading}
+                    className="mt-0.5 w-5 h-5 shrink-0 accent-cyan-600 cursor-pointer"
+                  />
+                  <span className="text-xs font-medium text-zinc-500 leading-relaxed">
+                    <Link
+                      to="/policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="font-bold text-cyan-600 hover:text-cyan-700 underline underline-offset-2"
+                    >
+                      Gizlilik Politikası ve KVKK Aydınlatma Metni
+                    </Link>
+                    'ni okudum, kişisel verilerimin belirtilen kapsamda işlenmesini onaylıyorum.
+                  </span>
+                </label>
+              )}
+
               {!isForgotPassword && (
-                <button 
-                  type="submit" 
-                  disabled={loading}
+                <button
+                  type="submit"
+                  disabled={loading || (!isLogin && !kvkkOnayi)}
                   className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-lg transition-all shadow-lg mt-2 ${
-                    loading ? 'bg-zinc-400 text-white cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-cyan-600'
+                    loading || (!isLogin && !kvkkOnayi)
+                      ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed'
+                      : 'bg-zinc-900 text-white hover:bg-cyan-600'
                   }`}
                 >
                   {loading ? 'İşleniyor...' : (isLogin ? 'Giriş Yap' : 'Kayıt Ol')} <FiArrowRight />

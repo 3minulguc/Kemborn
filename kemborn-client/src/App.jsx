@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import ScrollToTop from './components/ScrollToTop'; // 1. Importu ekledik
+import CookieConsent from './components/CookieConsent';
 
 // Layoutlar
 import MainLayout from './layouts/MainLayout';
@@ -113,6 +114,7 @@ function App() {
               <Route path="settings" element={<AdminSettings />} />
             </Route>
           </Routes>
+          <CookieConsent />
         </CartProvider>
       </AuthProvider>
     </Router>
