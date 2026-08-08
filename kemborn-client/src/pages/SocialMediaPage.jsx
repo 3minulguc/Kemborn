@@ -50,7 +50,7 @@ const SocialMediaPage = () => {
         ) : activeSocials.length === 0 ? (
           <p className="text-center text-zinc-400 font-bold py-12">Şu an aktif bir sosyal medya bağlantısı bulunmuyor.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="flex flex-wrap justify-center gap-6">
             {activeSocials.map((social) => {
               const Icon = social.icon;
               return (
@@ -59,7 +59,7 @@ const SocialMediaPage = () => {
                   href={settings[social.key]}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`group relative overflow-hidden flex flex-col items-center justify-center p-10 rounded-[2rem] text-white shadow-lg bg-gradient-to-br ${social.color} transition-transform duration-300 hover:-translate-y-1`}
+                  className={`group relative overflow-hidden flex flex-col items-center justify-center p-10 rounded-[2rem] text-white shadow-lg bg-gradient-to-br ${social.color} transition-transform duration-300 hover:-translate-y-1 w-full sm:w-64`}
                 >
                   <Icon size={32} className="mb-4 opacity-90" />
                   <span className="text-xl font-black mb-2">{social.label}</span>
