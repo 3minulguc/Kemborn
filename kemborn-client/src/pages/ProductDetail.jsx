@@ -85,7 +85,6 @@ const ProductDetail = () => {
       quantity: quantity, 
       color: selectedColor || 'Standart' 
     });
-    toast.success("Sepete eklendi!"); 
   };
 
   const handleFavoriteToggle = async () => {
