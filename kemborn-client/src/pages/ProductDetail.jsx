@@ -8,6 +8,7 @@ import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
 import ProductCard from '../components/ProductCard';
 import { useFavorites } from '../hooks/useFavorites';
+import { temizHtml } from '../utils/sanitize';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -453,7 +454,7 @@ const ProductDetail = () => {
                 {storeSettings.warranty_tab_bullets ? (
                    <div 
                      className="prose prose-zinc max-w-none prose-p:my-2 prose-li:my-1 prose-ul:my-2 break-words [overflow-wrap:anywhere]"
-                     dangerouslySetInnerHTML={{ __html: storeSettings.warranty_tab_bullets }} 
+                     dangerouslySetInnerHTML={{ __html: temizHtml(storeSettings.warranty_tab_bullets) }} 
                    />
                 ) : (
                   <p>Garanti bilgisi bulunmuyor.</p>

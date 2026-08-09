@@ -10,6 +10,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
+const helmet = require('helmet');
 
 const app = express();
 
@@ -19,9 +20,25 @@ const app = express();
 const LOG_DIR = path.join(__dirname, 'logs');
 if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 
+// Log dosyası bu boyutu aşınca bir kez ".1" olarak arşivlenir ve sıfırdan
+// başlanır. Öncesinde rotasyon yoktu; access.log sınırsız büyüyüp diski
+// doldurabiliyordu (Railway'de disk dolması siteyi komple durdurur).
+const LOG_MAX_BYTE = 5 * 1024 * 1024; // 5 MB
+
+const logDosyasiniDondur = (dosyaYolu) => {
+  try {
+    const bilgi = fs.statSync(dosyaYolu);
+    if (bilgi.size < LOG_MAX_BYTE) return;
+    // Bir önceki arşivi ez: en fazla iki nesil log tutuyoruz (güncel + .1)
+    fs.renameSync(dosyaYolu, `${dosyaYolu}.1`);
+  } catch { /* dosya yoksa veya erişilemiyorsa loglama yine de devam etsin */ }
+};
+
 const logToFile = (filename, message) => {
   const line = `[${new Date().toISOString()}] ${message}\n`;
-  fs.appendFile(path.join(LOG_DIR, filename), line, () => {}); // hata olursa sessizce geç, loglama asla asıl işi durdurmasın
+  const dosyaYolu = path.join(LOG_DIR, filename);
+  logDosyasiniDondur(dosyaYolu);
+  fs.appendFile(dosyaYolu, line, () => {}); // hata olursa sessizce geç, loglama asla asıl işi durdurmasın
 };
 
 // Sunucunun sessizce çökmesini önlemek için: herhangi bir yakalanmamış hata veya
@@ -72,6 +89,55 @@ const resetPasswordLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Sipariş ve ödeme başlatma: normal bir müşteri dakikada birkaç kez dener.
+// Bu sınır, otomatik araçlarla sipariş/ödeme yağdırılmasını engeller.
+const siparisLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 dakika
+  max: 30,
+  message: { error: 'Çok fazla istek gönderdiniz. Lütfen birkaç dakika sonra tekrar deneyin.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Dosya yükleme sadece adminlere açık ama yine de sınırlıyoruz:
+// büyük dosyalarla diski doldurmayı zorlaştırır.
+const yuklemeLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60,
+  message: { error: 'Çok fazla yükleme yaptınız. Lütfen biraz bekleyin.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Giriş denemelerinde, kullanıcı bulunmasa bile bcrypt karşılaştırması
+// yapılabilmesi için sabit bir sahte hash. Amaç cevap süresini eşitlemek:
+// yoksa "kullanıcı yok" cevabı belirgin şekilde daha hızlı dönüyor ve
+// sadece süreye bakarak e-postanın kayıtlı olup olmadığı anlaşılabiliyordu.
+const SAHTE_PAROLA_HASH = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8._9Zc0hE2sJ3s5Z2K1cQqB5m8QnZa';
+
+// ==========================================
+// ŞİFRE KURALI
+// ==========================================
+// Önceden tek kural "en az 6 karakter"di; "123456" geçiyordu.
+// Kural bilerek ölçülü tutuldu: en az 8 karakter ve hem harf hem rakam.
+// Daha katı kurallar (büyük harf, sembol zorunluluğu) müşteriyi kaydolmaktan
+// vazgeçiriyor ve pratikte daha güvenli şifre üretmiyor.
+const COK_KULLANILAN_SIFRELER = [
+    '12345678', '123456789', '1234567890', 'password', 'parola123', 'sifre123',
+    'qwerty123', 'admin123', '11111111', 'abcd1234', 'kemborn123'
+];
+
+const sifreKuraliniDenetle = (sifre) => {
+    const s = String(sifre || '');
+    if (s.length < 8) return "Şifre en az 8 karakter olmalı.";
+    if (!/[a-zA-ZğüşıöçĞÜŞİÖÇ]/.test(s)) return "Şifre en az bir harf içermeli.";
+    if (!/[0-9]/.test(s)) return "Şifre en az bir rakam içermeli.";
+    if (COK_KULLANILAN_SIFRELER.includes(s.toLowerCase())) {
+        return "Bu şifre çok yaygın kullanılıyor, lütfen başka bir şifre seçin.";
+    }
+    return null; // sorun yok
+};
+
 // ==========================================
 // 0. DOSYA YÜKLEME (GÖRSEL / VİDEO) AYARLARI
 // ==========================================
@@ -80,18 +146,33 @@ if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-    filename: (req, file, cb) => {
-        const uniqueName = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${path.extname(file.originalname)}`;
-        cb(null, uniqueName);
-    }
-});
-
 const ALLOWED_MIME_TYPES = {
     image: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
     video: ['video/mp4', 'video/webm', 'video/quicktime']
 };
+
+// Dosya uzantısı ARTIK istemciden gelen isme göre değil, kabul edilen
+// mime tipine göre belirleniyor. Önceden path.extname(file.originalname)
+// kullanılıyordu; "resim.jpg.html" gibi bir isimle diske .html uzantılı
+// dosya yazdırmak mümkündü.
+const MIME_UZANTI = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/webp': '.webp',
+    'image/gif': '.gif',
+    'video/mp4': '.mp4',
+    'video/webm': '.webm',
+    'video/quicktime': '.mov'
+};
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => {
+        const uzanti = MIME_UZANTI[file.mimetype] || '.bin';
+        const uniqueName = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${uzanti}`;
+        cb(null, uniqueName);
+    }
+});
 
 const upload = multer({
     storage,
@@ -140,9 +221,37 @@ app.use(cors({
     },
     allowedHeaders: ['Content-Type', 'Authorization'] 
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(UPLOAD_DIR));
+// ==========================================
+// GÜVENLİK BAŞLIKLARI (helmet)
+// ==========================================
+// DİKKAT — iki varsayılan bilerek değiştirildi:
+//
+// 1) crossOriginResourcePolicy: helmet varsayılanı 'same-origin'. Bu sitede
+//    görseller Railway'deki bu sunucudan, sayfa ise kemborn.com'dan geliyor;
+//    varsayılan bırakılsa TÜM ÜRÜN GÖRSELLERİ kırılırdı. 'cross-origin' şart.
+//
+// 2) contentSecurityPolicy: bu sunucu HTML sayfa döndürmüyor (JSON API +
+//    yüklenen dosyalar). Genel bir CSP'nin buradaki karşılığı yok; onun yerine
+//    aşağıda SADECE /uploads için sıkı bir CSP uyguluyoruz.
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false
+}));
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Yüklenen dosyalar: tarayıcı bunları asla çalıştırılabilir içerik gibi
+// yorumlamasın. Bir şekilde HTML/SVG yüklense bile script çalışmaz.
+app.use('/uploads', (req, res, next) => {
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'; sandbox");
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    next();
+}, express.static(UPLOAD_DIR, {
+    // Dosya adları zaten benzersiz (zaman damgası + rastgele), uzun önbellek güvenli
+    maxAge: '30d',
+    setHeaders: (res) => res.setHeader('X-Frame-Options', 'DENY')
+}));
 
 // Her isteği kısaca logluyoruz (kim, ne zaman, hangi adrese, kaç ms sürdü, hangi sonuçla)
 app.use((req, res, next) => {
@@ -155,6 +264,35 @@ app.use((req, res, next) => {
   next();
 });
 
+
+// ==========================================
+// SAĞLIK KONTROLÜ
+// ==========================================
+// Railway ve benzeri platformlar uygulamanın ayakta olup olmadığını bu tür bir
+// adrese bakarak anlar; yoksa çökmüş bir süreci "çalışıyor" sanıp trafiği
+// yönlendirmeye devam edebilirler.
+// Veritabanına da gerçekten sorgu atıyoruz: süreç ayakta ama DB kopmuşsa
+// site zaten çalışmıyor demektir, bunu "sağlıklı" göstermek yanıltıcı olur.
+app.get('/health', async (req, res) => {
+    try {
+        const baslangic = Date.now();
+        await client.query('SELECT 1');
+        res.json({
+            durum: 'saglikli',
+            veritabani: 'baglantili',
+            gecikmeMs: Date.now() - baslangic,
+            calismaSuresiSaniye: Math.round(process.uptime()),
+            zaman: new Date().toISOString()
+        });
+    } catch (err) {
+        res.status(503).json({
+            durum: 'saglikli-degil',
+            veritabani: 'baglanti-yok',
+            hata: err.message,
+            zaman: new Date().toISOString()
+        });
+    }
+});
 
 // ==========================================
 // --- GÜVENLİK MIDDLEWARE'LERİ (YAKIN KORUMA) ---
@@ -200,14 +338,23 @@ const verifyOwnership = (paramName) => (req, res, next) => {
 // ==========================================
 // 2. VERİTABANI BAĞLANTISI (POOL YAPISI)
 // ==========================================
+// SSL: Railway, Render gibi yönetilen PostgreSQL servisleri şifreli bağlantı
+// ister ama sertifikaları genelde kendi zincirleriyle imzalı olduğu için
+// katı doğrulama başarısız olur. .env'de DB_SSL=true ise şifreli bağlanıyoruz.
+// Yerel Docker'da (varsayılan) SSL kapalı kalıyor.
+const dbSslKullan = String(process.env.DB_SSL || '').toLowerCase() === 'true';
+
 const client = new Pool({
   user: process.env.DB_USER || 'postgres',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'postgres',
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT || 5432,
-  max: 20, 
+  ssl: dbSslKullan ? { rejectUnauthorized: false } : false,
+  max: 20,
   idleTimeoutMillis: 30000,
+  // Veritabanı yanıt vermezse istek sonsuza kadar asılı kalmasın
+  connectionTimeoutMillis: 10000,
 });
 
 // Açılışta bağlantıyı sadece SINIYORUZ.
@@ -544,7 +691,7 @@ const confirmOrderPayment = async (orderId) => {
 // ==========================================
 // --- MEDYA YÜKLEME ROTASI (GÖRSEL / VİDEO) ---
 // ==========================================
-app.post('/api/upload', verifyToken, isAdmin, (req, res) => {
+app.post('/api/upload', verifyToken, isAdmin, yuklemeLimiter, (req, res) => {
     const uploadFields = upload.fields([{ name: 'image', maxCount: 1 }, { name: 'video', maxCount: 1 }]);
     uploadFields(req, res, (err) => {
         if (err) return res.status(400).json({ error: err.message || 'Dosya yüklenemedi.' });
@@ -883,8 +1030,9 @@ app.post('/api/register', authLimiter, async (req, res) => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ error: "Geçerli bir e-posta adresi girin." });
     }
-    if (!password || password.length < 6) {
-        return res.status(400).json({ error: "Şifre en az 6 karakter olmalı." });
+    const sifreHatasi = sifreKuraliniDenetle(password);
+    if (sifreHatasi) {
+        return res.status(400).json({ error: sifreHatasi });
     }
     const normalizedPhone = (phone || '').replace(/\D/g, '');
     if (!normalizedPhone || normalizedPhone.length !== 11) {
@@ -907,16 +1055,29 @@ app.post('/api/login', authLimiter, async (req, res) => {
     }
     try {
         const result = await client.query('SELECT * FROM users WHERE email = $1', [email.trim().toLowerCase()]);
-        if (result.rows.length === 0) return res.status(400).json({ error: "Kullanıcı bulunamadı." });
-        
         const user = result.rows[0];
-        const valid = await bcrypt.compare(password, user.password_hash);
-        if (!valid) return res.status(400).json({ error: "Hatalı şifre." });
-        
+
+        // GÜVENLİK — kullanıcı sızıntısı:
+        // Önceden "Kullanıcı bulunamadı" ve "Hatalı şifre" ayrı mesajlardı; bu,
+        // bir e-postanın sitede kayıtlı olup olmadığını dışarıya söylüyordu.
+        // Artık iki durumda da AYNI mesaj dönüyor.
+        //
+        // Ayrıca kullanıcı yokken bcrypt hiç çalışmadığı için cevap gözle görülür
+        // biçimde daha hızlı dönüyordu; sadece süreye bakarak da e-posta tespit
+        // edilebiliyordu. Kullanıcı bulunamasa bile sahte bir hash'e karşı
+        // karşılaştırma yaparak süreyi eşitliyoruz.
+        const gecerli = user
+            ? await bcrypt.compare(password, user.password_hash)
+            : await bcrypt.compare(password, SAHTE_PAROLA_HASH).then(() => false);
+
+        if (!user || !gecerli) {
+            return res.status(400).json({ error: "E-posta veya şifre hatalı." });
+        }
+
         const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
         res.json({ token, user: { id: user.id, username: user.username, email: user.email, role: user.role } });
-    } catch (err) { 
-        res.status(500).json({ error: "Giriş hatası." }); 
+    } catch (err) {
+        res.status(500).json({ error: "Giriş hatası." });
     }
 });
 
@@ -972,8 +1133,9 @@ app.post('/api/reset-password', resetPasswordLimiter, async (req, res) => {
     if (!token || !newPassword) {
         return res.status(400).json({ error: "Geçersiz istek." });
     }
-    if (newPassword.length < 6) {
-        return res.status(400).json({ error: "Yeni şifre en az 6 karakter olmalı." });
+    const yeniSifreHatasi = sifreKuraliniDenetle(newPassword);
+    if (yeniSifreHatasi) {
+        return res.status(400).json({ error: yeniSifreHatasi });
     }
 
     try {
@@ -1041,8 +1203,9 @@ app.put('/api/users/:id/password', verifyToken, verifyOwnership('id'), async (re
     if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: "Mevcut şifre ve yeni şifre zorunludur." });
     }
-    if (newPassword.length < 6) {
-        return res.status(400).json({ error: "Yeni şifre en az 6 karakter olmalı." });
+    const yeniSifreHatasi = sifreKuraliniDenetle(newPassword);
+    if (yeniSifreHatasi) {
+        return res.status(400).json({ error: yeniSifreHatasi });
     }
     
     try {
@@ -1268,7 +1431,7 @@ app.get('/api/orders/durum/:orderNumber', verifyToken, async (req, res) => {
     }
 });
 
-app.post('/api/orders', verifyToken, async (req, res) => {
+app.post('/api/orders', verifyToken, siparisLimiter, async (req, res) => {
     // DİKKAT: body'deki totalAmount / price alanları BİLEREK okunmuyor.
     const { items, shippingAddress, paymentMethod, expectedTotal } = req.body;
     const userId = req.user.id; // Token'dan gelen güvenli ID!
@@ -1638,7 +1801,7 @@ app.get('/api/admin/customers', verifyToken, isAdmin, async (req, res) => {
 // PayTR Mağaza Paneli'nde "Direkt API / iFrame" servisinin mağaza için
 // (445827 - kemborn.com) AÇIK/onaylı olması şart. Kapalıysa PayTR şu hatayı
 // döner: "Magaziniz icin ... servis yetkisi bulunmuyor."
-app.post('/api/payment', verifyToken, async (req, res) => {
+app.post('/api/payment', verifyToken, siparisLimiter, async (req, res) => {
   // DİKKAT: body'deki price / items alanları BİLEREK okunmuyor. Tahsil edilecek
   // tutar ve sepet içeriği, veritabanındaki kayıtlı siparişten alınıyor.
   const { basketId, customer } = req.body;
@@ -1875,6 +2038,41 @@ const serverInstance = app.listen(PORT, '0.0.0.0', () => {
   temizlikZamanlayici.unref?.();
   console.log(`🧹 Terk edilmiş sipariş temizliği açık: ${TERK_EDILMIS_SIPARIS_DAKIKA} dk sonra stok iade edilir.`);
 });
+
+// ==========================================
+// DÜZGÜN KAPANMA (graceful shutdown)
+// ==========================================
+// Railway her deploy'da eski sürece SIGTERM gönderir. Önceden süreç anında
+// ölüyordu: o an işlenmekte olan istekler yarıda kesiliyor, veritabanı
+// bağlantıları düzgün kapatılmıyordu. Artık önce yeni bağlantı almayı
+// bırakıyor, açık istekleri bitiriyor, sonra havuzu kapatıyoruz.
+let kapaniyor = false;
+const duzgunKapan = async (sinyal) => {
+  if (kapaniyor) return;
+  kapaniyor = true;
+  console.log(`\n${sinyal} alındı — sunucu düzgün şekilde kapatılıyor...`);
+
+  // Süreç takılırsa sonsuza kadar beklemeyelim
+  const zorlaKapat = setTimeout(() => {
+    console.error('⏱️  Kapanma 15 saniyede tamamlanamadı, süreç zorla sonlandırılıyor.');
+    process.exit(1);
+  }, 15000);
+  zorlaKapat.unref?.();
+
+  serverInstance.close(async () => {
+    try {
+      await client.end();
+      console.log('✅ Açık istekler tamamlandı, veritabanı havuzu kapatıldı.');
+    } catch (err) {
+      console.error('Havuz kapatılırken hata:', err.message);
+    }
+    clearTimeout(zorlaKapat);
+    process.exit(0);
+  });
+};
+
+process.on('SIGTERM', () => duzgunKapan('SIGTERM'));
+process.on('SIGINT', () => duzgunKapan('SIGINT'));
 
 serverInstance.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PageHeader from '../components/PageHeader';
 import { API_URL } from '../config/api';
+import { temizHtml } from '../utils/sanitize';
 
 const PolicyPage = () => {
   const [policy, setPolicy] = useState('');
@@ -33,7 +34,7 @@ const PolicyPage = () => {
               [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ul]:space-y-2 [&_ul]:break-words
               [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_ol]:space-y-2 [&_ol]:break-words
               [&_strong]:font-black [&_strong]:text-zinc-900"
-            dangerouslySetInnerHTML={{ __html: policy }} 
+            dangerouslySetInnerHTML={{ __html: temizHtml(policy) }} 
           />
         )}
       </div>

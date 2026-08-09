@@ -3,6 +3,7 @@ import Cropper from 'react-easy-crop';
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiSave, FiImage, FiVideo, FiShoppingCart, FiEye, FiEyeOff, FiHeart, FiTruck, FiShield, FiCheck, FiMenu, FiLoader, FiZoomIn, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown } from 'react-icons/fi';
 import { API_URL } from '../../config/api';
 import { formatPrice } from '../../utils/format';
+import { temizHtml } from '../../utils/sanitize';
 
 // --- CANVAS ÜZERİNDEN KIRPILMIŞ GÖRSELİ BLOB OLARAK ÜRETEN YARDIMCI FONKSİYON ---
 const getCroppedImageBlob = (imageSrc, pixelCrop) => {
@@ -1094,7 +1095,7 @@ const AdminProducts = () => {
                            <span className="text-[10px] font-black text-cyan-600 uppercase tracking-widest block mb-2">Ayarlardan Gelen Garanti Maddeleri</span>
                            <div
                              className="prose prose-zinc max-w-none prose-p:my-2 prose-li:my-1 prose-ul:my-2 break-words [overflow-wrap:anywhere]"
-                             dangerouslySetInnerHTML={{ __html: storeSettings.warranty_tab_bullets || '' }}
+                             dangerouslySetInnerHTML={{ __html: temizHtml(storeSettings.warranty_tab_bullets || '') }}
                            />
                         </div>
                       </div>
