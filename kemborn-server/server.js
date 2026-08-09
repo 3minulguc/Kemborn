@@ -318,6 +318,24 @@ const isAdmin = (req, res, next) => {
     next();
 };
 
+// Girişi ZORUNLU KILMAYAN doğrulama.
+// Misafir sipariş için gerekli: token varsa ve geçerliyse req.user doldurulur,
+// yoksa istek misafir olarak devam eder. Geçersiz/süresi dolmuş token da
+// misafir sayılır — ziyaretçiyi ödeme adımında hata ekranına düşürmek yerine
+// misafir olarak devam ettirmek doğru davranış.
+const verifyTokenOptional = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    if (authHeader) {
+        try {
+            const token = authHeader.split(" ")[1];
+            req.user = jwt.verify(token, JWT_SECRET);
+        } catch {
+            req.user = null;
+        }
+    }
+    next();
+};
+
 // --- SAHİPLİK KONTROLÜ ---
 // verifyToken "geçerli bir üye mi?" sorusunu cevaplıyor ama "bu veri ONA mı ait?"
 // sorusunu cevaplamıyordu. Bu eksik yüzünden bir üye, adresteki id'yi değiştirerek
@@ -645,6 +663,26 @@ const terkEdilmisSiparisleriTemizle = async () => {
 };
 
 // ==========================================
+// SİPARİŞİN MÜŞTERİ İLETİŞİM BİLGİSİ
+// ==========================================
+// Üye siparişinde bilgi users tablosundan, misafir siparişinde siparişin
+// kendisinden gelir. Bu ayrımı tek yerde yapıyoruz ki e-posta gönderen dört
+// ayrı yer (sipariş alındı, kargoda, teslim edildi, iptal) aynı davransın.
+// Önceden hepsi doğrudan users tablosuna bakıyordu; misafir siparişlerinde
+// hiçbir e-posta gitmezdi.
+const siparisMusterisi = async (orderId) => {
+    const r = await client.query(
+        `SELECT COALESCE(u.email, o.guest_email)       AS email,
+                COALESCE(u.username, o.guest_name)     AS username
+           FROM orders o LEFT JOIN users u ON u.id = o.user_id
+          WHERE o.id = $1`,
+        [orderId]
+    );
+    const musteri = r.rows[0];
+    return musteri?.email ? musteri : null;
+};
+
+// ==========================================
 // ÖDEME ONAYI ORTAK MANTIĞI ("Siparişiniz Alındı" e-postası)
 // ==========================================
 // Bu fonksiyon İKİ farklı yerden çağrılır:
@@ -697,9 +735,9 @@ const confirmOrderPayment = async (orderId) => {
     //   2) PayTR aynı bildirimi tekrar gönderdiğinde stok ikinci kez düşebiliyordu.
     // Bu fonksiyon artık sadece müşteriye "siparişiniz alındı" e-postasını gönderir.
 
-    const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
-    if (userResult.rows.length > 0 && userResult.rows[0].email) {
-        const { email, username } = userResult.rows[0];
+    const musteri = await siparisMusterisi(orderId);
+    if (musteri) {
+        const { email, username } = musteri;
         const itemsHtml = itemsResult.rows.map(item =>
             `<tr>
                 <td style="padding:8px 0; color:#3f3f46; font-size:14px;">${item.quantity}x ${item.product_name}</td>
@@ -1302,7 +1340,11 @@ app.get('/api/orders/:orderId', verifyToken, async (req, res) => {
     try {
         const orderId = req.params.orderId;
         const orderResult = await client.query(
-          `SELECT o.*, u.username as customer_name, u.email as customer_email, u.phone as customer_phone
+          `SELECT o.*,
+                  COALESCE(u.username, o.guest_name)  AS customer_name,
+                  COALESCE(u.email,    o.guest_email) AS customer_email,
+                  COALESCE(u.phone,    o.guest_phone) AS customer_phone,
+                  (o.user_id IS NULL)                 AS misafir_siparisi
            FROM orders o LEFT JOIN users u ON o.user_id = u.id
            WHERE o.id = $1`,
           [orderId]
@@ -1434,12 +1476,20 @@ const buildOrderFromCart = async (items, conn = client) => {
 // Ödeme dönüşünde "gerçekten ödendi mi" sorusunu cevaplar.
 // Başarı sayfası eskiden hiçbir kontrol yapmadan "Sipariş Başarılı!" diyordu;
 // /success adresine giden herkes ödeme yapmış gibi görünüyordu.
-app.get('/api/orders/durum/:orderNumber', verifyToken, async (req, res) => {
+app.get('/api/orders/durum/:orderNumber', verifyTokenOptional, async (req, res) => {
     try {
-        const sonuc = await client.query(
-            'SELECT order_number, status, total_amount, created_at FROM orders WHERE order_number = $1 AND user_id = $2',
-            [String(req.params.orderNumber), req.user.id]
-        );
+        // Üyede oturum, misafirde erişim anahtarı sahipliği kanıtlar.
+        const anahtar = String(req.query.anahtar || '');
+        const sonuc = req.user?.id
+            ? await client.query(
+                'SELECT order_number, status, total_amount, created_at FROM orders WHERE order_number = $1 AND user_id = $2',
+                [String(req.params.orderNumber), req.user.id]
+              )
+            : await client.query(
+                'SELECT order_number, status, total_amount, created_at FROM orders WHERE order_number = $1 AND access_token = $2 AND access_token IS NOT NULL',
+                [String(req.params.orderNumber), anahtar]
+              );
+
         if (sonuc.rows.length === 0) {
             return res.status(404).json({ error: "Sipariş bulunamadı." });
         }
@@ -1466,16 +1516,86 @@ app.get('/api/orders/durum/:orderNumber', verifyToken, async (req, res) => {
     }
 });
 
-app.post('/api/orders', verifyToken, siparisLimiter, async (req, res) => {
+// ==========================================
+// MİSAFİR SİPARİŞ SORGULAMA
+// ==========================================
+// Üyenin sipariş geçmişi hesabında duruyor; misafirin böyle bir yeri yok.
+// Sipariş numarası + e-posta ile kendi siparişini sorgulayabiliyor.
+// Sipariş numarası sıralı (KB-1001, KB-1002...) olduğu için tek başına
+// TAHMİN EDİLEBİLİR — bu yüzden e-posta eşleşmesi de şart ve bu uç
+// deneme sınırına tabi.
+app.post('/api/orders/sorgula', resetPasswordLimiter, async (req, res) => {
+    const siparisNo = String(req.body?.siparisNo || '').trim();
+    const eposta = String(req.body?.eposta || '').trim().toLowerCase();
+
+    if (!siparisNo || !eposta) {
+        return res.status(400).json({ error: "Sipariş numarası ve e-posta adresi gereklidir." });
+    }
+
+    try {
+        const r = await client.query(
+            `SELECT o.order_number, o.status, o.total_amount, o.created_at, o.tracking_number,
+                    o.shipping_address, COALESCE(u.username, o.guest_name) AS musteri_adi
+               FROM orders o LEFT JOIN users u ON u.id = o.user_id
+              WHERE o.order_number = $1
+                AND LOWER(COALESCE(u.email, o.guest_email)) = $2`,
+            [siparisNo, eposta]
+        );
+
+        if (r.rows.length === 0) {
+            // Hangisinin yanlış olduğunu söylemiyoruz: sipariş numarası sıralı
+            // olduğu için "bu numara var ama e-posta yanlış" demek, numaraların
+            // geçerliliğini doğrulamaya yarardı.
+            return res.status(404).json({ error: "Bu bilgilerle bir sipariş bulunamadı. Sipariş numarasını ve e-posta adresinizi kontrol edin." });
+        }
+
+        const siparis = r.rows[0];
+        const kalemler = await client.query(
+            'SELECT product_name, quantity, price, color FROM order_items WHERE order_id = (SELECT id FROM orders WHERE order_number = $1)',
+            [siparisNo]
+        );
+
+        res.json({ ...siparis, items: kalemler.rows });
+    } catch (err) {
+        res.status(500).json({ error: "Sipariş sorgulanamadı, lütfen tekrar deneyin." });
+    }
+});
+
+app.post('/api/orders', verifyTokenOptional, siparisLimiter, async (req, res) => {
     // DİKKAT: body'deki totalAmount / price alanları BİLEREK okunmuyor.
-    const { items, shippingAddress, paymentMethod, expectedTotal } = req.body;
-    const userId = req.user.id; // Token'dan gelen güvenli ID!
+    const { items, shippingAddress, paymentMethod, expectedTotal, misafir } = req.body;
+
+    // ÜYE mi MİSAFİR mi?
+    // Üyede kimlik token'dan gelir (güvenli). Misafirde böyle bir kayıt yok,
+    // iletişim bilgileri siparişin kendisinde saklanır.
+    const userId = req.user?.id || null;
+    const misafirSiparisi = !userId;
 
     if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: "Sepet boş, sipariş oluşturulamaz." });
     }
     if (!shippingAddress || !String(shippingAddress).trim()) {
         return res.status(400).json({ error: "Teslimat adresi zorunludur." });
+    }
+
+    // Misafir siparişinde iletişim bilgisi zorunlu: sipariş onayı, kargo
+    // bildirimi ve sorun çıkarsa ulaşabilmek için tek yolumuz bu.
+    let misafirBilgi = null;
+    if (misafirSiparisi) {
+        const ad = String(misafir?.ad || '').trim();
+        const eposta = String(misafir?.eposta || '').trim().toLowerCase();
+        const telefon = String(misafir?.telefon || '').replace(/\D/g, '');
+
+        if (!ad) {
+            return res.status(400).json({ error: "Ad soyad zorunludur." });
+        }
+        if (!eposta || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(eposta)) {
+            return res.status(400).json({ error: "Geçerli bir e-posta adresi girin." });
+        }
+        if (telefon.length !== 11) {
+            return res.status(400).json({ error: "Geçerli bir telefon numarası girin (başında 0 ile 11 hane)." });
+        }
+        misafirBilgi = { ad, eposta, telefon };
     }
 
     try {
@@ -1506,9 +1626,21 @@ app.post('/api/orders', verifyToken, siparisLimiter, async (req, res) => {
             const seqResult = await conn.query("SELECT nextval('order_number_seq') as num");
             const orderNumber = `KB-${seqResult.rows[0].num}`;
 
+            // Misafirin kendi siparişine erişmesi için tahmin edilemez anahtar.
+            // Üyede oturum var; misafirde ödeme başlatma ve durum sorgulama
+            // bu anahtarla doğrulanıyor.
+            const erisimAnahtari = misafirSiparisi ? crypto.randomBytes(32).toString('hex') : null;
+
             const orderResult = await conn.query(
-                `INSERT INTO orders (user_id, order_number, total_amount, shipping_address, payment_method, status) VALUES ($1, $2, $3, $4, $5, 'ÖDEME BEKLENİYOR') RETURNING id`,
-                [userId, orderNumber, total, shippingAddress, paymentMethod || 'Kredi Kartı']
+                `INSERT INTO orders
+                    (user_id, order_number, total_amount, shipping_address, payment_method, status,
+                     guest_name, guest_email, guest_phone, access_token)
+                 VALUES ($1, $2, $3, $4, $5, 'ÖDEME BEKLENİYOR', $6, $7, $8, $9) RETURNING id`,
+                [
+                    userId, orderNumber, total, shippingAddress, paymentMethod || 'Kredi Kartı',
+                    misafirBilgi?.ad || null, misafirBilgi?.eposta || null,
+                    misafirBilgi?.telefon || null, erisimAnahtari
+                ]
             );
             const orderId = orderResult.rows[0].id;
 
@@ -1519,16 +1651,19 @@ app.post('/api/orders', verifyToken, siparisLimiter, async (req, res) => {
                 );
             }
 
-            return { orderNumber, total, subtotal, shipping };
+            return { orderNumber, total, subtotal, shipping, erisimAnahtari };
         });
 
-        const { orderNumber, total, subtotal, shipping } = sonuc;
+        const { orderNumber, total, subtotal, shipping, erisimAnahtari } = sonuc;
         res.status(201).json({
             message: "Sipariş oluşturuldu, ödeme bekleniyor.",
             orderNumber,
             totalAmount: total,
             subtotal,
-            shipping
+            shipping,
+            // Sadece misafir siparişinde dolu; istemci bunu ödeme ve durum
+            // sorgulama adımlarında geri gönderiyor.
+            ...(erisimAnahtari ? { erisimAnahtari } : {})
         });
     } catch (err) {
         // ROLLBACK'i transactionIle kendisi yapıyor; burada sadece hatayı bildiriyoruz.
@@ -1608,8 +1743,10 @@ app.get('/api/admin/orders', verifyToken, isAdmin, async (req, res) => {
     const safePage = Math.max(parseInt(page, 10) || 1, 1);
     const offset = (safePage - 1) * safeLimit;
     try {
-        let query = `SELECT o.id, o.order_number, o.total_amount, o.status, o.created_at, u.username as customer_name 
-           FROM orders o LEFT JOIN users u ON o.user_id = u.id 
+        let query = `SELECT o.id, o.order_number, o.total_amount, o.status, o.created_at,
+                  COALESCE(u.username, o.guest_name, 'Misafir') AS customer_name,
+                  (o.user_id IS NULL) AS misafir_siparisi
+           FROM orders o LEFT JOIN users u ON o.user_id = u.id
            ORDER BY o.created_at DESC`;
         const values = [];
         if (usesPagination) {
@@ -1706,9 +1843,9 @@ app.put('/api/admin/orders/:id', verifyToken, isAdmin, async (req, res) => {
         // E-POSTA: Sipariş "KARGODA" durumuna geçtiyse müşteriye kargo bilgisi gönder
         if (status && status.toUpperCase() === 'KARGODA') {
             try {
-                const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
-                if (userResult.rows.length > 0 && userResult.rows[0].email) {
-                    const { email, username } = userResult.rows[0];
+                const musteri = await siparisMusterisi(orderId);
+                if (musteri) {
+                    const { email, username } = musteri;
                     await sendMail(
                         email,
                         `Siparişiniz Kargoya Verildi - ${order_number}`,
@@ -1729,9 +1866,9 @@ app.put('/api/admin/orders/:id', verifyToken, isAdmin, async (req, res) => {
         const deliveredStatuses = ['TAMAMLANDI', 'TESLİM EDİLDİ', 'TESLIM EDILDI'];
         if (status && deliveredStatuses.includes(status.toUpperCase())) {
             try {
-                const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
-                if (userResult.rows.length > 0 && userResult.rows[0].email) {
-                    const { email, username } = userResult.rows[0];
+                const musteri = await siparisMusterisi(orderId);
+                if (musteri) {
+                    const { email, username } = musteri;
                     await sendMail(
                         email,
                         `Siparişiniz Teslim Edildi - ${order_number}`,
@@ -1754,9 +1891,9 @@ app.put('/api/admin/orders/:id', verifyToken, isAdmin, async (req, res) => {
         const cancelledStatuses = ['İPTAL EDİLDİ', 'IPTAL EDILDI'];
         if (!wasPending && status && cancelledStatuses.includes(status.toUpperCase())) {
             try {
-                const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
-                if (userResult.rows.length > 0 && userResult.rows[0].email) {
-                    const { email, username } = userResult.rows[0];
+                const musteri = await siparisMusterisi(orderId);
+                if (musteri) {
+                    const { email, username } = musteri;
                     await sendMail(
                         email,
                         `Siparişiniz İptal Edildi - ${order_number}`,
@@ -1836,10 +1973,10 @@ app.get('/api/admin/customers', verifyToken, isAdmin, async (req, res) => {
 // PayTR Mağaza Paneli'nde "Direkt API / iFrame" servisinin mağaza için
 // (445827 - kemborn.com) AÇIK/onaylı olması şart. Kapalıysa PayTR şu hatayı
 // döner: "Magaziniz icin ... servis yetkisi bulunmuyor."
-app.post('/api/payment', verifyToken, siparisLimiter, async (req, res) => {
+app.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res) => {
   // DİKKAT: body'deki price / items alanları BİLEREK okunmuyor. Tahsil edilecek
   // tutar ve sepet içeriği, veritabanındaki kayıtlı siparişten alınıyor.
-  const { basketId, customer } = req.body;
+  const { basketId, customer, erisimAnahtari } = req.body;
 
   if (!basketId) {
     return res.status(400).json({ error: "Sipariş bilgisi eksik, ödeme başlatılamadı." });
@@ -1852,12 +1989,19 @@ app.post('/api/payment', verifyToken, siparisLimiter, async (req, res) => {
   }
 
   try {
-    // GÜVENLİK: Sipariş hem NUMARASIYLA hem de İSTEK SAHİBİNİN id'siyle aranıyor.
-    // Böylece bir üye, başkasının sipariş numarası için ödeme başlatamaz.
-    const orderRes = await client.query(
-      'SELECT id, order_number, total_amount, status FROM orders WHERE order_number = $1 AND user_id = $2',
-      [String(basketId), req.user.id]
-    );
+    // GÜVENLİK: Sipariş numarası tek başına yeterli değil — sahibi olduğunu da
+    // kanıtlamak gerekiyor. Üyede bu kanıt oturum token'ı, misafirde sipariş
+    // oluşturulurken verilen erişim anahtarı. İkisi de yoksa erişim yok.
+    const orderRes = req.user?.id
+      ? await client.query(
+          'SELECT id, order_number, total_amount, status FROM orders WHERE order_number = $1 AND user_id = $2',
+          [String(basketId), req.user.id]
+        )
+      : await client.query(
+          'SELECT id, order_number, total_amount, status FROM orders WHERE order_number = $1 AND access_token = $2 AND access_token IS NOT NULL',
+          [String(basketId), String(erisimAnahtari || '')]
+        );
+
     if (orderRes.rows.length === 0) {
       return res.status(404).json({ error: "Sipariş bulunamadı." });
     }

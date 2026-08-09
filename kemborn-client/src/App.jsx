@@ -8,6 +8,7 @@ import ScrollToTop from './components/ScrollToTop'; // 1. Importu ekledik
 import CookieConsent from './components/CookieConsent';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFoundPage from './pages/NotFoundPage';
+import OrderLookupPage from './pages/OrderLookupPage';
 
 // Layoutlar
 import MainLayout from './layouts/MainLayout';
@@ -98,6 +99,7 @@ function App() {
               <Route path="/success" element={<SuccessPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/siparis-sorgula" element={<OrderLookupPage />} />
 
               {/* Bilinmeyen adresler: header ve footer korunarak 404 gösterilir.
                   Önceden bu rota hiç yoktu, yanlış adres boş sayfa veriyordu. */}

@@ -163,7 +163,16 @@ const CheckoutPage = () => {
             items: cart.map(item => ({ productId: item.id, quantity: item.quantity, color: item.color })),
             expectedTotal: displayedTotal,
             shippingAddress: fullAddress,
-            paymentMethod: "Kredi Kartı"
+            paymentMethod: "Kredi Kartı",
+            // Giriş yapılmamışsa iletişim bilgileri siparişle birlikte gider;
+            // sipariş onayı ve kargo bildirimi buraya gönderilecek.
+            ...(user ? {} : {
+              misafir: {
+                ad: `${formData.ad} ${formData.soyad}`.trim(),
+                eposta: formData.email,
+                telefon: formData.telefon
+              }
+            })
         })
       });
 
@@ -185,6 +194,12 @@ const CheckoutPage = () => {
       }
 
       const generatedOrderNumber = dbData.orderNumber;
+      // Misafir siparişinde sunucu bir erişim anahtarı döner; ödeme başlatmak
+      // ve sonrasında sipariş durumunu sorgulamak için sahiplik kanıtı bu.
+      const erisimAnahtari = dbData.erisimAnahtari || null;
+      if (erisimAnahtari) {
+        sessionStorage.setItem(`kemborn_siparis_${generatedOrderNumber}`, erisimAnahtari);
+      }
 
       const paymentResponse = await fetch(`${API_URL}/api/payment`, {
         method: 'POST',
@@ -194,7 +209,8 @@ const CheckoutPage = () => {
         },
         body: JSON.stringify({
           basketId: generatedOrderNumber,
-          customer: formData
+          customer: formData,
+          ...(erisimAnahtari ? { erisimAnahtari } : {})
         })
       });
 
@@ -219,25 +235,9 @@ const CheckoutPage = () => {
 
   const inputClass = "w-full bg-zinc-50 border border-zinc-200 text-zinc-900 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-cyan-600/20 focus:border-cyan-600 transition-all placeholder:text-zinc-400 font-medium disabled:opacity-60 disabled:cursor-not-allowed";
 
-  if (!user) {
-    return (
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-20 min-h-[60vh] flex flex-col items-center justify-center">
-        <div className="w-24 h-24 bg-zinc-100 rounded-full flex items-center justify-center mb-6">
-          <FiUserX className="text-zinc-400" size={40} />
-        </div>
-        <h1 className="text-3xl font-black text-zinc-900 mb-4">Giriş Yapmanız Gerekiyor</h1>
-        <p className="text-zinc-500 font-medium mb-8 text-center max-w-md">
-          Siparişinizi tamamlayabilmek ve kargonuzu takip edebilmek için lütfen hesabınıza giriş yapın.
-        </p>
-        <Link 
-          to="/auth" 
-          className="bg-cyan-600 text-white px-8 py-4 rounded-2xl font-black text-lg hover:bg-zinc-900 transition-all shadow-lg hover:shadow-xl active:scale-95"
-        >
-          Giriş Yap / Kayıt Ol
-        </Link>
-      </main>
-    );
-  }
+  // NOT: Burada eskiden "Giriş Yapmanız Gerekiyor" duvarı vardı ve üye olmayan
+  // ziyaretçi ödemeye hiç geçemiyordu. Artık misafir olarak da sipariş
+  // verilebiliyor; giriş bir SEÇENEK olarak sunuluyor (aşağıdaki bilgi şeridi).
 
   if (isCartEmpty) {
     return (
@@ -290,6 +290,25 @@ const CheckoutPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         <div className="lg:col-span-8 space-y-8">
+          {/* Misafir alışverişi: giriş zorunlu değil ama avantajı hatırlatılıyor.
+              Bu şerit sadece giriş yapmamış ziyaretçiye görünüyor. */}
+          {!user && (
+            <div className="bg-cyan-50/60 border border-cyan-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+              <FiUserX className="text-cyan-600 shrink-0" size={22} />
+              <p className="flex-1 text-sm font-medium text-zinc-700 leading-relaxed">
+                <span className="font-black text-zinc-900">Üye olmadan devam edebilirsiniz.</span>{' '}
+                Giriş yaparsanız siparişlerinizi hesabınızdan takip edebilir, adres bilgileriniz
+                bir sonraki alışverişte hazır gelir.
+              </p>
+              <Link
+                to="/auth"
+                className="shrink-0 bg-white border border-cyan-300 text-cyan-700 px-5 min-h-[44px] rounded-xl font-black text-sm flex items-center justify-center hover:bg-cyan-600 hover:text-white hover:border-cyan-600 transition-all active:scale-95"
+              >
+                Giriş Yap
+              </Link>
+            </div>
+          )}
+
           <section className="bg-white p-6 sm:p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
             <div className="flex items-center gap-3 mb-8 border-b border-zinc-100 pb-4">
               <div className="w-10 h-10 rounded-full bg-cyan-50 text-cyan-600 flex items-center justify-center">

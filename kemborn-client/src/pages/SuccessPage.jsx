@@ -35,7 +35,13 @@ const SuccessPage = () => {
     const dogrula = async () => {
       try {
         const token = sessionStorage.getItem('kemborn_token');
-        const res = await fetch(`${API_URL}/api/orders/durum/${encodeURIComponent(orderNumber)}`, {
+        // Misafir siparişinde oturum yok; sahiplik, sipariş oluşturulurken
+        // alınan erişim anahtarıyla kanıtlanıyor.
+        const anahtar = sessionStorage.getItem(`kemborn_siparis_${orderNumber}`);
+        const adres = `${API_URL}/api/orders/durum/${encodeURIComponent(orderNumber)}`
+          + (anahtar ? `?anahtar=${encodeURIComponent(anahtar)}` : '');
+
+        const res = await fetch(adres, {
           headers: { Authorization: token ? `Bearer ${token}` : '' }
         });
         if (!res.ok) throw new Error('dogrulanamadi');
