@@ -673,7 +673,8 @@ const terkEdilmisSiparisleriTemizle = async () => {
 const siparisMusterisi = async (orderId) => {
     const r = await client.query(
         `SELECT COALESCE(u.email, o.guest_email)       AS email,
-                COALESCE(u.username, o.guest_name)     AS username
+                COALESCE(u.username, o.guest_name)     AS username,
+                (o.user_id IS NOT NULL)                AS "uyeMi"
            FROM orders o LEFT JOIN users u ON u.id = o.user_id
           WHERE o.id = $1`,
         [orderId]
@@ -755,7 +756,17 @@ const confirmOrderPayment = async (orderId) => {
                     ${itemsHtml}
                  </table>
                  <p style="color:#18181b; font-weight:bold; font-size:16px; margin-top:16px; border-top:1px solid #e4e4e7; padding-top:12px;">Toplam: ${parseFloat(total_amount).toLocaleString('tr-TR')} TL</p>
-                 <p style="color:#52525b; font-size:13px; margin-top:20px;">Siparişinizin durumunu hesabınızdan takip edebilirsiniz.</p>`
+                 ${musteri.uyeMi
+                    ? `<p style="color:#52525b; font-size:13px; margin-top:20px;">Siparişinizin durumunu hesabınızdan takip edebilirsiniz.</p>
+                       <a href="${FRONTEND_URL}/profile/orders" style="display:inline-block; background:#18181b; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:12px; font-weight:bold; font-size:14px; margin-top:12px;">Siparişlerim</a>`
+                    // Misafir müşterinin hesabı yok; siparişine dönebilmesinin
+                    // tek yolu bu bağlantı ve yukarıdaki sipariş numarası.
+                    : `<p style="color:#52525b; font-size:13px; margin-top:20px;">
+                         Siparişinizin durumunu ve kargo takip numarasını, sipariş numaranız
+                         (<b>${order_number}</b>) ve bu e-posta adresinizle sorgulayabilirsiniz.
+                       </p>
+                       <a href="${FRONTEND_URL}/siparis-sorgula" style="display:inline-block; background:#18181b; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:12px; font-weight:bold; font-size:14px; margin-top:12px;">Siparişimi Sorgula</a>`
+                 }`
             )
         );
     }

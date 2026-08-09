@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { FiPackage, FiShoppingBag, FiCheckCircle, FiClock, FiXCircle, FiRefreshCw } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
+import { FiPackage, FiShoppingBag, FiCheckCircle, FiClock, FiXCircle, FiRefreshCw, FiSearch } from 'react-icons/fi';
 import { API_URL } from '../config/api';
 
 // ==========================================
@@ -19,6 +20,7 @@ import { API_URL } from '../config/api';
 const SuccessPage = () => {
   const [searchParams] = useSearchParams();
   const { clearCart } = useCart();
+  const { isAuthenticated } = useAuth();
   const orderNumber = searchParams.get('order');
 
   // Sipariş numarası yoksa (doğrudan /success adresine gelinmişse) doğrulanacak
@@ -80,14 +82,26 @@ const SuccessPage = () => {
 
   const kutu = "min-h-[70vh] flex flex-col items-center justify-center bg-white px-4 py-16";
 
+  // Misafir siparişinde "Siparişlerimi Gör" üye paneline gidiyordu; orası
+  // giriş istediği için misafir için kırık bir yoldu. Artık misafir sorgulama
+  // sayfasına yönlendiriliyor.
   const butonlar = (
     <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md mt-8">
-      <Link
-        to="/profile/orders"
-        className="flex-1 bg-zinc-900 text-white px-6 min-h-[52px] rounded-2xl font-black hover:bg-cyan-600 transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95"
-      >
-        <FiPackage size={20} /> Siparişlerimi Gör
-      </Link>
+      {isAuthenticated ? (
+        <Link
+          to="/profile/orders"
+          className="flex-1 bg-zinc-900 text-white px-6 min-h-[52px] rounded-2xl font-black hover:bg-cyan-600 transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95"
+        >
+          <FiPackage size={20} /> Siparişlerimi Gör
+        </Link>
+      ) : (
+        <Link
+          to="/siparis-sorgula"
+          className="flex-1 bg-zinc-900 text-white px-6 min-h-[52px] rounded-2xl font-black hover:bg-cyan-600 transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95"
+        >
+          <FiSearch size={20} /> Siparişimi Sorgula
+        </Link>
+      )}
       <Link
         to="/"
         className="flex-1 bg-zinc-50 text-zinc-900 border border-zinc-200 px-6 min-h-[52px] rounded-2xl font-black hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 active:scale-95"

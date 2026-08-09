@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo, FiShoppingBag, FiShare2, FiPlayCircle } from 'react-icons/fi';
+import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo, FiShoppingBag, FiShare2, FiPlayCircle, FiPackage } from 'react-icons/fi';
 import { useCart } from '../context/CartContext'; 
 import { useAuth } from '../context/AuthContext';
 import { urunAramayaUyuyorMu } from '../utils/search';
@@ -204,17 +204,23 @@ const Header = () => {
         </div>
 
         <nav className="hidden md:block w-full border-b border-zinc-200 bg-zinc-50 py-3 relative z-40">
+          {/* NAV'DA NE VAR, NE YOK:
+              Yasal metin sayfaları (Teslimat ve İade, Gizlilik Politikası,
+              Mesafeli Satış Sözleşmesi) BİLEREK burada değil — footer'daki
+              "Yardım" başlığı altında duruyorlar. Yasal zorunluluk bunların
+              ERİŞİLEBİLİR olması, üst menüde bulunması değil; footer bunun
+              standart yeri. Üç uzun etiket menünün yarısını yiyor ve
+              müşterinin gerçekten aradığı sayfalara yer bırakmıyordu.
+              Sıra müşterinin yolculuğuna göre: gez → öğren → siparişini takip et. */}
           <div className="max-w-7xl mx-auto px-4 flex justify-center gap-8 overflow-x-auto">
             <Link to="/" className={`${isActive("/")} text-sm whitespace-nowrap`}>Ana Sayfa</Link>
             <Link to="/products" className={`${isActive("/products")} text-sm whitespace-nowrap`}>Ürünler</Link>
-            <Link to="/delivery" className={`${isActive("/delivery")} text-sm whitespace-nowrap`}>Teslimat ve İade</Link>
-            <Link to="/policy" className={`${isActive("/policy")} text-sm whitespace-nowrap`}>Gizlilik Politikası</Link>
-            <Link to="/mesafeli-satis-sozlesmesi" className={`${isActive("/mesafeli-satis-sozlesmesi")} text-sm whitespace-nowrap`}>Mesafeli Satış Sözleşmesi</Link>
-            <Link to="/contact" className={`${isActive("/contact")} text-sm whitespace-nowrap`}>İletişim</Link>
-            <Link to="/about" className={`${isActive("/about")} text-sm whitespace-nowrap`}>Hakkımızda</Link>
+            <Link to="/kurulum-rehberi" className={`${isActive("/kurulum-rehberi")} text-sm whitespace-nowrap`}>Kurulum Rehberi</Link>
+            <Link to="/siparis-sorgula" className={`${isActive("/siparis-sorgula")} text-sm whitespace-nowrap`}>Sipariş Sorgula</Link>
             <Link to="/magazalarimiz" className={`${isActive("/magazalarimiz")} text-sm whitespace-nowrap`}>Mağazalarımız</Link>
             <Link to="/sosyal-medyalarimiz" className={`${isActive("/sosyal-medyalarimiz")} text-sm whitespace-nowrap`}>Sosyal Medyalarımız</Link>
-            <Link to="/kurulum-rehberi" className={`${isActive("/kurulum-rehberi")} text-sm whitespace-nowrap`}>Kurulum Rehberi</Link>
+            <Link to="/about" className={`${isActive("/about")} text-sm whitespace-nowrap`}>Hakkımızda</Link>
+            <Link to="/contact" className={`${isActive("/contact")} text-sm whitespace-nowrap`}>İletişim</Link>
           </div>
         </nav>
       </header>
@@ -285,6 +291,9 @@ const Header = () => {
               { path: "/", label: "Ana Sayfa", icon: FiHome },
               { path: "/products", label: "Tüm Ürünler", icon: FiGrid },
               { path: "/cart", label: "Sepetim", icon: FiShoppingCart, badge: cartCount > 0 ? cartCount : null },
+              // Misafir müşterinin siparişine ulaşabileceği tek yer; ana
+              // grupta olması lazım, alttaki bilgi bölümünde kaybolmasın.
+              { path: "/siparis-sorgula", label: "Sipariş Sorgula", icon: FiPackage },
             ].map((link) => {
               const ItemIcon = link.icon;
               return (
