@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
 import ProductCard from '../components/ProductCard';
+import Seo from '../components/Seo';
 import { useFavorites } from '../hooks/useFavorites';
 import { temizHtml } from '../utils/sanitize';
 
@@ -167,8 +168,43 @@ const ProductDetail = () => {
   ];
   const activeMedia = galleryMedia[selectedMediaIndex] || galleryMedia[0];
 
+  // --- ARAMA MOTORU BİLGİLERİ ---
+  // Site tek sayfalık olduğu için her ürün Google'da aynı başlıkla
+  // ("Kemborn Intercom") görünüyordu. Artık her ürünün kendi başlığı,
+  // açıklaması ve JSON-LD şeması var; şema sayesinde arama sonucunda
+  // fiyat ve stok durumu da gösterilebiliyor.
+  const seoAciklama = (product.short_description || product.page_description || '')
+    .replace(/<[^>]*>/g, '')
+    .slice(0, 160);
+  const urunSemasi = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: seoAciklama,
+    image: galleryImages,
+    sku: `KB-${product.id}`,
+    brand: { '@type': 'Brand', name: 'Kemborn' },
+    offers: {
+      '@type': 'Offer',
+      url: `https://kemborn.com/product/${product.id}`,
+      priceCurrency: 'TRY',
+      price: String(parseFloat(product.price) || 0),
+      availability: isEntirelyOutOfStock
+        ? 'https://schema.org/OutOfStock'
+        : 'https://schema.org/InStock',
+      seller: { '@type': 'Organization', name: 'Kemborn' }
+    }
+  };
+
   return (
     <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 font-sans">
+      <Seo
+        baslik={`${product.name} | Kemborn`}
+        aciklama={seoAciklama}
+        gorsel={galleryImages[0]}
+        kanonik={`https://kemborn.com/product/${product.id}`}
+        sema={urunSemasi}
+      />
       <div className="grid md:grid-cols-[2fr_3fr] gap-8 md:gap-12 items-start mb-10 md:mb-16">
         
         {/* Görsel Alanı */}

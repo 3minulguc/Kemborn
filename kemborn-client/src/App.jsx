@@ -6,6 +6,8 @@ import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import ScrollToTop from './components/ScrollToTop'; // 1. Importu ekledik
 import CookieConsent from './components/CookieConsent';
+import ErrorBoundary from './components/ErrorBoundary';
+import NotFoundPage from './pages/NotFoundPage';
 
 // Layoutlar
 import MainLayout from './layouts/MainLayout';
@@ -48,6 +50,8 @@ function App() {
   return (
     <Router>
       <ScrollToTop /> {/* 2. Router'ın hemen içine ekledik */}
+      {/* Beklenmeyen bir render hatası tüm siteyi beyaz ekrana düşürmesin */}
+      <ErrorBoundary>
       <AuthProvider>
         <CartProvider>
           <Toaster
@@ -95,6 +99,10 @@ function App() {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
 
+              {/* Bilinmeyen adresler: header ve footer korunarak 404 gösterilir.
+                  Önceden bu rota hiç yoktu, yanlış adres boş sayfa veriyordu. */}
+              <Route path="*" element={<NotFoundPage />} />
+
               {/* Üye Paneli */}
               <Route path="/profile" element={<PrivateRoute><UserLayout /></PrivateRoute>}>
                 <Route index element={<ProfilePage />} />
@@ -117,6 +125,7 @@ function App() {
           <CookieConsent />
         </CartProvider>
       </AuthProvider>
+      </ErrorBoundary>
     </Router>
   );
 }

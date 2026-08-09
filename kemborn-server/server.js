@@ -420,6 +420,10 @@ const buildEmailHtml = (title, bodyHtml) => `
   </div>
 `;
 
+// Mağaza sahibine bildirim gidecek adres. Tanımlı değilse EMAIL_USER'a düşer
+// (mağaza zaten kendi Gmail hesabından gönderiyor).
+const MAGAZA_BILDIRIM_ADRESI = process.env.ADMIN_NOTIFY_EMAIL || process.env.EMAIL_USER || null;
+
 // "Best effort" gönderim: e-posta gönderilemese bile ana işlemi (sipariş, şifre vs.) DURDURMAZ.
 const sendMail = async (to, subject, html) => {
   if (!mailTransporter || !to) return;
@@ -654,6 +658,37 @@ const confirmOrderPayment = async (orderId) => {
     const { order_number, user_id, total_amount } = orderResult.rows[0];
 
     const itemsResult = await client.query('SELECT product_id, product_name, quantity, price, color FROM order_items WHERE order_id = $1', [orderId]);
+
+    // ====================================================================
+    // MAĞAZA SAHİBİNE BİLDİRİM
+    // ====================================================================
+    // Önceden koddaki e-postaların HEPSİ müşteriye gidiyordu; yeni sipariş
+    // geldiğini ancak admin panelini açınca öğreniyordun. Artık ödeme
+    // onaylandığı anda mağaza adresine de bir bildirim gidiyor.
+    if (MAGAZA_BILDIRIM_ADRESI) {
+        const adresBilgisi = await client.query('SELECT shipping_address FROM orders WHERE id = $1', [orderId]);
+        const kalemlerHtml = itemsResult.rows.map(item =>
+            `<tr>
+                <td style="padding:6px 0; color:#3f3f46; font-size:14px;">${item.quantity}x ${item.product_name}${item.color ? ` <span style="color:#a1a1aa;">(${item.color})</span>` : ''}</td>
+                <td style="padding:6px 0; text-align:right; color:#18181b; font-weight:bold; font-size:14px;">${parseFloat(item.price).toLocaleString('tr-TR')} TL</td>
+            </tr>`
+        ).join('');
+
+        await sendMail(
+            MAGAZA_BILDIRIM_ADRESI,
+            `🔔 Yeni Sipariş: ${order_number} — ${parseFloat(total_amount).toLocaleString('tr-TR')} TL`,
+            buildEmailHtml(
+                'Yeni bir sipariş geldi',
+                `<p style="color:#18181b; font-weight:bold; font-size:15px; margin-bottom:4px;">Sipariş No: ${order_number}</p>
+                 <table style="width:100%; border-collapse:collapse; margin-top:12px; border-top:1px solid #e4e4e7;">
+                    ${kalemlerHtml}
+                 </table>
+                 <p style="color:#18181b; font-weight:bold; font-size:16px; margin-top:12px; border-top:1px solid #e4e4e7; padding-top:10px;">Toplam: ${parseFloat(total_amount).toLocaleString('tr-TR')} TL</p>
+                 <p style="color:#52525b; font-size:13px; margin-top:16px;"><b>Teslimat adresi:</b><br>${String(adresBilgisi.rows[0]?.shipping_address || '-').replace(/\n/g, '<br>')}</p>
+                 <a href="${FRONTEND_URL}/admin/orders" style="display:inline-block; background:#18181b; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:12px; font-weight:bold; font-size:14px; margin-top:18px;">Sipariş Paneline Git</a>`
+            )
+        );
+    }
 
     // NOT: Burada artık stok DÜŞÜLMÜYOR. Stok, sipariş oluşturulurken
     // (POST /api/orders) rezerve ediliyor — bkz. stokRezerveEt.
