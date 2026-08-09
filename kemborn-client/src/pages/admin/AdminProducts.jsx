@@ -755,36 +755,48 @@ const AdminProducts = () => {
                 <h3 className="font-bold text-zinc-900 truncate">{product.name}</h3>
                 <p className="text-lg font-black text-cyan-700">{formatPrice(product.price)} TL</p>
               </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
+              {/* Sıralama okları: mobilde parmakla basılabilmesi için 44x44
+                  dokunma alanına çıkarıldı (önceden 28x28 idi ve iki buton
+                  birbirine çok yakın olduğu için yanlış basılıyordu). */}
+              <div className="flex flex-col items-end shrink-0">
                 <button
                   onClick={() => handleMoveProduct(index, -1)}
                   disabled={index === 0}
-                  className="p-1.5 bg-zinc-100 rounded-lg disabled:opacity-30 text-zinc-600"
+                  className="w-11 h-11 flex items-center justify-center bg-zinc-100 rounded-lg disabled:opacity-30 text-zinc-600 active:bg-zinc-200"
+                  aria-label="Ürünü yukarı taşı"
                   title="Yukarı taşı"
                 >
-                  <FiChevronUp size={16} />
+                  <FiChevronUp size={20} />
                 </button>
                 <button
                   onClick={() => handleMoveProduct(index, 1)}
                   disabled={index === products.length - 1}
-                  className="p-1.5 bg-zinc-100 rounded-lg disabled:opacity-30 text-zinc-600"
+                  className="w-11 h-11 mt-1.5 flex items-center justify-center bg-zinc-100 rounded-lg disabled:opacity-30 text-zinc-600 active:bg-zinc-200"
+                  aria-label="Ürünü aşağı taşı"
                   title="Aşağı taşı"
                 >
-                  <FiChevronDown size={16} />
+                  <FiChevronDown size={20} />
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${product.stock_quantity > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
+                product.stock_quantity > 0
+                  ? (product.stock_quantity <= 5 ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-600')
+                  : 'bg-red-50 text-red-600'
+              }`}>
                 {product.stock_quantity > 0 ? `${product.stock_quantity} Adet` : 'Stokta Yok'}
+                {product.stock_quantity > 0 && product.stock_quantity <= 5 && ' · Az kaldı'}
               </span>
+              {/* Görünürlük düğmesi de 44px yüksekliğe çıkarıldı */}
               <button
                 onClick={() => handleToggleVisibility(product)}
                 disabled={togglingId === product.id}
-                className={`flex items-center gap-1 font-bold text-sm ${togglingId === product.id ? 'opacity-40' : ''} ${product.isVisible ? 'text-zinc-600' : 'text-red-500'}`}
+                className={`flex items-center gap-1.5 px-3 h-11 rounded-xl font-bold text-sm active:bg-zinc-100 ${togglingId === product.id ? 'opacity-40' : ''} ${product.isVisible ? 'text-zinc-600' : 'text-red-500'}`}
+                aria-label={product.isVisible ? 'Ürünü gizle' : 'Ürünü satışa aç'}
               >
-                {product.isVisible ? <FiEye size={16}/> : <FiEyeOff size={16}/>} {product.isVisible ? 'Açık' : 'Gizli'}
+                {product.isVisible ? <FiEye size={18}/> : <FiEyeOff size={18}/>} {product.isVisible ? 'Açık' : 'Gizli'}
               </button>
             </div>
 

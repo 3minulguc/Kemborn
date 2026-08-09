@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'; // Dashboard'dan gelen param
 import { FiEye, FiSearch, FiX, FiSave, FiPackage, FiMapPin, FiTruck, FiUser, FiCreditCard, FiCalendar, FiClock, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { API_URL } from '../../config/api';
+import { DURUM, durumuCozumle, durumGorunumu, ELLE_ATANABILIR_DURUMLAR } from '../../constants/orderStatus';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -132,7 +133,19 @@ const AdminOrders = () => {
     }
   };
 
-  // Düzenlenen Alan: Kayıpsız Filtreleme ve Tarihe Göre Yeniden Eskiye Sıralama (DESC)
+  // Bir siparişin durumu, verilen sekmeye ait mi? Türkçe karakterli/karaktersiz
+  // tüm yazım varyantları orderStatus.js içinde tek yerden çözümleniyor.
+  const sekmeyeUyuyorMu = (orderStatus, tab) => {
+    if (tab === 'ALL') return true;
+    // "Ödeme Sorunlu" sekmesi iki durumu birden kapsıyor
+    if (tab === DURUM.ODEME_BASARISIZ) {
+      const kod = durumuCozumle(orderStatus);
+      return kod === DURUM.ODEME_BASARISIZ || kod === DURUM.TUTAR_UYUSMAZLIGI;
+    }
+    return durumuCozumle(orderStatus) === tab;
+  };
+
+  // Filtreleme + tarihe göre yeniden eskiye sıralama (DESC)
   const filteredOrders = orders
     .filter(order => {
       const searchLower = String(searchTerm || '').toLowerCase();
@@ -140,25 +153,23 @@ const AdminOrders = () => {
       const orderNo = String(order.order_number || '').toLowerCase();
       const matchesSearch = customerName.includes(searchLower) || orderNo.includes(searchLower);
 
-      const currentStatus = String(order.status || '').trim().toUpperCase();
-      const targetTab = String(activeTab || '').trim().toUpperCase();
-
-      // "Toplam Sipariş" (ALL) filtresi tıklandığında doğrudan tüm arama eşleşmelerini getirir
-      if (targetTab === 'ALL') return matchesSearch;
-      
-      // Düzenlenen Alan: Tamamlandı ve Teslim Edildi durumları tek sekmede kayıpsız birleştirildi
-      if (targetTab === 'TAMAMLANDI') {
-        return (currentStatus === 'TAMAMLANDI' || currentStatus === 'TESLİM EDİLDİ' || currentStatus === 'TESLIM EDILDI') && matchesSearch;
-      }
-
-      // Düzenlenen Alan: İptal Edilen sipariş varyasyonları korumaya alındı
-      if (targetTab === 'İPTAL EDİLDİ' || targetTab === 'IPTAL EDILDI') {
-        return (currentStatus === 'İPTAL EDİLDİ' || currentStatus === 'IPTAL EDILDI') && matchesSearch;
-      }
-
-      return currentStatus === targetTab && matchesSearch;
+      return matchesSearch && sekmeyeUyuyorMu(order.status, activeTab);
     })
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  // Sekme sayaçları — her durumun kaç siparişi var
+  const sayac = (tab) => orders.filter(o => sekmeyeUyuyorMu(o.status, tab)).length;
+
+  const SEKMELER = [
+    { deger: 'ALL', etiket: 'Tümü', renk: 'text-zinc-900' },
+    { deger: DURUM.ODENDI, etiket: 'Yeni Sipariş', renk: 'text-amber-600', vurgula: true },
+    { deger: DURUM.HAZIRLANIYOR, etiket: 'Hazırlanıyor', renk: 'text-orange-600' },
+    { deger: DURUM.KARGODA, etiket: 'Kargoda', renk: 'text-cyan-600' },
+    { deger: DURUM.TAMAMLANDI, etiket: 'Tamamlanan', renk: 'text-emerald-600' },
+    { deger: DURUM.IPTAL_EDILDI, etiket: 'İptal', renk: 'text-red-600' },
+    { deger: DURUM.ODEME_BEKLENIYOR, etiket: 'Ödeme Bekleyen', renk: 'text-zinc-500' },
+    { deger: DURUM.ODEME_BASARISIZ, etiket: 'Ödeme Sorunlu', renk: 'text-purple-600' }
+  ];
 
   // Arama ya da sekme değişince sayfa 1'e dön (eski sayfada kalıp boş görünmesin)
   useEffect(() => {
@@ -168,18 +179,11 @@ const AdminOrders = () => {
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
   const pagedOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const getStatusStyle = (status) => {
-    switch(String(status || '').toUpperCase()) {
-      case 'TAMAMLANDI': 
-      case 'TESLİM EDİLDİ': 
-      case 'TESLIM EDILDI': return 'bg-green-50 text-green-700 border-green-200';
-      case 'HAZIRLANIYOR': return 'bg-orange-50 text-orange-700 border-orange-200';
-      case 'KARGODA': return 'bg-cyan-50 text-cyan-700 border-cyan-200';
-      case 'İPTAL EDİLDİ': 
-      case 'IPTAL EDILDI': return 'bg-red-50 text-red-700 border-red-200';
-      default: return 'bg-zinc-50 text-zinc-700 border-zinc-200';
-    }
-  };
+  // Rozet rengi ve etiketi artık orderStatus.js'ten geliyor; ÖDENDİ,
+  // ÖDEME BEKLENİYOR, ÖDEME BAŞARISIZ ve TUTAR UYUŞMAZLIĞI dahil tüm
+  // durumlar tanınıyor (önceden bunlar gri "belirsiz" görünüyordu).
+  const getStatusStyle = (status) => durumGorunumu(status).rozet;
+  const getStatusLabel = (status) => durumGorunumu(status).etiket;
 
   const handleTabChange = (tabName) => {
     setActiveTab(tabName);
@@ -188,27 +192,62 @@ const AdminOrders = () => {
 
   return (
     <div className="animate-in fade-in duration-500 relative font-sans">
-      <h1 className="text-3xl font-black text-zinc-900 mb-8">Sipariş Yönetimi</h1>
+      <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 mb-6 sm:mb-8">Sipariş Yönetimi</h1>
 
-      {/* Düzenlenen Alan: İPTAL EDİLENLER SEKME BUTONU VE DİNAMİK SAYAÇLAR EKLENDİ */}
-      <div className="flex flex-wrap gap-2 mb-6 bg-zinc-100 p-1.5 rounded-2xl w-fit border border-zinc-200 shadow-inner">
-        <button onClick={() => handleTabChange('ALL')} className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${activeTab === 'ALL' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}>Tüm Siparişler ({orders.length})</button>
-        <button onClick={() => handleTabChange('HAZIRLANIYOR')} className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${activeTab === 'HAZIRLANIYOR' ? 'bg-white text-orange-600 shadow-sm' : 'text-zinc-500 hover:text-orange-600'}`}>Hazırlanıyor ({orders.filter(o => String(o.status || '').toUpperCase() === 'HAZIRLANIYOR').length})</button>
-        <button onClick={() => handleTabChange('KARGODA')} className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${activeTab === 'KARGODA' ? 'bg-white text-cyan-600 shadow-sm' : 'text-zinc-500 hover:text-cyan-600'}`}>Kargoda Olanlar ({orders.filter(o => String(o.status || '').toUpperCase() === 'KARGODA').length})</button>
-        <button onClick={() => handleTabChange('TAMAMLANDI')} className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${activeTab === 'TAMAMLANDI' ? 'bg-white text-emerald-600 shadow-sm' : 'text-zinc-500 hover:text-emerald-600'}`}>Tamamlananlar ({orders.filter(o => { const s = String(o.status || '').toUpperCase(); return s === 'TAMAMLANDI' || s === 'TESLİM EDİLDİ' || s === 'TESLIM EDILDI'; }).length})</button>
-        <button onClick={() => handleTabChange('İPTAL EDİLDİ')} className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${activeTab === 'İPTAL EDİLDİ' || activeTab === 'IPTAL EDILDI' ? 'bg-white text-red-600 shadow-sm' : 'text-zinc-500 hover:text-red-600'}`}>İptal Edilenler ({orders.filter(o => { const s = String(o.status || '').toUpperCase(); return s === 'İPTAL EDİLDİ' || s === 'IPTAL EDILDI'; }).length})</button>
+      {/* DURUM SEKMELERİ
+          Mobilde sekmeler sarmak yerine YATAY KAYDIRILIYOR: sarınca 8 sekme
+          üç satıra yayılıp ekranın yarısını yiyordu. Kaydırma çubuğu gizli
+          ama parmakla kaydırma çalışıyor. */}
+      <div className="relative -mx-4 sm:mx-0 mb-5">
+        {/* Sağ kenardaki soluklaşma, mobilde "sekmelerin devamı var, kaydırabilirsin"
+            ipucu veriyor. Kaydırma çubuğu gizli olduğu için başka türlü belli olmuyor.
+            pointer-events-none: dokunmayı engellemesin. */}
+        <div className="sm:hidden pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-zinc-50 to-transparent z-10" />
+        <div className="overflow-x-auto no-scrollbar">
+          <div className="flex gap-2 px-4 sm:px-0 pr-10 sm:pr-0 w-max sm:w-auto sm:flex-wrap">
+          {SEKMELER.map((s) => {
+            const aktif = activeTab === s.deger;
+            const adet = s.deger === 'ALL' ? orders.length : sayac(s.deger);
+            // Boş sekmeleri gizlemiyoruz (adet 0 olsa da görünür kalsınlar) ama
+            // "Yeni Sipariş" doluysa dikkat çeksin diye halkayla vurguluyoruz.
+            return (
+              <button
+                key={s.deger}
+                onClick={() => handleTabChange(s.deger)}
+                className={`shrink-0 px-4 min-h-[44px] rounded-xl font-black text-xs uppercase tracking-wider transition-all border ${
+                  aktif
+                    ? `bg-white ${s.renk} shadow-sm border-zinc-200`
+                    : 'bg-zinc-100 text-zinc-500 border-transparent hover:text-zinc-900'
+                } ${s.vurgula && adet > 0 && !aktif ? 'ring-2 ring-amber-400' : ''}`}
+              >
+                {s.etiket}
+                <span className={`ml-1.5 ${aktif ? 'opacity-60' : 'opacity-50'}`}>({adet})</span>
+              </button>
+            );
+          })}
+          </div>
+        </div>
       </div>
 
       {/* Üst Bar: Arama Çubuğu */}
       <div className="mb-6 bg-white p-2 rounded-2xl border border-zinc-200 shadow-sm flex items-center">
-        <div className="pl-4 text-zinc-400"><FiSearch size={20} /></div>
-        <input 
-          type="text" 
-          placeholder="Sipariş numarası veya müşteri ismiyle anlık filtreleyin..." 
+        <div className="pl-3 sm:pl-4 text-zinc-400 shrink-0"><FiSearch size={20} /></div>
+        <input
+          type="text"
+          placeholder="Sipariş no veya müşteri adı..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-3 bg-transparent outline-none font-bold text-zinc-700 placeholder:text-zinc-400 text-sm"
+          className="w-full p-3 bg-transparent outline-none font-bold text-zinc-700 placeholder:text-zinc-400 text-sm min-w-0"
         />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
+            aria-label="Aramayı temizle"
+            className="p-3 shrink-0 text-zinc-400 hover:text-zinc-700"
+          >
+            <FiX size={18} />
+          </button>
+        )}
       </div>
 
       {/* Siparişler Ana Tablosu — MASAÜSTÜ */}
@@ -245,7 +284,7 @@ const AdminOrders = () => {
                   </td>
                   <td className="p-6">
                     <span className={`px-3 py-1.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${getStatusStyle(order.status)}`}>
-                      {order.status || 'BELİRSİZ'}
+                      {getStatusLabel(order.status)}
                     </span>
                   </td>
                   <td className="p-6 text-right">
@@ -280,7 +319,7 @@ const AdminOrders = () => {
               <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="font-black text-zinc-900">{order.order_number || '-'}</span>
                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider shrink-0 ${getStatusStyle(order.status)}`}>
-                  {order.status || 'BELİRSİZ'}
+                  {getStatusLabel(order.status)}
                 </span>
               </div>
               <p className="text-sm text-zinc-600 font-bold mb-1">{order.customer_name || 'Bilinmeyen Müşteri'}</p>
@@ -301,7 +340,7 @@ const AdminOrders = () => {
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 bg-white border border-zinc-200 rounded-xl font-bold text-sm text-zinc-600 disabled:opacity-30"
+            className="px-5 min-h-[44px] bg-white border border-zinc-200 rounded-xl font-bold text-sm text-zinc-600 disabled:opacity-30 active:bg-zinc-50"
           >
             Önceki
           </button>
@@ -311,7 +350,7 @@ const AdminOrders = () => {
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 bg-white border border-zinc-200 rounded-xl font-bold text-sm text-zinc-600 disabled:opacity-30"
+            className="px-5 min-h-[44px] bg-white border border-zinc-200 rounded-xl font-bold text-sm text-zinc-600 disabled:opacity-30 active:bg-zinc-50"
           >
             Sonraki
           </button>
@@ -320,22 +359,32 @@ const AdminOrders = () => {
 
       {/* MÜKEMMELLEŞTİRİLMİŞ SİPARİŞ DETAY VE DÜZENLEME MODALI */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-white rounded-[2rem] w-full max-w-6xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col border border-zinc-100">
-            
-            <div className="flex items-center justify-between p-6 border-b border-zinc-100 bg-zinc-50/80">
-              <div>
-                <h2 className="text-2xl font-black text-zinc-900 flex items-center gap-3 leading-none">
-                  <FiPackage className="text-cyan-600" /> Sipariş Kartı: {selectedOrder.order_number || 'Yükleniyor...'}
+        <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in">
+          {/* Mobilde alttan açılan tam genişlikte panel, masaüstünde ortalanmış kart */}
+          <div className="bg-white rounded-t-[2rem] sm:rounded-[2rem] w-full max-w-6xl h-[92vh] sm:h-auto sm:max-h-[92vh] overflow-hidden shadow-2xl flex flex-col border border-zinc-100">
+
+            <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-zinc-100 bg-zinc-50/80">
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-2xl font-black text-zinc-900 flex items-center gap-2 sm:gap-3 leading-tight">
+                  <FiPackage className="text-cyan-600 shrink-0" />
+                  <span className="truncate">{selectedOrder.order_number || 'Yükleniyor...'}</span>
                 </h2>
-                <p className="text-xs font-bold text-zinc-400 mt-1.5 uppercase tracking-wider">Kemborn Güvenli Ödeme ve Lojistik Takip Ekranı</p>
+                {selectedOrder.status && (
+                  <span className={`inline-block mt-2 px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${getStatusStyle(selectedOrder.status)}`}>
+                    {getStatusLabel(selectedOrder.status)}
+                  </span>
+                )}
               </div>
-              <button onClick={() => setSelectedOrder(null)} className="p-2.5 bg-white text-zinc-400 border border-zinc-200 rounded-full hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
+              <button
+                onClick={() => setSelectedOrder(null)}
+                aria-label="Kapat"
+                className="p-3 shrink-0 bg-white text-zinc-400 border border-zinc-200 rounded-full hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all shadow-sm"
+              >
                 <FiX size={20} />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1 bg-white custom-scrollbar">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-white custom-scrollbar">
               {detailsLoading || !selectedOrder.items ? (
                 <div className="flex justify-center items-center h-52">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-cyan-600"></div>
@@ -407,16 +456,27 @@ const AdminOrders = () => {
                         
                         <div className="space-y-2">
                           <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider">Sipariş Durumu</label>
-                          <select 
-                            value={editForm.status}
+                          <select
+                            value={durumuCozumle(editForm.status) || ''}
                             onChange={(e) => setEditForm({...editForm, status: e.target.value})}
                             className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-black text-zinc-800 text-sm outline-none focus:border-cyan-600 transition-all shadow-sm cursor-pointer"
                           >
-                            <option value="HAZIRLANIYOR">🛠️ HAZIRLANIYOR</option>
-                            <option value="KARGODA">📦 KARGODA</option>
-                            <option value="TAMAMLANDI">✅ TAMAMLANDI</option>
-                            <option value="İPTAL EDİLDİ">❌ İPTAL EDİLDİ</option>
+                            {/* Siparişin mevcut durumu elle atanabilir listede değilse
+                                (örn. ÖDEME BEKLENİYOR, TUTAR UYUŞMAZLIĞI) menü boş
+                                görünüyordu. Artık mevcut durum da seçenek olarak
+                                ekleniyor ki admin ne olduğunu görebilsin. */}
+                            {!ELLE_ATANABILIR_DURUMLAR.some(d => d.deger === durumuCozumle(editForm.status)) && (
+                              <option value={durumuCozumle(editForm.status) || ''} disabled>
+                                {durumGorunumu(editForm.status).etiket} (ödeme sistemi belirledi)
+                              </option>
+                            )}
+                            {ELLE_ATANABILIR_DURUMLAR.map(d => (
+                              <option key={d.deger} value={d.deger}>{d.etiket}</option>
+                            ))}
                           </select>
+                          <p className="text-[11px] font-medium text-zinc-400 leading-relaxed pt-1">
+                            {durumGorunumu(editForm.status).aciklama}
+                          </p>
                         </div>
 
                         <div className="space-y-2">

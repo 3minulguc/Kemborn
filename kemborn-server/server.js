@@ -1087,32 +1087,103 @@ app.post('/api/orders', verifyToken, async (req, res) => {
 });
 
 // ==========================================
+// SİPARİŞ DURUMLARI — TEK DOĞRU KAYNAK
+// ==========================================
+// Durum isimleri veritabanında serbest metin olarak tutuluyor ve geçmişte hem
+// Türkçe karakterli ("ÖDENDİ") hem karaktersiz ("ODENDI") varyantlar yazılmış
+// olabilir. Bu yüzden her durumun bilinen TÜM yazımlarını burada topluyoruz ve
+// karşılaştırmaları hep bu listeler üzerinden yapıyoruz. Daha önce bu kontroller
+// dört ayrı yerde elle yazılıyordu ve yeni bir durum eklendiğinde (örn. ÖDENDİ)
+// bazı yerler güncellenmeden kalıyordu.
+const SIPARIS_DURUMLARI = {
+  ODEME_BEKLENIYOR:  ['ÖDEME BEKLENİYOR', 'ODEME BEKLENIYOR'],
+  ODENDI:            ['ÖDENDİ', 'ODENDI'],
+  HAZIRLANIYOR:      ['HAZIRLANIYOR'],
+  KARGODA:           ['KARGODA'],
+  TAMAMLANDI:        ['TAMAMLANDI', 'TESLİM EDİLDİ', 'TESLIM EDILDI'],
+  IPTAL_EDILDI:      ['İPTAL EDİLDİ', 'IPTAL EDILDI'],
+  ODEME_BASARISIZ:   ['ÖDEME BAŞARISIZ', 'ODEME BASARISIZ'],
+  TUTAR_UYUSMAZLIGI: ['TUTAR UYUŞMAZLIĞI', 'TUTAR UYUSMAZLIGI']
+};
+
+// SQL IN (...) listesi üretir: ['A','B'] -> "'A', 'B'"
+const sqlDurumListesi = (...gruplar) =>
+  gruplar.flat().map(s => `'${s.replace(/'/g, "''")}'`).join(', ');
+
+// "Parası gerçekten alınmış" siparişler — ciro bunlardan hesaplanır.
+// İptal edilenler, ödeme bekleyenler ve başarısız ödemeler HARİÇ.
+const CIRO_DURUMLARI = sqlDurumListesi(
+  SIPARIS_DURUMLARI.ODENDI, SIPARIS_DURUMLARI.HAZIRLANIYOR,
+  SIPARIS_DURUMLARI.KARGODA, SIPARIS_DURUMLARI.TAMAMLANDI
+);
+
+// "Gerçekten oluşmuş" siparişler — iptal dahil, ama hiç ödenmemişler hariç.
+const GERCEK_SIPARIS_DURUMLARI = sqlDurumListesi(
+  SIPARIS_DURUMLARI.ODENDI, SIPARIS_DURUMLARI.HAZIRLANIYOR,
+  SIPARIS_DURUMLARI.KARGODA, SIPARIS_DURUMLARI.TAMAMLANDI,
+  SIPARIS_DURUMLARI.IPTAL_EDILDI
+);
+
+// Stok bu sayının altına düşen ürünler admin panelinde uyarı olarak gösterilir.
+const DUSUK_STOK_SINIRI = 5;
+
+// ==========================================
 // --- ADMİN PANELİ VE ANALİTİK KİLİTLERİ (KORUMALI) ---
 // ==========================================
 app.get('/api/admin/dashboard', verifyToken, isAdmin, async (req, res) => {
     try {
-        const [preparingRes, shippingRes, completedRes, canceledRes, revenueRes, totalCustomersRes, orderingCustomersRes, productsRes] = await Promise.all([
-            client.query("SELECT COUNT(*) FROM orders WHERE UPPER(status) = 'HAZIRLANIYOR'"),
-            client.query("SELECT COUNT(*) FROM orders WHERE UPPER(status) = 'KARGODA'"),
-            client.query("SELECT COUNT(*) FROM orders WHERE UPPER(status) IN ('TAMAMLANDI', 'TESLİM EDİLDİ', 'TESLIM EDILDI')"),
-            client.query("SELECT COUNT(*) FROM orders WHERE UPPER(status) IN ('İPTAL EDİLDİ', 'IPTAL EDILDI')"),
-            client.query("SELECT SUM(total_amount) FROM orders"),
+        const say = (durumListesi) =>
+            client.query(`SELECT COUNT(*) FROM orders WHERE UPPER(status) IN (${durumListesi})`);
+
+        const [
+            paidRes, preparingRes, shippingRes, completedRes, canceledRes,
+            pendingPaymentRes, failedPaymentRes,
+            totalOrdersRes, revenueRes,
+            totalCustomersRes, orderingCustomersRes, productsRes, lowStockRes
+        ] = await Promise.all([
+            // ÖDENDİ = ödemesi alınmış ama henüz hazırlanmaya başlanmamış YENİ sipariş.
+            // PayTR onayı geldiğinde sipariş bu duruma geçiyor; en kritik aksiyon metriği bu.
+            say(sqlDurumListesi(SIPARIS_DURUMLARI.ODENDI)),
+            say(sqlDurumListesi(SIPARIS_DURUMLARI.HAZIRLANIYOR)),
+            say(sqlDurumListesi(SIPARIS_DURUMLARI.KARGODA)),
+            say(sqlDurumListesi(SIPARIS_DURUMLARI.TAMAMLANDI)),
+            say(sqlDurumListesi(SIPARIS_DURUMLARI.IPTAL_EDILDI)),
+            say(sqlDurumListesi(SIPARIS_DURUMLARI.ODEME_BEKLENIYOR)),
+            say(sqlDurumListesi(SIPARIS_DURUMLARI.ODEME_BASARISIZ, SIPARIS_DURUMLARI.TUTAR_UYUSMAZLIGI)),
+
+            say(GERCEK_SIPARIS_DURUMLARI),
+            // CİRO: daha önce SUM(total_amount) TÜM siparişleri topluyordu; iptal
+            // edilenler ve hiç ödenmemişler de gelire yazılıyordu. Artık sadece
+            // parası gerçekten alınmış siparişler sayılıyor.
+            client.query(`SELECT SUM(total_amount) FROM orders WHERE UPPER(status) IN (${CIRO_DURUMLARI})`),
+
             client.query("SELECT COUNT(*) FROM users WHERE role != 'admin'"),
-            client.query("SELECT COUNT(DISTINCT user_id) FROM orders"),
-            client.query("SELECT COUNT(*) as total_prod, SUM(stock_quantity) as total_stock FROM products")
+            client.query(`SELECT COUNT(DISTINCT user_id) FROM orders WHERE UPPER(status) IN (${GERCEK_SIPARIS_DURUMLARI})`),
+            client.query("SELECT COUNT(*) as total_prod, SUM(stock_quantity) as total_stock FROM products"),
+            client.query(
+                'SELECT COUNT(*) FROM products WHERE is_visible = true AND COALESCE(stock_quantity, 0) <= $1',
+                [DUSUK_STOK_SINIRI]
+            )
         ]);
 
+        const sayi = (r) => parseInt(r.rows[0].count || 0, 10);
+
         res.json({
-            totalOrders: parseInt(preparingRes.rows[0].count) + parseInt(shippingRes.rows[0].count) + parseInt(completedRes.rows[0].count) + parseInt(canceledRes.rows[0].count),
-            preparingOrders: parseInt(preparingRes.rows[0].count || 0),
-            shippingOrders: parseInt(shippingRes.rows[0].count || 0),
-            completedOrders: parseInt(completedRes.rows[0].count || 0),
-            canceledOrders: parseInt(canceledRes.rows[0].count || 0),
+            totalOrders: sayi(totalOrdersRes),
+            paidOrders: sayi(paidRes),                 // YENİ: hazırlanmayı bekleyen siparişler
+            preparingOrders: sayi(preparingRes),
+            shippingOrders: sayi(shippingRes),
+            completedOrders: sayi(completedRes),
+            canceledOrders: sayi(canceledRes),
+            pendingPaymentOrders: sayi(pendingPaymentRes),   // YENİ: ödeme bekleyen (henüz sipariş sayılmaz)
+            failedPaymentOrders: sayi(failedPaymentRes),     // YENİ: ödemesi başarısız / tutar uyuşmazlığı
             totalRevenue: parseFloat(revenueRes.rows[0].sum || 0),
-            totalCustomers: parseInt(totalCustomersRes.rows[0].count || 0),
-            orderingCustomers: parseInt(orderingCustomersRes.rows[0].count || 0),
-            totalProducts: parseInt(productsRes.rows[0].total_prod || 0),
-            totalStock: parseInt(productsRes.rows[0].total_stock || 0)
+            totalCustomers: sayi(totalCustomersRes),
+            orderingCustomers: sayi(orderingCustomersRes),
+            totalProducts: parseInt(productsRes.rows[0].total_prod || 0, 10),
+            totalStock: parseInt(productsRes.rows[0].total_stock || 0, 10),
+            lowStockProducts: sayi(lowStockRes),             // YENİ: stoğu azalan ürün sayısı
+            lowStockThreshold: DUSUK_STOK_SINIRI
         });
     } catch (err) {
         res.status(500).json({ error: "Dashboard verileri çekilemedi." });
