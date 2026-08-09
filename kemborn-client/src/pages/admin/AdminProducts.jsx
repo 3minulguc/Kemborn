@@ -685,7 +685,7 @@ const AdminProducts = () => {
               <th className="p-6 font-black text-zinc-400 uppercase text-xs w-[20%]">Fiyat</th>
               <th className="p-6 font-black text-zinc-400 uppercase text-xs w-[15%]">Stok</th>
               <th className="p-6 font-black text-zinc-400 uppercase text-xs w-[15%]">Görünürlük</th>
-              <th className="p-6 font-black text-zinc-400 uppercase text-xs text-right w-[10%]">İşlemler</th>
+              <th className="p-6 font-black text-zinc-400 uppercase text-xs text-right w-[10%] whitespace-nowrap">İşlemler</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -708,8 +708,15 @@ const AdminProducts = () => {
                 <td className="p-6 font-bold text-zinc-900 truncate">{product.name}</td>
                 <td className="p-6 text-zinc-900 font-black">{formatPrice(product.price)} TL</td>
                 <td className="p-6">
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${product.stock_quantity > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                  {/* Stoğu azalan ürünler burada da uyarı rengiyle işaretleniyor —
+                      dashboard "stok azaldı" diyor, hangi ürün olduğu buradan görünsün. */}
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+                    product.stock_quantity > 0
+                      ? (product.stock_quantity <= 5 ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-600')
+                      : 'bg-red-50 text-red-600'
+                  }`}>
                     {product.stock_quantity > 0 ? `${product.stock_quantity} Adet` : 'Stokta Yok'}
+                    {product.stock_quantity > 0 && product.stock_quantity <= 5 && ' · Az kaldı'}
                   </span>
                 </td>
                 <td className="p-6">
@@ -803,14 +810,14 @@ const AdminProducts = () => {
             <div className="flex items-center gap-2 pt-3 border-t border-zinc-100">
               <button
                 onClick={() => openModal(product)}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-100 rounded-xl font-bold text-sm text-zinc-700"
+                className="flex-1 flex items-center justify-center gap-2 min-h-[44px] bg-zinc-100 rounded-xl font-bold text-sm text-zinc-700 active:bg-zinc-200"
               >
                 <FiEdit2 size={16} /> Düzenle
               </button>
               <button
                 onClick={() => handleDelete(product)}
                 disabled={deletingId === product.id}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 bg-red-50 text-red-600 rounded-xl font-bold text-sm ${deletingId === product.id ? 'opacity-40' : ''}`}
+                className={`flex items-center justify-center gap-2 min-h-[44px] px-4 bg-red-50 text-red-600 rounded-xl font-bold text-sm active:bg-red-100 ${deletingId === product.id ? 'opacity-40' : ''}`}
               >
                 <FiTrash2 size={16} />
               </button>

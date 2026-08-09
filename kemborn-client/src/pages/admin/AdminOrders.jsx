@@ -467,7 +467,7 @@ const AdminOrders = () => {
                                 ekleniyor ki admin ne olduğunu görebilsin. */}
                             {!ELLE_ATANABILIR_DURUMLAR.some(d => d.deger === durumuCozumle(editForm.status)) && (
                               <option value={durumuCozumle(editForm.status) || ''} disabled>
-                                {durumGorunumu(editForm.status).etiket} (ödeme sistemi belirledi)
+                                {durumGorunumu(editForm.status).etiket} (otomatik)
                               </option>
                             )}
                             {ELLE_ATANABILIR_DURUMLAR.map(d => (

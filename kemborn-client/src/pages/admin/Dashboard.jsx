@@ -64,11 +64,13 @@ const Dashboard = () => {
 
   // 1. ANA METRİKLER GRUBU
   const mainStats = [
-    { 
-      title: "Toplam Gelir", 
-      value: statsData.totalRevenue.toLocaleString('tr-TR'), 
-      suffix: " ₺",
-      icon: <FiDollarSign size={24} />, 
+    {
+      title: "Toplam Gelir",
+      // Para birimi BİLEREK değerin içinde: ayrı bir "suffix" olduğunda dar
+      // kartta "₺" tek başına alt satıra düşüyordu.
+      value: `${statsData.totalRevenue.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`,
+      suffix: null,
+      icon: <FiDollarSign size={24} />,
       color: "text-green-600",
       bg: "bg-green-50",
       path: null
@@ -225,12 +227,17 @@ const Dashboard = () => {
             <>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-1 truncate">{stat.title}</p>
-                <p className="text-2xl xl:text-3xl font-black text-zinc-900 flex items-baseline">
-                  {stat.value}
-                  {stat.suffix && <span className="text-sm font-bold text-zinc-400 ml-1 whitespace-nowrap">{stat.suffix}</span>}
+                {/* Sayının kendisi BÖLÜNMEZ (uzun tutarlar 64.321,36 gibi virgülden
+                    bölünüp iki satıra düşüyordu), ama yanındaki açıklama metni
+                    sığmazsa alt satıra inebilir — böylece taşma da olmuyor. */}
+                <p className="text-xl sm:text-2xl font-black text-zinc-900 leading-tight">
+                  <span className="whitespace-nowrap">{stat.value}</span>
+                  {stat.suffix && <span className="text-xs sm:text-sm font-bold text-zinc-400 ml-1">{stat.suffix}</span>}
                 </p>
               </div>
-              <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 shrink-0 ml-4`}>
+              {/* İkon kutusu bilerek küçük tutuldu: daha büyük olduğunda dar
+                  kartta tutarın yerini yiyip "₺" işaretinin üstüne biniyordu. */}
+              <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 shrink-0 ml-3`}>
                 {stat.icon}
               </div>
             </>
