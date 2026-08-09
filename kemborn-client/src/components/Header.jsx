@@ -3,6 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo, FiShoppingBag, FiShare2, FiPlayCircle } from 'react-icons/fi';
 import { useCart } from '../context/CartContext'; 
 import { useAuth } from '../context/AuthContext';
+import { urunAramayaUyuyorMu } from '../utils/search';
 import { API_URL } from '../config/api';
 
 const Header = () => {
@@ -72,10 +73,12 @@ const Header = () => {
     setIsSearchOpen(query.trim().length > 0);
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (p.short_description && p.short_description.toLowerCase().includes(searchQuery.toLowerCase()))
-  ).slice(0, 5);
+  // Türkçe uyumlu arama: düz toLowerCase() ile "interkom" yazan müşteri
+  // "İnterkom Seti"ni bulamıyordu (büyük İ harfi küçültülünce birleşik nokta
+  // ekleniyor). Ayrıntı: utils/search.js
+  const filteredProducts = products
+    .filter(p => urunAramayaUyuyorMu(p, searchQuery))
+    .slice(0, 5);
 
   const isActive = (path) => 
     location.pathname === path 
@@ -141,9 +144,12 @@ const Header = () => {
                           </div>
                         </Link>
                       ))}
+                      {/* encodeURIComponent şart: "&" veya "#" içeren bir arama
+                          (örn. "supp & pro") kodlanmadan adrese yazılınca parametre
+                          bölünüyor ve arama kayboluyordu. */}
                       <div className="bg-zinc-50 p-3 text-center border-t border-zinc-100">
-                        <Link 
-                          to={`/products?search=${searchQuery}`} 
+                        <Link
+                          to={`/products?search=${encodeURIComponent(searchQuery)}`}
                           onClick={() => setIsSearchOpen(false)}
                           className="text-xs font-black text-zinc-500 hover:text-cyan-600 flex items-center justify-center gap-2 transition-colors uppercase tracking-widest"
                         >

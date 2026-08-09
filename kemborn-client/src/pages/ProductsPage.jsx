@@ -1,17 +1,35 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FiSearch, FiX, FiSliders } from 'react-icons/fi';
 import PageHeader from '../components/PageHeader';
 import ProductCard from '../components/ProductCard';
 import { useFavorites } from '../hooks/useFavorites';
+import { urunAramayaUyuyorMu } from '../utils/search';
 import { API_URL } from '../config/api';
 
 const ProductsPage = () => {
-  const [products, setProducts] = useState([]); 
-  const [loading, setLoading] = useState(true); 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('default'); // default | price-asc | price-desc | name
   const [onlyInStock, setOnlyInStock] = useState(false);
   const { favoriteIds, toggleFavorite } = useFavorites();
+
+  // ARAMA TERİMİ ADRESTEN OKUNUYOR (?search=...)
+  // Önceden burada ayrı bir state vardı ve adresteki parametre HİÇ okunmuyordu;
+  // header'daki aramadan "Tüm Sonuçları Gör" ile gelen müşteri filtrelenmemiş
+  // listeye düşüyor, arama kutusu da boş görünüyordu.
+  // Adresi tek doğru kaynak yapmak ayrıca aramanın paylaşılabilir/yer imlenebilir
+  // olmasını sağlıyor ve state ile adresin birbirinden kopmasını imkânsız kılıyor.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchTerm = searchParams.get('search') || '';
+
+  const setSearchTerm = (deger) => {
+    const yeni = new URLSearchParams(searchParams);
+    if (deger) yeni.set('search', deger);
+    else yeni.delete('search');
+    // replace: her harfte geçmişe yeni kayıt eklenmesin, geri tuşu bozulmasın
+    setSearchParams(yeni, { replace: true });
+  };
 
   useEffect(() => {
     fetch(`${API_URL}/api/products`)
@@ -30,11 +48,9 @@ const ProductsPage = () => {
     let list = [...products];
 
     if (searchTerm.trim()) {
-      const term = searchTerm.trim().toLowerCase();
-      list = list.filter(p =>
-        p.name?.toLowerCase().includes(term) ||
-        p.short_description?.toLowerCase().includes(term)
-      );
+      // Türkçe uyumlu karşılaştırma: "interkom" yazınca "İnterkom" da bulunsun.
+      // Düz toLowerCase() ile büyük "İ" harfi eşleşmiyordu — bkz. utils/search.js
+      list = list.filter(p => urunAramayaUyuyorMu(p, searchTerm));
     }
 
     if (onlyInStock) {
@@ -104,9 +120,25 @@ const ProductsPage = () => {
         {loading ? (
           <p className="text-center font-bold text-zinc-500 animate-pulse">Ürünler yükleniyor...</p>
         ) : visibleProducts.length === 0 ? (
-          <p className="text-center font-bold text-zinc-400 py-12">
-            {products.length === 0 ? 'Mağazada henüz ürün bulunmuyor.' : 'Aramanıza uygun ürün bulunamadı.'}
-          </p>
+          <div className="text-center py-12 px-4">
+            {products.length === 0 ? (
+              <p className="font-bold text-zinc-400">Mağazada henüz ürün bulunmuyor.</p>
+            ) : (
+              <>
+                <p className="font-bold text-zinc-500">
+                  {searchTerm
+                    ? <>“{searchTerm}” için sonuç bulunamadı.</>
+                    : 'Seçtiğiniz filtrelere uygun ürün bulunamadı.'}
+                </p>
+                <button
+                  onClick={() => { setSearchTerm(''); setOnlyInStock(false); }}
+                  className="mt-4 min-h-[44px] px-6 bg-zinc-900 text-white rounded-2xl font-black text-sm hover:bg-cyan-600 transition-colors active:scale-95"
+                >
+                  Filtreleri temizle
+                </button>
+              </>
+            )}
+          </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
             {visibleProducts.map((product) => (
