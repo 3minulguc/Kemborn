@@ -394,14 +394,19 @@ const CheckoutPage = () => {
             </div>
             
             {/* Yasal onay — ödeme alınmadan önce zorunlu */}
-            <label className="flex items-start gap-3 mb-5 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={sozlesmeOnayi}
-                onChange={(e) => setSozlesmeOnayi(e.target.checked)}
-                disabled={loading}
-                className="mt-0.5 w-5 h-5 shrink-0 accent-cyan-600 cursor-pointer"
-              />
+            <label className="flex items-start gap-1 mb-5 cursor-pointer group">
+              {/* Kutunun etrafındaki boşluk BİLEREK var: mobilde parmakla
+                  rahat basılabilmesi için dokunma alanını 44px'e çıkarıyor
+                  (kutunun kendisi 20px, tek başına çok küçük kalıyor). */}
+              <span className="p-3 -m-2 shrink-0 flex items-center">
+                <input
+                  type="checkbox"
+                  checked={sozlesmeOnayi}
+                  onChange={(e) => setSozlesmeOnayi(e.target.checked)}
+                  disabled={loading}
+                  className="w-5 h-5 accent-cyan-600 cursor-pointer"
+                />
+              </span>
               <span className="text-xs sm:text-sm font-medium text-zinc-600 leading-relaxed">
                 <Link
                   to="/mesafeli-satis-sozlesmesi"

@@ -249,14 +249,18 @@ const AuthPage = () => {
 
               {/* KVKK onayı — sadece kayıt olurken, kişisel veri toplandığı için zorunlu */}
               {!isLogin && !isForgotPassword && (
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={kvkkOnayi}
-                    onChange={(e) => setKvkkOnayi(e.target.checked)}
-                    disabled={loading}
-                    className="mt-0.5 w-5 h-5 shrink-0 accent-cyan-600 cursor-pointer"
-                  />
+                <label className="flex items-start gap-1 cursor-pointer">
+                  {/* Kutunun etrafındaki boşluk BİLEREK var: mobilde parmakla
+                      rahat basılabilmesi için dokunma alanını 44px'e çıkarıyor. */}
+                  <span className="p-3 -m-2 shrink-0 flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={kvkkOnayi}
+                      onChange={(e) => setKvkkOnayi(e.target.checked)}
+                      disabled={loading}
+                      className="w-5 h-5 accent-cyan-600 cursor-pointer"
+                    />
+                  </span>
                   <span className="text-xs font-medium text-zinc-500 leading-relaxed">
                     <Link
                       to="/policy"
