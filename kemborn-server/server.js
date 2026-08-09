@@ -210,9 +210,20 @@ const client = new Pool({
   idleTimeoutMillis: 30000,
 });
 
-client.connect()
+// Açılışta bağlantıyı sadece SINIYORUZ.
+// Önceden burada client.connect() çağrılıyordu; bu havuzdan bir bağlantı alıp
+// ASLA geri vermiyordu, yani havuz kalıcı olarak bir bağlantı eksik çalışıyordu.
+// Basit bir sorgu aynı doğrulamayı yapar ve bağlantıyı hemen havuza iade eder.
+client.query('SELECT 1')
   .then(() => console.log('✅ PostgreSQL Pool Veritabanına başarıyla bağlanıldı.'))
   .catch(err => console.error("❌ Veritabanı bağlantı hatası:", err));
+
+// Havuzdaki boşta bekleyen bir bağlantı beklenmedik şekilde koparsa süreç
+// çökmesin; pg bu durumda 'error' olayını yayar ve dinleyici yoksa uygulama düşer.
+client.on('error', (err) => {
+  console.error('❌ Veritabanı havuzunda beklenmeyen hata:', err.message);
+  logToFile('error.log', `DB POOL ERROR: ${err.stack || err}`);
+});
 
 // ==========================================
 // 3. PAYTR ÖDEME SİSTEMİ AYARLARI
@@ -279,7 +290,211 @@ const sendMail = async (to, subject, html) => {
 };
 
 // ==========================================
-// ÖDEME ONAYI ORTAK MANTIĞI (stok düşürme + "Siparişiniz Alındı" e-postası)
+// SİPARİŞ DURUMLARI — TEK DOĞRU KAYNAK
+// ==========================================
+// Durum isimleri veritabanında serbest metin olarak tutuluyor ve geçmişte hem
+// Türkçe karakterli ("ÖDENDİ") hem karaktersiz ("ODENDI") varyantlar yazılmış
+// olabilir. Bu yüzden her durumun bilinen TÜM yazımlarını burada topluyoruz ve
+// karşılaştırmaları hep bu listeler üzerinden yapıyoruz. Daha önce bu kontroller
+// dört ayrı yerde elle yazılıyordu ve yeni bir durum eklendiğinde (örn. ÖDENDİ)
+// bazı yerler güncellenmeden kalıyordu.
+const SIPARIS_DURUMLARI = {
+  ODEME_BEKLENIYOR:  ['ÖDEME BEKLENİYOR', 'ODEME BEKLENIYOR'],
+  ODENDI:            ['ÖDENDİ', 'ODENDI'],
+  HAZIRLANIYOR:      ['HAZIRLANIYOR'],
+  KARGODA:           ['KARGODA'],
+  TAMAMLANDI:        ['TAMAMLANDI', 'TESLİM EDİLDİ', 'TESLIM EDILDI'],
+  IPTAL_EDILDI:      ['İPTAL EDİLDİ', 'IPTAL EDILDI'],
+  ODEME_BASARISIZ:   ['ÖDEME BAŞARISIZ', 'ODEME BASARISIZ'],
+  TUTAR_UYUSMAZLIGI: ['TUTAR UYUŞMAZLIĞI', 'TUTAR UYUSMAZLIGI']
+};
+
+// SQL IN (...) listesi üretir: ['A','B'] -> "'A', 'B'"
+const sqlDurumListesi = (...gruplar) =>
+  gruplar.flat().map(s => `'${s.replace(/'/g, "''")}'`).join(', ');
+
+// "Parası gerçekten alınmış" siparişler — ciro bunlardan hesaplanır.
+// İptal edilenler, ödeme bekleyenler ve başarısız ödemeler HARİÇ.
+const CIRO_DURUMLARI = sqlDurumListesi(
+  SIPARIS_DURUMLARI.ODENDI, SIPARIS_DURUMLARI.HAZIRLANIYOR,
+  SIPARIS_DURUMLARI.KARGODA, SIPARIS_DURUMLARI.TAMAMLANDI
+);
+
+// "Gerçekten oluşmuş" siparişler — iptal dahil, ama hiç ödenmemişler hariç.
+const GERCEK_SIPARIS_DURUMLARI = sqlDurumListesi(
+  SIPARIS_DURUMLARI.ODENDI, SIPARIS_DURUMLARI.HAZIRLANIYOR,
+  SIPARIS_DURUMLARI.KARGODA, SIPARIS_DURUMLARI.TAMAMLANDI,
+  SIPARIS_DURUMLARI.IPTAL_EDILDI
+);
+
+// Stok bu sayının altına düşen ürünler admin panelinde uyarı olarak gösterilir.
+const DUSUK_STOK_SINIRI = 5;
+
+// ==========================================
+// TRANSACTION YARDIMCISI
+// ==========================================
+// ÖNEMLİ: Daha önce transaction'lar doğrudan havuz üzerinden yürütülüyordu
+// (client.query('BEGIN') → client.query(...) → client.query('COMMIT')).
+// `client` bir Pool olduğu için her sorgu havuzdan BAŞKA bir bağlantı
+// alabiliyor; yani BEGIN bir bağlantıda, INSERT başka bir bağlantıda
+// çalışabiliyordu. Sonuç: transaction aslında hiç çalışmıyor, ROLLBACK bir şey
+// geri almıyor ve açıkta kalan bağlantılar birikiyor.
+// Bu yardımcı, tüm transaction boyunca TEK bir bağlantıyı kullanmayı garanti
+// eder ve sonunda bağlantıyı havuza mutlaka geri verir.
+const transactionIle = async (isFn) => {
+    const conn = await client.connect();
+    try {
+        await conn.query('BEGIN');
+        const sonuc = await isFn(conn);
+        await conn.query('COMMIT');
+        return sonuc;
+    } catch (err) {
+        try { await conn.query('ROLLBACK'); } catch { /* bağlantı zaten bozuksa yut */ }
+        throw err;
+    } finally {
+        conn.release();
+    }
+};
+
+// ==========================================
+// STOK REZERVASYONU
+// ==========================================
+// Stok artık ödeme onaylanınca değil, SİPARİŞ OLUŞTURULURKEN düşülüyor.
+// Neden: eskiden iki müşteri son ürünü aynı anda sipariş edip ikisi de ödeme
+// yapabiliyordu (stok sadece kontrol ediliyor, rezerve edilmiyordu). PayTR ile
+// para çekildikten sonra "stok yok" demek, gönderemeyeceğimiz bir şeyin
+// parasını almak demekti. Artık stok yetmiyorsa müşteri ödeme adımına hiç
+// geçemiyor.
+//
+// Yarış koşulu koruması: azaltma tek bir UPDATE içinde, "yeterli stok varsa"
+// koşuluyla yapılıyor. PostgreSQL satır kilidi sayesinde aynı anda gelen iki
+// istekten yalnızca biri başarılı olur; diğerinin rowCount'u 0 döner.
+const stokRezerveEt = async (conn, satirlar) => {
+    for (const satir of satirlar) {
+        if (!satir.productId) continue;
+
+        if (satir.renkStogunuKullanir) {
+            const r = await conn.query(
+                `UPDATE products
+                    SET stock_by_color = jsonb_set(
+                            COALESCE(stock_by_color, '{}'::jsonb), ARRAY[$1],
+                            to_jsonb(COALESCE((stock_by_color->>$1)::int, 0) - $2)),
+                        stock_quantity = GREATEST(0, COALESCE(stock_quantity, 0) - $2)
+                  WHERE id = $3
+                    AND COALESCE((stock_by_color->>$1)::int, 0) >= $2`,
+                [satir.color, satir.quantity, satir.productId]
+            );
+            if (r.rowCount === 0) {
+                throw new Error(`"${satir.name}" (${satir.color}) için yeterli stok kalmadı. Lütfen sepetinizi güncelleyin.`);
+            }
+        } else {
+            const r = await conn.query(
+                `UPDATE products
+                    SET stock_quantity = COALESCE(stock_quantity, 0) - $1
+                  WHERE id = $2 AND COALESCE(stock_quantity, 0) >= $1`,
+                [satir.quantity, satir.productId]
+            );
+            if (r.rowCount === 0) {
+                throw new Error(`"${satir.name}" için yeterli stok kalmadı. Lütfen sepetinizi güncelleyin.`);
+            }
+        }
+    }
+};
+
+// Sipariş iptal edilince / ödemesi başarısız olunca rezerve edilen stoğu geri verir.
+// Daha önce iptalde stok HİÇ geri eklenmiyordu; zamanla stok gerçeğin altında kalıyordu.
+const stokIadeEt = async (conn, orderId) => {
+    const kalemler = await conn.query(
+        'SELECT product_id, quantity, color FROM order_items WHERE order_id = $1',
+        [orderId]
+    );
+
+    for (const k of kalemler.rows) {
+        if (!k.product_id) continue; // ürün silinmişse iade edilecek stok yok
+
+        let renkIadeEdildi = false;
+        if (k.color) {
+            const r = await conn.query(
+                `UPDATE products
+                    SET stock_by_color = jsonb_set(
+                            COALESCE(stock_by_color, '{}'::jsonb), ARRAY[$1],
+                            to_jsonb(COALESCE((stock_by_color->>$1)::int, 0) + $2)),
+                        stock_quantity = COALESCE(stock_quantity, 0) + $2
+                  WHERE id = $3 AND stock_by_color ? $1`,
+                [k.color, k.quantity, k.product_id]
+            );
+            renkIadeEdildi = r.rowCount > 0;
+        }
+
+        // Renk anahtarı artık yoksa (ürün renksize çevrilmiş olabilir) stok
+        // kaybolmasın diye toplam stoğa geri veriyoruz.
+        if (!renkIadeEdildi) {
+            await conn.query(
+                'UPDATE products SET stock_quantity = COALESCE(stock_quantity, 0) + $1 WHERE id = $2',
+                [k.quantity, k.product_id]
+            );
+        }
+    }
+};
+
+// Ödeme adımında bırakılmış siparişler bu süre sonunda serbest bırakılır.
+// PayTR'nin kendi ödeme oturumu 30 dakika; 45 dakika güvenli bir üst sınır.
+const TERK_EDILMIS_SIPARIS_DAKIKA = 45;
+const TEMIZLIK_ARALIGI_DAKIKA = 10;
+
+// Hangi durumlarda stok müşteri için ayrılmış sayılır?
+// TUTAR UYUŞMAZLIĞI bilerek "ayrılmış" tarafta: sipariş incelenene kadar o
+// ürünü başkasına satmak istemiyoruz.
+const STOK_AYRILMIS_DURUMLAR = [
+    ...SIPARIS_DURUMLARI.ODEME_BEKLENIYOR, ...SIPARIS_DURUMLARI.ODENDI,
+    ...SIPARIS_DURUMLARI.HAZIRLANIYOR, ...SIPARIS_DURUMLARI.KARGODA,
+    ...SIPARIS_DURUMLARI.TAMAMLANDI, ...SIPARIS_DURUMLARI.TUTAR_UYUSMAZLIGI
+];
+const stokAyrilmisMi = (durum) => STOK_AYRILMIS_DURUMLAR.includes(String(durum || '').toUpperCase());
+
+// ==========================================
+// TERK EDİLMİŞ SİPARİŞLERİN STOĞUNU SERBEST BIRAKMA
+// ==========================================
+// Müşteri ödeme sayfasına gelip vazgeçerse sipariş "ÖDEME BEKLENİYOR"da kalır
+// ve ayrılan stok sonsuza kadar bloke olurdu. Bu süpürme, belirli bir süredir
+// bekleyen siparişleri "ÖDEME BAŞARISIZ" yapıp stoğu iade eder.
+// Her sipariş kendi transaction'ında işleniyor: biri hata verirse diğerleri etkilenmiyor.
+const terkEdilmisSiparisleriTemizle = async () => {
+    try {
+        const bekleyenler = await client.query(
+            `SELECT id, order_number FROM orders
+              WHERE UPPER(status) IN (${sqlDurumListesi(SIPARIS_DURUMLARI.ODEME_BEKLENIYOR)})
+                AND created_at < NOW() - INTERVAL '${TERK_EDILMIS_SIPARIS_DAKIKA} minutes'`
+        );
+        if (bekleyenler.rows.length === 0) return;
+
+        for (const siparis of bekleyenler.rows) {
+            try {
+                await transactionIle(async (conn) => {
+                    // Durumu yeniden kilitleyerek okuyoruz: tam bu sırada PayTR
+                    // bildirimi gelmiş olabilir, ödenmiş siparişi iptal etmeyelim.
+                    const guncel = await conn.query(
+                        'SELECT status FROM orders WHERE id = $1 FOR UPDATE', [siparis.id]
+                    );
+                    const durum = (guncel.rows[0]?.status || '').toUpperCase();
+                    if (!SIPARIS_DURUMLARI.ODEME_BEKLENIYOR.includes(durum)) return;
+
+                    await conn.query("UPDATE orders SET status = 'ÖDEME BAŞARISIZ' WHERE id = $1", [siparis.id]);
+                    await stokIadeEt(conn, siparis.id);
+                });
+                logToFile('access.log', `TERK EDILMIS SIPARIS TEMIZLENDI: ${siparis.order_number} (stok iade edildi)`);
+            } catch (err) {
+                logToFile('error.log', `TERK EDILMIS SIPARIS TEMIZLEME HATASI (${siparis.order_number}): ${err.message}`);
+            }
+        }
+        console.log(`🧹 ${bekleyenler.rows.length} terk edilmiş sipariş temizlendi, stokları iade edildi.`);
+    } catch (err) {
+        logToFile('error.log', `TERK EDILMIS SIPARIS SUPURME HATASI: ${err.stack || err}`);
+    }
+};
+
+// ==========================================
+// ÖDEME ONAYI ORTAK MANTIĞI ("Siparişiniz Alındı" e-postası)
 // ==========================================
 // Bu fonksiyon İKİ farklı yerden çağrılır:
 //   1) Admin panelinden elle durum değiştirildiğinde (PUT /api/admin/orders/:id)
@@ -293,20 +508,12 @@ const confirmOrderPayment = async (orderId) => {
 
     const itemsResult = await client.query('SELECT product_id, product_name, quantity, price, color FROM order_items WHERE order_id = $1', [orderId]);
 
-    for (const item of itemsResult.rows) {
-        if (!item.product_id) continue;
-        await client.query('UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2', [item.quantity, item.product_id]);
-        if (item.color) {
-            await client.query(
-                `UPDATE products SET stock_by_color = jsonb_set(
-                    COALESCE(stock_by_color, '{}'::jsonb),
-                    ARRAY[$1],
-                    to_jsonb(GREATEST(0, COALESCE((stock_by_color->>$1)::int, 0) - $2))
-                ) WHERE id = $3 AND stock_by_color ? $1`,
-                [item.color, item.quantity, item.product_id]
-            );
-        }
-    }
+    // NOT: Burada artık stok DÜŞÜLMÜYOR. Stok, sipariş oluşturulurken
+    // (POST /api/orders) rezerve ediliyor — bkz. stokRezerveEt.
+    // Eskiden düşüş burada yapılıyordu ve iki sorun yaratıyordu:
+    //   1) Ödeme onaylanana kadar stok boşta duruyordu, aynı ürün iki kez satılabiliyordu.
+    //   2) PayTR aynı bildirimi tekrar gönderdiğinde stok ikinci kez düşebiliyordu.
+    // Bu fonksiyon artık sadece müşteriye "siparişiniz alındı" e-postasını gönderir.
 
     const userResult = await client.query('SELECT email, username FROM users WHERE id = $1', [user_id]);
     if (userResult.rows.length > 0 && userResult.rows[0].email) {
@@ -562,21 +769,21 @@ app.patch('/api/products/:id/sort-order', verifyToken, isAdmin, async (req, res)
 app.delete('/api/products/:id', verifyToken, isAdmin, async (req, res) => {
   const { id } = req.params;
   try {
-    await client.query('BEGIN');
-    // Geçmiş siparişlerdeki ürün adı/fiyatı zaten o satırda saklı (snapshot),
-    // o yüzden sipariş geçmişini bozmadan sadece ürün bağlantısını kaldırıyoruz.
-    await client.query('UPDATE order_items SET product_id = NULL WHERE product_id = $1', [id]);
-    // Favoriler geçmiş kaydı değil, doğrudan silinebilir.
-    await client.query('DELETE FROM favorites WHERE product_id = $1', [id]);
-    const result = await client.query('DELETE FROM products WHERE id = $1 RETURNING id', [id]);
-    await client.query('COMMIT');
+    const silindi = await transactionIle(async (conn) => {
+      // Geçmiş siparişlerdeki ürün adı/fiyatı zaten o satırda saklı (snapshot),
+      // o yüzden sipariş geçmişini bozmadan sadece ürün bağlantısını kaldırıyoruz.
+      await conn.query('UPDATE order_items SET product_id = NULL WHERE product_id = $1', [id]);
+      // Favoriler geçmiş kaydı değil, doğrudan silinebilir.
+      await conn.query('DELETE FROM favorites WHERE product_id = $1', [id]);
+      const result = await conn.query('DELETE FROM products WHERE id = $1 RETURNING id', [id]);
+      return result.rowCount > 0;
+    });
 
-    if (result.rowCount === 0) {
+    if (!silindi) {
       return res.status(404).json({ error: "Ürün bulunamadı (zaten silinmiş olabilir)." });
     }
     res.json({ message: 'Ürün başarıyla silindi' });
   } catch (err) {
-    await client.query('ROLLBACK');
     console.error("Ürün silme hatası:", err);
     res.status(500).json({ error: "Ürün silinemedi. Sunucu loglarını kontrol edin." });
   }
@@ -935,7 +1142,10 @@ app.get('/api/orders/:orderId', verifyToken, async (req, res) => {
 // bedavaya almak mümkün değildir.
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-const buildOrderFromCart = async (items) => {
+// conn: transaction bağlantısı. Sipariş oluşturulurken stok kontrolü ile
+// rezervasyonun AYNI transaction içinde, aynı görüntü üzerinde çalışması için
+// bağlantı dışarıdan veriliyor.
+const buildOrderFromCart = async (items, conn = client) => {
     // 1) Aynı ürün+renk birden fazla satır halinde gönderilmiş olabilir.
     //    (Stok kontrolünü atlatmak için kasıtlı olarak da yapılabilir: tek tek
     //    bakıldığında her satır stoğa uyar ama toplamı stoğu aşar.)
@@ -966,8 +1176,8 @@ const buildOrderFromCart = async (items) => {
     let subtotal = 0;
 
     for (const line of merged.values()) {
-        const productRes = await client.query(
-            'SELECT id, name, price, stock_quantity, stock_by_color, is_visible FROM products WHERE id = $1',
+        const productRes = await conn.query(
+            'SELECT id, name, price, stock_quantity, stock_by_color, is_visible FROM products WHERE id = $1 FOR UPDATE',
             [line.productId]
         );
         if (productRes.rows.length === 0) {
@@ -1004,14 +1214,17 @@ const buildOrderFromCart = async (items) => {
             name: product.name,
             quantity: line.quantity,
             color: line.color,
-            unitPrice
+            unitPrice,
+            // Stok rezervasyonunun hangi alandan düşeceğini burada belirliyoruz;
+            // aşağıda stokRezerveEt bu bilgiye göre davranıyor.
+            renkStogunuKullanir: usesColorStock
         });
     }
 
     subtotal = round2(subtotal);
 
     // Kargo ücreti ve bedava kargo sınırı da istemciden değil, admin ayarlarından.
-    const settingsRes = await client.query('SELECT shipping_fee, free_shipping_threshold FROM store_settings WHERE id = 1');
+    const settingsRes = await conn.query('SELECT shipping_fee, free_shipping_threshold FROM store_settings WHERE id = 1');
     const settings = settingsRes.rows[0] || {};
     const shippingFee = parseFloat(settings.shipping_fee) || 0;
     const freeThreshold = parseFloat(settings.free_shipping_threshold) || 0;
@@ -1019,6 +1232,41 @@ const buildOrderFromCart = async (items) => {
 
     return { lines, subtotal, shipping, total: round2(subtotal + shipping) };
 };
+
+// Ödeme dönüşünde "gerçekten ödendi mi" sorusunu cevaplar.
+// Başarı sayfası eskiden hiçbir kontrol yapmadan "Sipariş Başarılı!" diyordu;
+// /success adresine giden herkes ödeme yapmış gibi görünüyordu.
+app.get('/api/orders/durum/:orderNumber', verifyToken, async (req, res) => {
+    try {
+        const sonuc = await client.query(
+            'SELECT order_number, status, total_amount, created_at FROM orders WHERE order_number = $1 AND user_id = $2',
+            [String(req.params.orderNumber), req.user.id]
+        );
+        if (sonuc.rows.length === 0) {
+            return res.status(404).json({ error: "Sipariş bulunamadı." });
+        }
+        const siparis = sonuc.rows[0];
+        const durum = String(siparis.status || '').toUpperCase();
+
+        res.json({
+            orderNumber: siparis.order_number,
+            status: siparis.status,
+            totalAmount: parseFloat(siparis.total_amount),
+            createdAt: siparis.created_at,
+            // Ödeme onaylandı mı? (ÖDEME BEKLENİYOR ve başarısız durumlar hariç)
+            odendi: [
+                ...SIPARIS_DURUMLARI.ODENDI, ...SIPARIS_DURUMLARI.HAZIRLANIYOR,
+                ...SIPARIS_DURUMLARI.KARGODA, ...SIPARIS_DURUMLARI.TAMAMLANDI
+            ].includes(durum),
+            bekliyor: SIPARIS_DURUMLARI.ODEME_BEKLENIYOR.includes(durum),
+            basarisiz: [
+                ...SIPARIS_DURUMLARI.ODEME_BASARISIZ, ...SIPARIS_DURUMLARI.IPTAL_EDILDI
+            ].includes(durum)
+        });
+    } catch (err) {
+        res.status(500).json({ error: "Sipariş durumu alınamadı." });
+    }
+});
 
 app.post('/api/orders', verifyToken, async (req, res) => {
     // DİKKAT: body'deki totalAmount / price alanları BİLEREK okunmuyor.
@@ -1033,46 +1281,50 @@ app.post('/api/orders', verifyToken, async (req, res) => {
     }
 
     try {
-        await client.query('BEGIN');
-
-        const { lines, subtotal, shipping, total } = await buildOrderFromCart(items);
-
-        // Müşterinin ekranda gördüğü tutar ile sunucunun hesapladığı tutar
-        // uyuşmuyorsa (örn. ürün sepette beklerken fiyatı değiştiyse), siparişi
-        // OLUŞTURMADAN duruyoruz ve doğru tutarı bildiriyoruz. Böylece kimse
-        // gördüğünden farklı bir tutarla karşılaşmıyor.
-        if (expectedTotal !== undefined && Math.abs((parseFloat(expectedTotal) || 0) - total) > 0.01) {
-            await client.query('ROLLBACK');
+        // FİYAT UYUŞMAZLIĞI kontrolü, sipariş oluşturmadan ve stok rezerve
+        // etmeden ÖNCE yapılıyor — başarısız denemede ne sipariş numarası
+        // yanıyor ne de boşuna stok ayrılıyor.
+        const onKontrol = await buildOrderFromCart(items);
+        if (expectedTotal !== undefined && Math.abs((parseFloat(expectedTotal) || 0) - onKontrol.total) > 0.01) {
             return res.status(409).json({
                 error: "Sepetinizdeki ürünlerin fiyatı güncellendi. Lütfen yeni tutarı kontrol edip tekrar deneyin.",
                 priceChanged: true,
-                totalAmount: total,
-                subtotal,
-                shipping
+                totalAmount: onKontrol.total,
+                subtotal: onKontrol.subtotal,
+                shipping: onKontrol.shipping
             });
         }
 
-        // Sıralı, benzersiz sipariş numarası üret: KB-1000, KB-1001, KB-1002...
-        // (Fiyat kontrolünden SONRA üretiliyor ki başarısız denemelerde numara yanmasın.)
-        const seqResult = await client.query("SELECT nextval('order_number_seq') as num");
-        const orderNumber = `KB-${seqResult.rows[0].num}`;
+        const sonuc = await transactionIle(async (conn) => {
+            // Tutarlar ve stok kontrolü, rezervasyonla AYNI transaction içinde
+            // yeniden hesaplanıyor (araya başka bir sipariş girmiş olabilir).
+            const { lines, subtotal, shipping, total } = await buildOrderFromCart(items, conn);
 
-        // Sipariş "ÖDEME BEKLENİYOR" durumuyla oluşturuluyor. Stok düşürme ve
-        // "siparişiniz alındı" e-postası, ödeme GERÇEKTEN onaylanınca tetiklenecek.
-        const orderResult = await client.query(
-            `INSERT INTO orders (user_id, order_number, total_amount, shipping_address, payment_method, status) VALUES ($1, $2, $3, $4, $5, 'ÖDEME BEKLENİYOR') RETURNING id`,
-            [userId, orderNumber, total, shippingAddress, paymentMethod || 'Kredi Kartı']
-        );
-        const orderId = orderResult.rows[0].id;
+            // STOK REZERVASYONU: ödeme başlamadan önce ürün müşteriye ayrılıyor.
+            // Yetmezse burada hata fırlar, transaction geri alınır ve sipariş oluşmaz.
+            await stokRezerveEt(conn, lines);
 
-        for (const line of lines) {
-            await client.query(
-                'INSERT INTO order_items (order_id, product_id, product_name, quantity, price, color) VALUES ($1, $2, $3, $4, $5, $6)',
-                [orderId, line.productId, line.name, line.quantity, line.unitPrice, line.color]
+            // Sıralı, benzersiz sipariş numarası üret: KB-1000, KB-1001, KB-1002...
+            const seqResult = await conn.query("SELECT nextval('order_number_seq') as num");
+            const orderNumber = `KB-${seqResult.rows[0].num}`;
+
+            const orderResult = await conn.query(
+                `INSERT INTO orders (user_id, order_number, total_amount, shipping_address, payment_method, status) VALUES ($1, $2, $3, $4, $5, 'ÖDEME BEKLENİYOR') RETURNING id`,
+                [userId, orderNumber, total, shippingAddress, paymentMethod || 'Kredi Kartı']
             );
-        }
+            const orderId = orderResult.rows[0].id;
 
-        await client.query('COMMIT');
+            for (const line of lines) {
+                await conn.query(
+                    'INSERT INTO order_items (order_id, product_id, product_name, quantity, price, color) VALUES ($1, $2, $3, $4, $5, $6)',
+                    [orderId, line.productId, line.name, line.quantity, line.unitPrice, line.color]
+                );
+            }
+
+            return { orderNumber, total, subtotal, shipping };
+        });
+
+        const { orderNumber, total, subtotal, shipping } = sonuc;
         res.status(201).json({
             message: "Sipariş oluşturuldu, ödeme bekleniyor.",
             orderNumber,
@@ -1081,51 +1333,12 @@ app.post('/api/orders', verifyToken, async (req, res) => {
             shipping
         });
     } catch (err) {
-        await client.query('ROLLBACK');
+        // ROLLBACK'i transactionIle kendisi yapıyor; burada sadece hatayı bildiriyoruz.
         res.status(400).json({ error: err.message || "Sipariş oluşturulamadı." });
     }
 });
 
-// ==========================================
-// SİPARİŞ DURUMLARI — TEK DOĞRU KAYNAK
-// ==========================================
-// Durum isimleri veritabanında serbest metin olarak tutuluyor ve geçmişte hem
-// Türkçe karakterli ("ÖDENDİ") hem karaktersiz ("ODENDI") varyantlar yazılmış
-// olabilir. Bu yüzden her durumun bilinen TÜM yazımlarını burada topluyoruz ve
-// karşılaştırmaları hep bu listeler üzerinden yapıyoruz. Daha önce bu kontroller
-// dört ayrı yerde elle yazılıyordu ve yeni bir durum eklendiğinde (örn. ÖDENDİ)
-// bazı yerler güncellenmeden kalıyordu.
-const SIPARIS_DURUMLARI = {
-  ODEME_BEKLENIYOR:  ['ÖDEME BEKLENİYOR', 'ODEME BEKLENIYOR'],
-  ODENDI:            ['ÖDENDİ', 'ODENDI'],
-  HAZIRLANIYOR:      ['HAZIRLANIYOR'],
-  KARGODA:           ['KARGODA'],
-  TAMAMLANDI:        ['TAMAMLANDI', 'TESLİM EDİLDİ', 'TESLIM EDILDI'],
-  IPTAL_EDILDI:      ['İPTAL EDİLDİ', 'IPTAL EDILDI'],
-  ODEME_BASARISIZ:   ['ÖDEME BAŞARISIZ', 'ODEME BASARISIZ'],
-  TUTAR_UYUSMAZLIGI: ['TUTAR UYUŞMAZLIĞI', 'TUTAR UYUSMAZLIGI']
-};
 
-// SQL IN (...) listesi üretir: ['A','B'] -> "'A', 'B'"
-const sqlDurumListesi = (...gruplar) =>
-  gruplar.flat().map(s => `'${s.replace(/'/g, "''")}'`).join(', ');
-
-// "Parası gerçekten alınmış" siparişler — ciro bunlardan hesaplanır.
-// İptal edilenler, ödeme bekleyenler ve başarısız ödemeler HARİÇ.
-const CIRO_DURUMLARI = sqlDurumListesi(
-  SIPARIS_DURUMLARI.ODENDI, SIPARIS_DURUMLARI.HAZIRLANIYOR,
-  SIPARIS_DURUMLARI.KARGODA, SIPARIS_DURUMLARI.TAMAMLANDI
-);
-
-// "Gerçekten oluşmuş" siparişler — iptal dahil, ama hiç ödenmemişler hariç.
-const GERCEK_SIPARIS_DURUMLARI = sqlDurumListesi(
-  SIPARIS_DURUMLARI.ODENDI, SIPARIS_DURUMLARI.HAZIRLANIYOR,
-  SIPARIS_DURUMLARI.KARGODA, SIPARIS_DURUMLARI.TAMAMLANDI,
-  SIPARIS_DURUMLARI.IPTAL_EDILDI
-);
-
-// Stok bu sayının altına düşen ürünler admin panelinde uyarı olarak gösterilir.
-const DUSUK_STOK_SINIRI = 5;
 
 // ==========================================
 // --- ADMİN PANELİ VE ANALİTİK KİLİTLERİ (KORUMALI) ---
@@ -1235,13 +1448,45 @@ app.put('/api/admin/orders/:id', verifyToken, isAdmin, async (req, res) => {
         const previousStatus = (beforeResult.rows[0].status || '').toUpperCase();
         const { order_number, user_id } = beforeResult.rows[0];
         const newStatus = (status || '').toUpperCase();
-        const wasPending = previousStatus === 'ÖDEME BEKLENİYOR' || previousStatus === 'ODEME BEKLENIYOR';
-        const isNowConfirmed = newStatus !== 'ÖDEME BEKLENİYOR' && newStatus !== 'ODEME BEKLENIYOR';
+        const wasPending = SIPARIS_DURUMLARI.ODEME_BEKLENIYOR.includes(previousStatus);
+        const isNowConfirmed = !SIPARIS_DURUMLARI.ODEME_BEKLENIYOR.includes(newStatus);
 
-        await client.query(
-          `UPDATE orders SET status = $1, tracking_number = $2 WHERE id = $3`,
-          [status, tracking_number, orderId]
-        );
+        // STOK: durum değişimi rezervasyonu etkiliyor mu?
+        // Ayrılmış -> serbest (iptal / ödeme başarısız) ise stok geri verilir.
+        // Serbest -> ayrılmış (admin iptali geri alıyor) ise yeniden ayrılır.
+        // Eskiden iptalde stok HİÇ geri eklenmiyordu, stok gerçeğin altında kalıyordu.
+        const oncedenAyrilmis = stokAyrilmisMi(previousStatus);
+        const simdiAyrilmis = stokAyrilmisMi(newStatus);
+
+        await transactionIle(async (conn) => {
+            await conn.query(
+                `UPDATE orders SET status = $1, tracking_number = $2 WHERE id = $3`,
+                [status, tracking_number, orderId]
+            );
+
+            if (oncedenAyrilmis && !simdiAyrilmis) {
+                await stokIadeEt(conn, orderId);
+                logToFile('access.log', `STOK IADE (order ${orderId}): ${previousStatus} -> ${newStatus}`);
+            } else if (!oncedenAyrilmis && simdiAyrilmis) {
+                // İptal geri alınıyor: stok yeniden ayrılmalı. Yetmiyorsa
+                // transaction geri alınır ve durum değişikliği de uygulanmaz.
+                const kalemler = await conn.query(
+                    `SELECT oi.product_id, oi.product_name, oi.quantity, oi.color,
+                            (p.stock_by_color ? oi.color) AS renk_stogu_var
+                       FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id
+                      WHERE oi.order_id = $1`, [orderId]
+                );
+                await stokRezerveEt(conn, kalemler.rows.map(k => ({
+                    productId: k.product_id,
+                    name: k.product_name,
+                    quantity: k.quantity,
+                    color: k.color,
+                    renkStogunuKullanir: Boolean(k.color && k.renk_stogu_var)
+                })));
+                logToFile('access.log', `STOK YENIDEN AYRILDI (order ${orderId}): ${previousStatus} -> ${newStatus}`);
+            }
+        });
+
         res.json({ message: "Sipariş başarıyla güncellendi!" });
 
         // ====================================================================
@@ -1489,8 +1734,11 @@ app.post('/api/payment', verifyToken, async (req, res) => {
       user_name: userName,
       user_address: customer.adres,
       user_phone: customer.telefon,
-      merchant_ok_url: `${frontendBase}/success`,
-      merchant_fail_url: `${frontendBase}/checkout`,
+      // Sipariş numarası dönüş adresine ekleniyor: başarı sayfası hangi siparişi
+      // doğrulayacağını böyle biliyor. (Önceden adres boştu ve sayfa hiçbir
+      // kontrol yapmadan "Sipariş Başarılı!" diyordu.)
+      merchant_ok_url: `${frontendBase}/success?order=${encodeURIComponent(order.order_number)}`,
+      merchant_fail_url: `${frontendBase}/checkout?odeme=basarisiz`,
       timeout_limit: '30',
       currency,
       test_mode: PAYTR_TEST_MODE,
@@ -1577,7 +1825,15 @@ app.post('/api/paytr-notify', express.urlencoded({ extended: false }), async (re
             }
         }
       } else {
-        await client.query("UPDATE orders SET status = 'ÖDEME BAŞARISIZ' WHERE id = $1", [order.id]);
+        // Ödeme başarısız: sipariş oluşturulurken ayrılan stoğu geri veriyoruz,
+        // yoksa satılmamış ürün sonsuza kadar bloke kalırdı.
+        await transactionIle(async (conn) => {
+          await conn.query("UPDATE orders SET status = 'ÖDEME BAŞARISIZ' WHERE id = $1", [order.id]);
+          if (stokAyrilmisMi(order.status)) {
+            await stokIadeEt(conn, order.id);
+            logToFile('access.log', `STOK IADE (odeme basarisiz, order ${order.order_number})`);
+          }
+        });
       }
     }
 
@@ -1609,6 +1865,15 @@ const PORT = process.env.PORT || 5005;
 const serverInstance = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Backend ${PORT} portunda sorunsuz ve profesyonel modda çalışıyor!`);
   console.log(`🌐 İzin verilen kaynaklar: localhost (her port), ${ALLOWED_ORIGINS.join(', ')}`);
+
+  // Terk edilmiş siparişlerin stoğunu düzenli olarak serbest bırak.
+  // İlk tarama, açılışta birikmiş kayıtlar için biraz gecikmeyle yapılıyor
+  // (veritabanı bağlantısının kurulmasını bekliyoruz).
+  setTimeout(terkEdilmisSiparisleriTemizle, 30 * 1000);
+  const temizlikZamanlayici = setInterval(terkEdilmisSiparisleriTemizle, TEMIZLIK_ARALIGI_DAKIKA * 60 * 1000);
+  // Zamanlayıcı sürecin kapanmasını engellemesin
+  temizlikZamanlayici.unref?.();
+  console.log(`🧹 Terk edilmiş sipariş temizliği açık: ${TERK_EDILMIS_SIPARIS_DAKIKA} dk sonra stok iade edilir.`);
 });
 
 serverInstance.on('error', (err) => {

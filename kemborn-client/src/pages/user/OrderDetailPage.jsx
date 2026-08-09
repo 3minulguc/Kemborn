@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiArrowLeft, FiPackage, FiMapPin, FiTruck, FiCreditCard, FiCalendar } from 'react-icons/fi';
+import { durumGorunumu, musteriDurumEtiketi } from '../../constants/orderStatus';
 import { API_URL } from '../../config/api';
 import { formatPrice } from '../../utils/format';
 
@@ -48,18 +49,20 @@ const OrderDetailPage = () => {
         <FiArrowLeft /> Siparişlere Dön
       </Link>
       
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <h2 className="text-3xl font-black text-zinc-900 mb-2">Sipariş Detayı: {order.order_number}</h2>
-          <p className="text-zinc-500 font-bold flex items-center gap-2">
+      {/* Mobilde başlık ve durum rozeti alt alta, masaüstünde yan yana */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-8">
+        <div className="min-w-0">
+          <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 mb-2 break-words">
+            Sipariş Detayı: {order.order_number}
+          </h2>
+          <p className="text-zinc-500 font-bold flex items-center gap-2 text-sm">
             <FiCalendar /> {new Date(order.created_at).toLocaleString('tr-TR')}
           </p>
         </div>
-        <div className={`px-4 py-2 font-black rounded-full uppercase text-sm ${
-          order.status === 'KARGODA' ? 'bg-cyan-50 text-cyan-700' : 
-          order.status === 'TESLİM EDİLDİ' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'
-        }`}>
-          {order.status}
+        {/* Durum rengi ve etiketi tek merkezden geliyor; önceden burada sadece
+            üç durum tanınıyor, gerisi sarı "hazırlanıyor" gibi gösteriliyordu. */}
+        <div className={`w-fit shrink-0 px-4 py-2 font-black rounded-full uppercase text-xs sm:text-sm border ${durumGorunumu(order.status).rozet}`}>
+          {musteriDurumEtiketi(order.status)}
         </div>
       </div>
       

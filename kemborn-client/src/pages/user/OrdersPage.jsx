@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiPackage, FiTruck, FiCheckCircle } from 'react-icons/fi';
-import { useAuth } from '../../context/AuthContext'; 
+import { FiPackage, FiTruck, FiCheckCircle, FiXCircle, FiClock } from 'react-icons/fi';
+import { useAuth } from '../../context/AuthContext';
+import { DURUM, durumuCozumle, durumGorunumu, musteriDurumEtiketi } from '../../constants/orderStatus';
 import { API_URL } from '../../config/api';
 
 const OrdersPage = () => {
@@ -41,12 +42,20 @@ const OrdersPage = () => {
     fetchOrders();
   }, [user]);
 
-  const getStatusStyle = (status) => {
-    switch(status?.toUpperCase()) {
-      case 'KARGODA': return 'text-cyan-600 bg-cyan-50';
-      case 'TESLİM EDİLDİ': return 'text-green-600 bg-green-50';
-      case 'HAZIRLANIYOR': return 'text-yellow-600 bg-yellow-50';
-      default: return 'text-zinc-600 bg-zinc-100';
+  // Durum rengi, etiketi ve ikonu artık tek merkezden (constants/orderStatus.js)
+  // geliyor. Önceden burada elle yazılmış kısa bir liste vardı; ÖDENDİ,
+  // ÖDEME BEKLENİYOR gibi durumlar tanınmadığı için müşteri siparişini gri
+  // renkte ve yanlış (onay) ikonuyla görüyordu.
+  const getStatusStyle = (status) => durumGorunumu(status).rozet;
+
+  const getStatusIcon = (status) => {
+    switch (durumuCozumle(status)) {
+      case DURUM.KARGODA: return <FiTruck size={14} />;
+      case DURUM.TAMAMLANDI: return <FiCheckCircle size={14} />;
+      case DURUM.IPTAL_EDILDI:
+      case DURUM.ODEME_BASARISIZ: return <FiXCircle size={14} />;
+      case DURUM.ODEME_BEKLENIYOR: return <FiClock size={14} />;
+      default: return <FiPackage size={14} />;
     }
   };
 
@@ -79,9 +88,9 @@ const OrdersPage = () => {
             </div>
             
             {/* 2. Sütun: Sipariş Durumu (sabit genişlik) */}
-            <div className={`w-fit px-4 py-2 rounded-full text-xs font-black uppercase flex items-center gap-2 whitespace-nowrap ${getStatusStyle(order.status)}`}>
-              {order.status === 'KARGODA' ? <FiTruck size={14} /> : <FiCheckCircle size={14} />}
-              {order.status}
+            <div className={`w-fit px-4 py-2 rounded-full text-xs font-black uppercase flex items-center gap-2 whitespace-nowrap border ${getStatusStyle(order.status)}`}>
+              {getStatusIcon(order.status)}
+              {musteriDurumEtiketi(order.status)}
             </div>
             
             {/* 3. Sütun: Tutar (sabit genişlik, sağa hizalı) */}
