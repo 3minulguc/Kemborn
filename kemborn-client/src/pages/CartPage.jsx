@@ -5,6 +5,7 @@ import { FiTrash2, FiShoppingBag, FiMinus, FiPlus, FiArrowRight, FiLock, FiShiel
 import { formatPrice } from '../utils/format';
 import { API_URL } from '../config/api';
 import PageHeader from '../components/PageHeader';
+import { selectStil, selectOkStyle } from '../utils/formStil';
 
 const CartPage = () => {
   const { cart, increaseQuantity, decreaseQuantity, removeFromCart, updateColor, clearCart } = useCart();
@@ -123,9 +124,10 @@ const CartPage = () => {
                         <label className="inline-flex items-center gap-2 text-sm">
                           <span className="font-medium text-zinc-500">Renk:</span>
                           <select
+                  style={selectOkStyle}
                             value={item.color}
                             onChange={(e) => updateColor(item.uniqueKey || item.id, e.target.value)}
-                            className="font-bold text-zinc-800 bg-zinc-50 border border-zinc-200 rounded-lg px-2 py-1 outline-none focus:border-cyan-600 cursor-pointer"
+                            className={`font-bold text-zinc-800 bg-zinc-50 border border-zinc-200 rounded-lg px-2 py-1 outline-none focus:border-cyan-600 cursor-pointer ${selectStil}`}
                           >
                             {item.colors.map((c) => (
                               <option key={c} value={c}>{c}</option>

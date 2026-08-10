@@ -326,7 +326,7 @@ const CheckoutPage = () => {
                 required 
               />
               
-              <textarea name="adres" disabled={loading} value={formData.adres} onChange={handleInputChange} placeholder="Açık Teslimat Adresi (İl, İlçe, Mahalle, Sokak vb.)" className={`md:col-span-2 h-32 resize-none ${inputClass}`} required></textarea>
+              <textarea name="adres" disabled={loading} value={formData.adres} onChange={handleInputChange} placeholder="Açık Teslimat Adresi (İl, İlçe, Mahalle, Sokak vb.)" className={`appearance-none md:col-span-2 h-32 resize-none ${inputClass}`} required></textarea>
             </div>
           </section>
 

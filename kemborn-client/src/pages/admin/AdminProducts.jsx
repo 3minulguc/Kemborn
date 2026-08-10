@@ -967,7 +967,7 @@ const AdminProducts = () => {
                   <div className="px-2 pb-2">
                     <input className={`text-2xl font-black text-zinc-900 mb-1 ${inlineInputClass}`} placeholder="Ürün Adı" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                     <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-wider mt-2 mb-1">Ürün Açıklaması (kart ve detay sayfasında aynı görünür)</label>
-                    <textarea className={`text-zinc-500 text-sm leading-snug mb-3 h-12 resize-none ${inlineInputClass}`} placeholder="Ürün açıklaması..." value={formData.short_description} onChange={e => setFormData({...formData, short_description: e.target.value, page_description: e.target.value})} />
+                    <textarea className={`appearance-none text-zinc-500 text-sm leading-snug mb-3 h-12 resize-none ${inlineInputClass}`} placeholder="Ürün açıklaması..." value={formData.short_description} onChange={e => setFormData({...formData, short_description: e.target.value, page_description: e.target.value})} />
                     <div className="flex items-center justify-between mt-2 gap-4">
                       <div className="flex items-baseline gap-1">
                         <input type="text" inputMode="numeric" className={`text-2xl font-black w-14 text-right text-cyan-700 ${inlineInputClass}`} placeholder="0" value={getLiraPart(formData.price)} onChange={e => updatePriceLira(e.target.value)} />
@@ -1004,7 +1004,7 @@ const AdminProducts = () => {
                         <input type="text" inputMode="numeric" className={`text-lg font-black w-10 text-cyan-600 ${inlineInputClass}`} placeholder="00" value={getKurusPart(formData.price)} onChange={e => updatePriceKurus(e.target.value)} />
                         <span className="text-2xl font-black text-cyan-600">TL</span>
                       </div>
-                      <textarea className={`text-zinc-500 text-sm leading-relaxed mb-6 h-20 resize-none ${inlineInputClass}`} placeholder="Ürün açıklaması..." value={formData.short_description} onChange={e => setFormData({...formData, short_description: e.target.value, page_description: e.target.value})} />
+                      <textarea className={`appearance-none text-zinc-500 text-sm leading-relaxed mb-6 h-20 resize-none ${inlineInputClass}`} placeholder="Ürün açıklaması..." value={formData.short_description} onChange={e => setFormData({...formData, short_description: e.target.value, page_description: e.target.value})} />
                       <div className="mb-6 p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
                         <div className="flex items-center justify-between mb-3">
                           <p className="text-sm font-bold text-zinc-900 flex items-center gap-2">
@@ -1078,7 +1078,7 @@ const AdminProducts = () => {
                         </div>
                       </div>
                     ) : (
-                      <textarea className={`w-full h-48 bg-transparent text-zinc-600 text-sm leading-loose resize-none ${inlineInputClass}`} placeholder="Seçili sekme için uzun açıklama girin..." value={formData[activeTab]} onChange={(e) => setFormData({...formData, [activeTab]: e.target.value})} />
+                      <textarea className={`appearance-none w-full h-48 bg-transparent text-zinc-600 text-sm leading-loose resize-none ${inlineInputClass}`} placeholder="Seçili sekme için uzun açıklama girin..." value={formData[activeTab]} onChange={(e) => setFormData({...formData, [activeTab]: e.target.value})} />
                     )}
                   </div>
                 </div>

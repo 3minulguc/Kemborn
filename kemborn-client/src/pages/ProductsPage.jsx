@@ -6,6 +6,7 @@ import ProductCard from '../components/ProductCard';
 import { useFavorites } from '../hooks/useFavorites';
 import { urunAramayaUyuyorMu } from '../utils/search';
 import { API_URL } from '../config/api';
+import { selectStil, selectOkStyle } from '../utils/formStil';
 
 const ProductsPage = () => {
   const [products, setProducts] = useState([]);
@@ -90,9 +91,10 @@ const ProductsPage = () => {
 
           <div className="flex gap-2">
             <select
+                  style={selectOkStyle}
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="flex-1 sm:flex-none px-3 md:px-4 py-2.5 md:py-3 bg-zinc-50 border border-zinc-200 rounded-xl md:rounded-2xl outline-none focus:border-cyan-600 font-bold text-xs md:text-base text-zinc-700 cursor-pointer"
+              className={`flex-1 sm:flex-none px-3 md:px-4 py-2.5 md:py-3 bg-zinc-50 border border-zinc-200 rounded-xl md:rounded-2xl outline-none focus:border-cyan-600 font-bold text-xs md:text-base text-zinc-700 cursor-pointer ${selectStil}`}
             >
               <option value="default">Varsayılan Sıralama</option>
               <option value="price-asc">Fiyat: Düşükten Yükseğe</option>

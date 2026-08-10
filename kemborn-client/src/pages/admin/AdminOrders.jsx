@@ -4,6 +4,7 @@ import { FiEye, FiSearch, FiX, FiSave, FiPackage, FiMapPin, FiTruck, FiUser, FiC
 import toast from 'react-hot-toast';
 import { DURUM, durumuCozumle, durumGorunumu, ELLE_ATANABILIR_DURUMLAR } from '../../constants/orderStatus';
 import { apiFetch } from '../../utils/apiFetch';
+import { selectStil, selectOkStyle } from '../../utils/formStil';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -438,9 +439,10 @@ const AdminOrders = () => {
                         <div className="space-y-2">
                           <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider">Sipariş Durumu</label>
                           <select
+                  style={selectOkStyle}
                             value={durumuCozumle(editForm.status) || ''}
                             onChange={(e) => setEditForm({...editForm, status: e.target.value})}
-                            className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-black text-zinc-800 text-sm outline-none focus:border-cyan-600 transition-all shadow-sm cursor-pointer"
+                            className={`w-full p-4 bg-white border border-zinc-200 rounded-xl font-black text-zinc-800 text-sm outline-none focus:border-cyan-600 transition-all shadow-sm cursor-pointer ${selectStil}`}
                           >
                             {/* Siparişin mevcut durumu elle atanabilir listede değilse
                                 (örn. ÖDEME BEKLENİYOR, TUTAR UYUŞMAZLIĞI) menü boş

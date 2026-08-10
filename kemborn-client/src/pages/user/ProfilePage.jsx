@@ -110,7 +110,7 @@ const ProfilePage = () => {
             value={formData.address}
             onChange={(e) => setFormData({...formData, address: e.target.value})}
             placeholder="Açık adresinizi giriniz..."
-            className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold focus:ring-2 focus:ring-cyan-600 outline-none transition-all"
+            className="appearance-none w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold focus:ring-2 focus:ring-cyan-600 outline-none transition-all"
           />
         </div>
 
