@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiMail, FiPhone, FiMapPin, FiPackage, FiHeart, FiX, FiLock, FiUser, FiSearch, FiChevronRight } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { API_URL } from '../../config/api';
+import { apiFetch } from '../../utils/apiFetch';
 
 const AdminCustomers = () => {
   const navigate = useNavigate();
@@ -17,24 +17,11 @@ const AdminCustomers = () => {
   const [customerDetails, setCustomerDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  // --- TOKEN ALMA YARDIMCI FONKSİYONU ---
-  const getAuthHeaders = () => {
-    const token = sessionStorage.getItem('kemborn_token') || 
-                  localStorage.getItem('token') || 
-                  sessionStorage.getItem('token');
-    return {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json'
-    };
-  };
-
   // 1. Ana Müşteri Listesini Çek
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/admin/customers`, {
-          headers: getAuthHeaders() // TOKEN EKLENDİ
-        });
+        const res = await apiFetch(`/api/admin/customers`);
         
         if (res.ok) {
           const data = await res.json();
@@ -57,13 +44,11 @@ const AdminCustomers = () => {
     setDetailsLoading(true);
     
     try {
-      const headers = getAuthHeaders(); // TOKEN EKLENDİ
-
       // Promise.all ile 3 veriyi aynı anda hızlıca çekiyoruz
       const [userRes, favRes, ordersRes] = await Promise.all([
-        fetch(`${API_URL}/api/users/${customerId}`, { headers }),
-        fetch(`${API_URL}/api/favorites/${customerId}`, { headers }),
-        fetch(`${API_URL}/api/orders/user/${customerId}`, { headers })
+        apiFetch(`/api/users/${customerId}`),
+        apiFetch(`/api/favorites/${customerId}`),
+        apiFetch(`/api/orders/user/${customerId}`)
       ]);
 
       if (!userRes.ok) throw new Error("Kullanıcı bilgisi alınamadı");

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config/api';
+import { apiFetch } from '../utils/apiFetch';
+import { getToken } from '../utils/auth';
 
 // Favori ürün id'lerini tutan ve ekleme/çıkarma işlemini yöneten ortak hook.
 // Vitrin kartının kullanıldığı HER sayfada (Ana Sayfa, Ürünler, Ürün Detayı)
@@ -15,10 +16,7 @@ export const useFavorites = () => {
       setFavoriteIds(new Set());
       return;
     }
-    const token = sessionStorage.getItem('kemborn_token');
-    fetch(`${API_URL}/api/favorites/${user.id}`, {
-      headers: { 'Authorization': token ? `Bearer ${token}` : '' }
-    })
+    apiFetch(`/api/favorites/${user.id}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -38,7 +36,7 @@ export const useFavorites = () => {
       toast.error("Favorilere eklemek için giriş yapmalısınız.");
       return;
     }
-    const token = sessionStorage.getItem('kemborn_token');
+    const token = getToken();
     if (!token) {
       toast.error("Oturum süresi dolmuş, lütfen tekrar giriş yapın.");
       return;
@@ -47,10 +45,7 @@ export const useFavorites = () => {
     const isFav = favoriteIds.has(productId);
     try {
       if (isFav) {
-        const res = await fetch(`${API_URL}/api/favorites/${user.id}/${productId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await apiFetch(`/api/favorites/${user.id}/${productId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
         setFavoriteIds(prev => {
           const next = new Set(prev);
@@ -59,9 +54,8 @@ export const useFavorites = () => {
         });
         toast.success("Favorilerden çıkarıldı.");
       } else {
-        const res = await fetch(`${API_URL}/api/favorites`, {
+        const res = await apiFetch(`/api/favorites`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ userId: user.id, productId })
         });
         if (!res.ok) throw new Error();

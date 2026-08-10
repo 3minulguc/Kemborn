@@ -3,31 +3,18 @@ import { Link } from 'react-router-dom';
 import { FiPackage, FiTruck, FiCheckCircle, FiXCircle, FiClock } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { DURUM, durumuCozumle, durumGorunumu, musteriDurumEtiketi } from '../../constants/orderStatus';
-import { API_URL } from '../../config/api';
+import { apiFetch } from '../../utils/apiFetch';
 
 const OrdersPage = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // TOKEN YARDIMCI FONKSİYONU
-  const getAuthHeaders = () => {
-    const token = sessionStorage.getItem('kemborn_token') || 
-                  localStorage.getItem('token') || 
-                  sessionStorage.getItem('token');
-    return {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json'
-    };
-  };
-
   useEffect(() => {
     const fetchOrders = async () => {
       if (!user) return;
       try {
-        const res = await fetch(`${API_URL}/api/orders/user/${user.id}`, {
-          headers: getAuthHeaders() // TOKEN EKLENDİ
-        });
+        const res = await apiFetch(`/api/orders/user/${user.id}`);
         if (res.ok) {
           const data = await res.json();
           setOrders(Array.isArray(data) ? data : []); // GÜVENLİK

@@ -4,6 +4,8 @@ import { FiPlus, FiEdit2, FiTrash2, FiX, FiSave, FiImage, FiVideo, FiShoppingCar
 import { API_URL } from '../../config/api';
 import { formatPrice } from '../../utils/format';
 import { temizHtml } from '../../utils/sanitize';
+import { apiFetch } from '../../utils/apiFetch';
+import { getToken } from '../../utils/auth';
 
 // --- CANVAS ÜZERİNDEN KIRPILMIŞ GÖRSELİ BLOB OLARAK ÜRETEN YARDIMCI FONKSİYON ---
 const getCroppedImageBlob = (imageSrc, pixelCrop) => {
@@ -97,21 +99,10 @@ const AdminProducts = () => {
     sort_order: 0
   });
 
-  // --- REUSABLE TOKEN HEADERS FUNCTION ---
-  const getAuthHeaders = (extraHeaders = {}) => {
-    const token = sessionStorage.getItem('kemborn_token'); 
-    return {
-      ...extraHeaders,
-      'Authorization': token ? `Bearer ${token}` : ''
-    };
-  };
-
   // --- VERİTABANINDAN ÜRÜNLERİ VE AYARLARI ÇEKME ---
   const fetchProducts = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/products`, {
-        headers: getAuthHeaders()
-      });
+      const response = await apiFetch(`/api/products`);
       const data = await response.json();
       setProducts(data || []);
     } catch (error) {
@@ -121,9 +112,7 @@ const AdminProducts = () => {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/settings`, {
-        headers: getAuthHeaders()
-      });
+      const response = await apiFetch(`/api/settings`);
       const data = await response.json();
       if(data.id) setStoreSettings(data);
     } catch (error) {
@@ -170,9 +159,8 @@ const AdminProducts = () => {
     // yapılan güncel bir değişikliğin üzerine yanlışlıkla yazılmaz).
     try {
       await Promise.all(finalizedList.map(p =>
-        fetch(`${API_URL}/api/products/${p.id}/sort-order`, {
+        apiFetch(`/api/products/${p.id}/sort-order`, {
           method: 'PATCH',
-          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ sort_order: p.sort_order })
         })
       ));
@@ -194,9 +182,8 @@ const AdminProducts = () => {
 
     try {
       await Promise.all([updatedList[index], updatedList[targetIndex]].map(p =>
-        fetch(`${API_URL}/api/products/${p.id}/sort-order`, {
+        apiFetch(`/api/products/${p.id}/sort-order`, {
           method: 'PATCH',
-          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ sort_order: p.sort_order })
         })
       ));
@@ -281,7 +268,7 @@ const AdminProducts = () => {
 
   // --- ÜRÜN KAYDETME FONKSİYONU ---
   const handleSave = async () => {
-    if (!sessionStorage.getItem('kemborn_token')) {
+    if (!getToken()) {
       alert("HATA: Oturum token'ı bulunamadı! Lütfen tekrar giriş yapın.");
       return;
     }
@@ -317,9 +304,8 @@ const AdminProducts = () => {
 
       console.log('🔍 [KAYDET] Gönderilen istek gövdesi (body):', JSON.parse(JSON.stringify(payload)).images);
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: method,
-        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload)
       });
 
@@ -352,7 +338,7 @@ const AdminProducts = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!sessionStorage.getItem('kemborn_token')) {
+    if (!getToken()) {
       alert("HATA: Oturum token'ı bulunamadı! Lütfen tekrar giriş yapın.");
       return;
     }
@@ -362,9 +348,8 @@ const AdminProducts = () => {
     body.append('video', file);
 
     try {
-      const response = await fetch(`${API_URL}/api/upload`, {
+      const response = await apiFetch(`/api/upload`, {
         method: 'POST',
-        headers: getAuthHeaders(),
         body
       });
       const data = await response.json();
@@ -429,16 +414,15 @@ const AdminProducts = () => {
   // "Best effort": başarısız olsa bile kullanıcı akışını durdurmaz, sadece konsola not düşer.
   const deleteServerFile = (url) => {
     if (!url) return;
-    fetch(`${API_URL}/api/upload`, {
+    apiFetch(`/api/upload`, {
       method: 'DELETE',
-      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ url })
     }).catch(err => console.warn('Eski dosya silinemedi (önemli değil):', err));
   };
 
   const handleConfirmCrop = async () => {
     if (!croppedAreaPixels || !cropImageSrc) return;
-    if (!sessionStorage.getItem('kemborn_token')) {
+    if (!getToken()) {
       alert("HATA: Oturum token'ı bulunamadı! Lütfen tekrar giriş yapın.");
       return;
     }
@@ -449,9 +433,8 @@ const AdminProducts = () => {
       const body = new FormData();
       body.append('image', blob, `urun-${Date.now()}.jpg`);
 
-      const response = await fetch(`${API_URL}/api/upload`, {
+      const response = await apiFetch(`/api/upload`, {
         method: 'POST',
-        headers: getAuthHeaders(),
         body
       });
       const data = await response.json();
@@ -503,7 +486,7 @@ const AdminProducts = () => {
 
   // --- ÜRÜN SİLME FONKSİYONU ---
   const handleDelete = async (product) => {
-    if (!sessionStorage.getItem('kemborn_token')) {
+    if (!getToken()) {
       alert("HATA: Oturum token'ı bulunamadı! Lütfen tekrar giriş yapın.");
       return;
     }
@@ -513,10 +496,7 @@ const AdminProducts = () => {
 
     setDeletingId(product.id);
     try {
-      const response = await fetch(`${API_URL}/api/products/${product.id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
+      const response = await apiFetch(`/api/products/${product.id}`, { method: 'DELETE' });
       if (response.ok) {
         setProducts(prev => prev.filter(p => p.id !== product.id));
         // Ürünle birlikte görsellerini/videosunu da diskten temizle (best-effort)
@@ -536,7 +516,7 @@ const AdminProducts = () => {
 
   // --- LİSTEDEN TEK TIKLA AÇIK/GİZLİ DEĞİŞTİRME ---
   const handleToggleVisibility = async (product) => {
-    if (!sessionStorage.getItem('kemborn_token')) {
+    if (!getToken()) {
       alert("HATA: Oturum token'ı bulunamadı! Lütfen tekrar giriş yapın.");
       return;
     }
@@ -547,9 +527,8 @@ const AdminProducts = () => {
     setProducts(prev => prev.map(p => p.id === product.id ? { ...p, isVisible: nextVisible, is_visible: nextVisible } : p));
 
     try {
-      const response = await fetch(`${API_URL}/api/products/${product.id}/visibility`, {
+      const response = await apiFetch(`/api/products/${product.id}/visibility`, {
         method: 'PATCH',
-        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ isVisible: nextVisible })
       });
       if (!response.ok) throw new Error("Güncellenemedi");
@@ -584,7 +563,7 @@ const AdminProducts = () => {
   };
 
   const handleSavePopularVitrin = async () => {
-    if (!sessionStorage.getItem('kemborn_token')) {
+    if (!getToken()) {
       alert("HATA: Oturum bulunamadı! Lütfen tekrar giriş yapın.");
       return;
     }
@@ -609,9 +588,8 @@ const AdminProducts = () => {
     try {
       await Promise.all(changedProducts.map(async (p) => {
         const nowPopular = popularDraft.includes(p.id);
-        const res = await fetch(`${API_URL}/api/products/${p.id}/popular`, {
+        const res = await apiFetch(`/api/products/${p.id}/popular`, {
           method: 'PATCH',
-          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ is_popular: nowPopular })
         });
         if (!res.ok) throw new Error("Popüler ürün güncellenemedi.");

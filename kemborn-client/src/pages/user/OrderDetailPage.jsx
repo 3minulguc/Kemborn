@@ -2,30 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiArrowLeft, FiPackage, FiMapPin, FiTruck, FiCreditCard, FiCalendar } from 'react-icons/fi';
 import { durumGorunumu, musteriDurumEtiketi } from '../../constants/orderStatus';
-import { API_URL } from '../../config/api';
 import { formatPrice } from '../../utils/format';
+import { apiFetch } from '../../utils/apiFetch';
 
 const OrderDetailPage = () => {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const getAuthHeaders = () => {
-    const token = sessionStorage.getItem('kemborn_token') || 
-                  localStorage.getItem('token') || 
-                  sessionStorage.getItem('token');
-    return {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json'
-    };
-  };
-
   useEffect(() => {
     const fetchOrderDetail = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/orders/${id}`, {
-          headers: getAuthHeaders() // TOKEN EKLENDİ
-        });
+        const res = await apiFetch(`/api/orders/${id}`);
         if (res.ok) {
           const data = await res.json();
           setOrder(data);

@@ -4,12 +4,13 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext'; 
 import { FiHeart, FiTruck, FiShield, FiPlayCircle, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import toast from 'react-hot-toast'; 
-import { API_URL } from '../config/api';
 import { formatPrice } from '../utils/format';
 import ProductCard from '../components/ProductCard';
 import Seo from '../components/Seo';
 import { useFavorites } from '../hooks/useFavorites';
 import { temizHtml } from '../utils/sanitize';
+import { apiFetch } from '../utils/apiFetch';
+import { getToken } from '../utils/auth';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -40,7 +41,7 @@ const ProductDetail = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const productResponse = await fetch(`${API_URL}/api/products`);
+        const productResponse = await apiFetch(`/api/products`);
         const productData = await productResponse.json();
         setProducts(productData); 
 
@@ -54,17 +55,14 @@ const ProductDetail = () => {
           }
         }
 
-        const settingsResponse = await fetch(`${API_URL}/api/settings`);
+        const settingsResponse = await apiFetch(`/api/settings`);
         const settingsData = await settingsResponse.json();
         if (settingsData.id) {
           setStoreSettings(settingsData);
         }
 
         if (user && foundProduct) {
-          const token = sessionStorage.getItem('kemborn_token');
-          const favResponse = await fetch(`${API_URL}/api/favorites/${user.id}`, {
-            headers: { 'Authorization': token ? `Bearer ${token}` : '' }
-          });
+          const favResponse = await apiFetch(`/api/favorites/${user.id}`);
           const favData = await favResponse.json();
           const isFav = Array.isArray(favData) && favData.some(fav => fav.id.toString() === foundProduct.id.toString());
           setIsFavorite(isFav);
@@ -95,7 +93,7 @@ const ProductDetail = () => {
       return;
     }
 
-    const token = sessionStorage.getItem('kemborn_token');
+    const token = getToken();
     if (!token) {
       toast.error("Oturum süresi dolmuş, lütfen tekrar giriş yapın.");
       return;
@@ -103,20 +101,13 @@ const ProductDetail = () => {
 
     try {
       if (isFavorite) {
-        const res = await fetch(`${API_URL}/api/favorites/${user.id}/${product.id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await apiFetch(`/api/favorites/${user.id}/${product.id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Favorilerden çıkarılamadı');
         setIsFavorite(false);
         toast.success("Favorilerden çıkarıldı.");
       } else {
-        const res = await fetch(`${API_URL}/api/favorites`, {
+        const res = await apiFetch(`/api/favorites`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
           body: JSON.stringify({ userId: user.id, productId: product.id })
         });
         if (!res.ok) throw new Error('Favorilere eklenemedi');

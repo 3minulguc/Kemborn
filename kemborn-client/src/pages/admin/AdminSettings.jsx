@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiSave, FiPhoneCall, FiMail, FiMapPin, FiFileText } from 'react-icons/fi';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css'; // Yeni paketin stili
-import { API_URL } from '../../config/api';
+import { apiFetch } from '../../utils/apiFetch';
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState({
@@ -44,10 +44,7 @@ const AdminSettings = () => {
 
   const fetchSettings = async () => {
     try {
-      const token = sessionStorage.getItem('kemborn_token');
-      const response = await fetch(`${API_URL}/api/settings`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await apiFetch(`/api/settings`);
       const data = await response.json();
       if (data.id) {
         setSettings({
@@ -104,13 +101,8 @@ const AdminSettings = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      const token = sessionStorage.getItem('kemborn_token');
-      const response = await fetch(`${API_URL}/api/settings`, {
+      const response = await apiFetch(`/api/settings`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(settings)
       });
       

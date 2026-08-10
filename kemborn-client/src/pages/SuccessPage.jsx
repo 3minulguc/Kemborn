@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { FiPackage, FiShoppingBag, FiCheckCircle, FiClock, FiXCircle, FiRefreshCw, FiSearch } from 'react-icons/fi';
 import { API_URL } from '../config/api';
+import { apiFetch } from '../utils/apiFetch';
 
 // ==========================================
 // ÖDEME SONUÇ SAYFASI
@@ -36,16 +37,13 @@ const SuccessPage = () => {
     let iptal = false;
     const dogrula = async () => {
       try {
-        const token = sessionStorage.getItem('kemborn_token');
         // Misafir siparişinde oturum yok; sahiplik, sipariş oluşturulurken
         // alınan erişim anahtarıyla kanıtlanıyor.
         const anahtar = sessionStorage.getItem(`kemborn_siparis_${orderNumber}`);
         const adres = `${API_URL}/api/orders/durum/${encodeURIComponent(orderNumber)}`
           + (anahtar ? `?anahtar=${encodeURIComponent(anahtar)}` : '');
 
-        const res = await fetch(adres, {
-          headers: { Authorization: token ? `Bearer ${token}` : '' }
-        });
+        const res = await apiFetch(adres);
         if (!res.ok) throw new Error('dogrulanamadi');
         const veri = await res.json();
         if (iptal) return;

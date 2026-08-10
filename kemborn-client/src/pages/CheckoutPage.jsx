@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { FiLock, FiShield, FiCreditCard, FiMapPin, FiUserX, FiShoppingCart } from 'react-icons/fi';
-import { API_URL } from '../config/api';
+import { apiFetch } from '../utils/apiFetch';
 
 const CheckoutPage = () => {
   const { cart = [] } = useCart();
@@ -44,7 +44,7 @@ const CheckoutPage = () => {
   // Kargo ücreti ve bedava kargo sınırı artık admin panelinden (Ayarlar) geliyor
   const [shippingSettings, setShippingSettings] = useState({ shipping_fee: 99.90, free_shipping_threshold: 1000 });
   useEffect(() => {
-    fetch(`${API_URL}/api/settings`)
+    apiFetch(`/api/settings`)
       .then(res => res.json())
       .then(data => {
         if (data.id) {
@@ -148,17 +148,12 @@ const CheckoutPage = () => {
     
     try {
       const fullAddress = `${formData.ad} ${formData.soyad}\n${formData.telefon}\n${formData.adres}`;
-      const token = sessionStorage.getItem('kemborn_token'); 
 
       // NOT: Fiyat ve tutar BİLEREK gönderilmiyor. Sunucu bunları kendi
       // veritabanından hesaplıyor. Buradan sadece "hangi üründen kaç adet"
       // bilgisi ve ekranda gösterdiğimiz tutar (doğrulama amaçlı) gidiyor.
-      const dbResponse = await fetch(`${API_URL}/api/orders`, {
+      const dbResponse = await apiFetch(`/api/orders`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
             items: cart.map(item => ({ productId: item.id, quantity: item.quantity, color: item.color })),
             expectedTotal: displayedTotal,
@@ -201,12 +196,8 @@ const CheckoutPage = () => {
         sessionStorage.setItem(`kemborn_siparis_${generatedOrderNumber}`, erisimAnahtari);
       }
 
-      const paymentResponse = await fetch(`${API_URL}/api/payment`, {
+      const paymentResponse = await apiFetch(`/api/payment`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           basketId: generatedOrderNumber,
           customer: formData,

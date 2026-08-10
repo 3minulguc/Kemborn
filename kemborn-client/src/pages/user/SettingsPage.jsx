@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FiSave } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext'; 
-import { API_URL } from '../../config/api';
+import { apiFetch } from '../../utils/apiFetch';
 
 const SettingsPage = () => {
   const { user } = useAuth();
@@ -10,16 +10,6 @@ const SettingsPage = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const getAuthHeaders = () => {
-    const token = sessionStorage.getItem('kemborn_token') || 
-                  localStorage.getItem('token') || 
-                  sessionStorage.getItem('token');
-    return {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json'
-    };
-  };
 
   const handlePasswordChange = async (e) => {
     e.preventDefault(); 
@@ -36,9 +26,8 @@ const SettingsPage = () => {
     setLoading(true);
     
     try {
-      const res = await fetch(`${API_URL}/api/users/${user.id}/password`, {
+      const res = await apiFetch(`/api/users/${user.id}/password`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ currentPassword, newPassword })
       });
 

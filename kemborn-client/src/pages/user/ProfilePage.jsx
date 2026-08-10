@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiSave, FiUser, FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext'; 
-import { API_URL } from '../../config/api';
+import { apiFetch } from '../../utils/apiFetch';
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -16,23 +16,11 @@ const ProfilePage = () => {
     address: ''
   });
 
-  const getAuthHeaders = () => {
-    const token = sessionStorage.getItem('kemborn_token') || 
-                  localStorage.getItem('token') || 
-                  sessionStorage.getItem('token');
-    return {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json'
-    };
-  };
-
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
       try {
-        const res = await fetch(`${API_URL}/api/users/${user.id}`, {
-          headers: getAuthHeaders() // TOKEN EKLENDİ
-        });
+        const res = await apiFetch(`/api/users/${user.id}`);
         if (res.ok) {
           const data = await res.json();
           setFormData({
@@ -57,9 +45,8 @@ const ProfilePage = () => {
     setSaving(true);
     
     try {
-      const res = await fetch(`${API_URL}/api/users/${user.id}`, {
+      const res = await apiFetch(`/api/users/${user.id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(), // TOKEN EKLENDİ
         body: JSON.stringify({
           username: formData.fullName,
           phone: formData.phone,

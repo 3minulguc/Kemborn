@@ -4,7 +4,7 @@ import { FiShoppingCart, FiTrash2 } from 'react-icons/fi';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from "../../context/AuthContext";
 import toast from 'react-hot-toast';
-import { API_URL } from '../../config/api';
+import { apiFetch } from '../../utils/apiFetch';
 
 const FavoritesPage = () => {
   const [favorites, setFavorites] = useState([]);
@@ -14,25 +14,12 @@ const FavoritesPage = () => {
   const { user } = useAuth(); 
   const navigate = useNavigate();
 
-  // --- YENİ: TOKEN ALMA YARDIMCI FONKSİYONU ---
-  const getAuthHeaders = () => {
-    const token = sessionStorage.getItem('kemborn_token') || 
-                  localStorage.getItem('token') || 
-                  sessionStorage.getItem('token');
-    return {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json'
-    };
-  };
-
   const fetchFavorites = async () => {
     if (!user) return; 
     
     try {
       // YENİ: Token headers eklendi
-      const response = await fetch(`${API_URL}/api/favorites/${user.id}`, {
-        headers: getAuthHeaders()
-      });
+      const response = await apiFetch(`/api/favorites/${user.id}`);
       const data = await response.json();
       
       // GÜVENLİK KALKANI: Gelen veri gerçekten bir diziyse state'e at. Değilse (hata mesajıysa) çökmesin diye boş dizi at.
@@ -63,10 +50,7 @@ const FavoritesPage = () => {
     
     try {
       // YENİ: Token headers eklendi
-      const response = await fetch(`${API_URL}/api/favorites/${user.id}/${productId}`, { 
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
+      const response = await apiFetch(`/api/favorites/${user.id}/${productId}`, { method: 'DELETE' });
 
       if (response.ok) {
         setFavorites(prev => prev.filter(item => item.id !== productId));

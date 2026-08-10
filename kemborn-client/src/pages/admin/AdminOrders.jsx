@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom'; // Dashboard'dan gelen parametreyi okumak için
 import { FiEye, FiSearch, FiX, FiSave, FiPackage, FiMapPin, FiTruck, FiUser, FiCreditCard, FiCalendar, FiClock, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { API_URL } from '../../config/api';
 import { DURUM, durumuCozumle, durumGorunumu, ELLE_ATANABILIR_DURUMLAR } from '../../constants/orderStatus';
+import { apiFetch } from '../../utils/apiFetch';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -44,14 +44,7 @@ const AdminOrders = () => {
   // 1. Tüm Siparişleri Çek
   const fetchOrders = async () => {
     try {
-      const token = sessionStorage.getItem('kemborn_token');
-      const res = await fetch(`${API_URL}/api/admin/orders`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const res = await apiFetch(`/api/admin/orders`);
       if (res.ok) {
         const data = await res.json();
         setOrders(data || []);
@@ -75,14 +68,7 @@ const AdminOrders = () => {
     setSelectedOrder({ id: orderId }); 
     
     try {
-      const token = sessionStorage.getItem('kemborn_token');
-      const res = await fetch(`${API_URL}/api/orders/${orderId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const res = await apiFetch(`/api/orders/${orderId}`);
       if (res.ok) {
         const data = await res.json();
         setSelectedOrder(data);
@@ -108,13 +94,8 @@ const AdminOrders = () => {
 
     setSaving(true);
     try {
-      const token = sessionStorage.getItem('kemborn_token');
-      const res = await fetch(`${API_URL}/api/admin/orders/${selectedOrder.id}`, {
+      const res = await apiFetch(`/api/admin/orders/${selectedOrder.id}`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(editForm)
       });
 

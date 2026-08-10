@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiShoppingBag, FiClock, FiDollarSign, FiUsers, FiTruck, FiCheckCircle, FiXCircle, FiBox, FiAlertTriangle, FiCreditCard } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { API_URL } from '../../config/api';
 import { DURUM } from '../../constants/orderStatus';
+import { apiFetch } from '../../utils/apiFetch';
 
 const Dashboard = () => {
   const [statsData, setStatsData] = useState({
@@ -28,15 +28,8 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const token = sessionStorage.getItem('kemborn_token') || 
-                      localStorage.getItem('token') || 
-                      sessionStorage.getItem('token');
 
-        const res = await fetch(`${API_URL}/api/admin/dashboard`, {
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : ''
-          }
-        });
+        const res = await apiFetch(`/api/admin/dashboard`);
 
         if (res.ok) {
           const data = await res.json();
