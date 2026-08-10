@@ -43,14 +43,19 @@ const buildEmailHtml = (title, bodyHtml) => `
 const MAGAZA_BILDIRIM_ADRESI = process.env.ADMIN_NOTIFY_EMAIL || process.env.EMAIL_USER || null;
 
 // "Best effort" gönderim: e-posta gönderilemese bile ana işlemi (sipariş, şifre vs.) DURDURMAZ.
-const sendMail = async (to, subject, html) => {
+//
+// replyTo: iletişim formu için gerekli. Mesaj mağazanın kendi Gmail'inden
+// gönderiliyor, dolayısıyla "Yanıtla" dediğinde kendine cevap yazmış olurdun.
+// Bu alan doluysa yanıt doğrudan müşteriye gider.
+const sendMail = async (to, subject, html, replyTo = null) => {
   if (!mailTransporter || !to) return;
   try {
     await mailTransporter.sendMail({
       from: `"Kemborn" <${process.env.EMAIL_USER}>`,
       to,
       subject,
-      html
+      html,
+      ...(replyTo ? { replyTo } : {})
     });
   } catch (err) {
     console.error('❌ E-posta gönderilemedi:', err.message);
@@ -58,4 +63,14 @@ const sendMail = async (to, subject, html) => {
   }
 };
 
-module.exports = { buildEmailHtml, sendMail, MAGAZA_BILDIRIM_ADRESI };
+// Kullanıcıdan gelen metin e-posta HTML'ine gömülüyor. Kaçırılmazsa gönderen
+// kişi e-postanın içine kendi HTML'ini (bağlantı, script, sahte "buton")
+// yazabilir; mağaza sahibi de bunu güvenilir bir bildirim sanır.
+const htmlKacir = (metin) => String(metin ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+module.exports = { buildEmailHtml, sendMail, MAGAZA_BILDIRIM_ADRESI, htmlKacir };

@@ -140,6 +140,7 @@ app.use(require('./routes/kullanicilar'));
 app.use(require('./routes/siparisler'));
 app.use(require('./routes/admin'));
 app.use(require('./routes/odeme'));
+app.use(require('./routes/iletisim'));
 
 // ==========================================
 // GENEL HATA YAKALAMA (son çare - beklenmeyen hatalar için)

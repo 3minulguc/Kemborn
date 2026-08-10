@@ -41,4 +41,15 @@ const yuklemeLimiter = rateLimit({
   legacyHeaders: false
 });
 
-module.exports = { authLimiter, resetPasswordLimiter, siparisLimiter, yuklemeLimiter };
+// İletişim formu: kimlik doğrulaması istemeyen, e-posta gönderen bir uç nokta.
+// Bu ikisi bir araya gelince spam için elverişli hale gelir; saatte 5 mesaj
+// gerçek bir müşteri için fazlasıyla yeterli.
+const iletisimLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 saat
+  max: 5,
+  message: { error: 'Çok fazla mesaj gönderdiniz. Lütfen bir süre sonra tekrar deneyin.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+module.exports = { authLimiter, resetPasswordLimiter, siparisLimiter, yuklemeLimiter, iletisimLimiter };

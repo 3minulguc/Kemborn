@@ -130,6 +130,13 @@ await dene('POST /api/paytr-notify (imzasiz)', '/api/paytr-notify', {
   body: 'merchant_oid=YOK&status=success&total_amount=100&hash=gecersiz'
 });
 
+// --- İletişim formu
+await dene('POST /api/iletisim (eksik alan)', '/api/iletisim', json({}));
+await dene('POST /api/iletisim (gecersiz e-posta)', '/api/iletisim',
+  json({ ad: 'Deneme Kisi', email: 'gecersiz', mesaj: 'yeterince uzun bir deneme mesaji' }));
+await dene('POST /api/iletisim (mesaj cok kisa)', '/api/iletisim',
+  json({ ad: 'Deneme Kisi', email: 'a@b.com', mesaj: 'kisa' }));
+
 // --- Bilinmeyen rota
 await dene('GET /api/olmayan-rota', '/api/olmayan-rota');
 
