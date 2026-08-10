@@ -2,16 +2,18 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <!-- Dosya adları BİLEREK "favicon-*" değil: tarayıcılar favicon'u ayrı
-         bir veritabanında, ADRESE göre saklıyor ve ?v=2 gibi sorgu ekleri
-         bazen yeterli olmuyor — eski ikon günlerce ekranda kalabiliyor.
-         Dosya adının kendisi değişince tarayıcının elinde o adrese ait bir
-         kayıt olmuyor, indirmek zorunda kalıyor.
-         İkonu ileride değiştirirsen dosya adını da değiştir. -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/kemborn-icon-32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/kemborn-icon-16.png" />
-    <link rel="icon" type="image/x-icon" href="/kemborn-icon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/kemborn-apple-icon.png" />
+    <!-- İkonun ARKA PLANI YOK, sadece harf var. Koyu bir kare kullanıldığında
+         Safari sekmede etrafına açık renkli bir çerçeve çiziyordu (koyu ikonu
+         koyu sekmeden ayırmak için). Kare olmayınca çizecek bir şey de yok.
+         Harf cyan: hem koyu hem açık sekmede okunuyor.
+
+         Dosya adları BİLEREK "favicon-*" değil: tarayıcılar favicon'u ayrı bir
+         veritabanında ADRESE göre saklıyor, ?v=2 gibi sorgu ekleri yetmiyor.
+         İkonu ileride değiştirirsen DOSYA ADINI da değiştir. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/kemborn-k-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/kemborn-k-16.png" />
+    <link rel="icon" type="image/x-icon" href="/kemborn-k.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/kemborn-k-apple.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Sekme başlığı ve Google arama sonucu -->
