@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import ScrollToTop from './components/ScrollToTop'; // 1. Importu ekledik
 import CookieConsent from './components/CookieConsent';
+import CanonicalUrl from './components/CanonicalUrl';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFoundPage from './pages/NotFoundPage';
 import OrderLookupPage from './pages/OrderLookupPage';
@@ -51,6 +52,8 @@ function App() {
   return (
     <Router>
       <ScrollToTop /> {/* 2. Router'ın hemen içine ekledik */}
+      {/* Her sayfaya canonical adres; üretim dışı adreslerde noindex */}
+      <CanonicalUrl />
       {/* Beklenmeyen bir render hatası tüm siteyi beyaz ekrana düşürmesin */}
       <ErrorBoundary>
       <AuthProvider>
