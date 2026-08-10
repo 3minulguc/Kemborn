@@ -216,7 +216,9 @@ const AuthPage = () => {
                 <div className="relative">
                   <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 text-lg" />
                   <input name="password" value={formData.password} onChange={handleInputChange} type={showPassword ? "text" : "password"} placeholder="Şifreniz" className={inputClass} required />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-cyan-600 transition-colors">
+                  {/* Dolgu BİLEREK var: ikon 20px, dokunma alanı 44px'e çıkıyor.
+                      right-1 + p-3, ikonu görsel olarak aynı yerde tutuyor. */}
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} className="absolute right-1 top-1/2 -translate-y-1/2 p-3 text-zinc-400 hover:text-cyan-600 transition-colors">
                     {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                   </button>
                 </div>

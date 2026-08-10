@@ -24,8 +24,11 @@ const ResetPasswordPage = () => {
       toast.error("Geçersiz link. Lütfen şifremi unuttum işlemini tekrar başlatın.");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Şifre en az 6 karakter olmalı.");
+    // Sunucunun kuralıyla aynı olmak zorunda (8+ karakter, harf ve rakam).
+    // Önceden burada "6 karakter" yazıyordu; aradaki şifreler bu kontrolden
+    // geçip sunucuda reddediliyor, kullanıcı sebebini anlamıyordu.
+    if (!/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/.test(password)) {
+      toast.error("Şifre en az 8 karakter olmalı ve hem harf hem rakam içermeli.");
       return;
     }
     if (password !== confirmPassword) {
@@ -100,7 +103,9 @@ const ResetPasswordPage = () => {
               className={inputClass}
               required
             />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-cyan-600 transition-colors">
+            {/* Dolgu BİLEREK var: ikon 20px, dokunma alanı 44px'e çıkıyor.
+                right-1 + p-3, ikonu görsel olarak aynı yerde tutuyor. */}
+            <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} className="absolute right-1 top-1/2 -translate-y-1/2 p-3 text-zinc-400 hover:text-cyan-600 transition-colors">
               {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
             </button>
           </div>
