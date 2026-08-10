@@ -1150,7 +1150,7 @@ app.post('/api/register', authLimiter, async (req, res) => {
 });
 
 app.post('/api/login', authLimiter, async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, beniHatirla } = req.body;
     if (!email || !password) {
         return res.status(400).json({ error: "E-posta ve şifre gereklidir." });
     }
@@ -1175,7 +1175,18 @@ app.post('/api/login', authLimiter, async (req, res) => {
             return res.status(400).json({ error: "E-posta veya şifre hatalı." });
         }
 
-        const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+        // "Beni hatırla" işaretliyse token daha uzun yaşıyor.
+        //
+        // 7 gün BİLEREK seçildi: token'ı geri çağırma (revocation) altyapısı yok,
+        // yani çalınan bir token süresi dolana kadar geçerli kalıyor. 30 gün, o
+        // riski dört kat uzatırdı. Admin hesabında "beni hatırla" hiç uygulanmıyor;
+        // panel yetkisi en riskli token.
+        const uzunOmur = beniHatirla === true && user.role !== 'admin';
+        const token = jwt.sign(
+            { id: user.id, role: user.role },
+            JWT_SECRET,
+            { expiresIn: uzunOmur ? '7d' : '24h' }
+        );
         res.json({ token, user: { id: user.id, username: user.username, email: user.email, role: user.role } });
     } catch (err) {
         res.status(500).json({ error: "Giriş hatası." });

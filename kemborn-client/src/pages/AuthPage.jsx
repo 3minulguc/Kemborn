@@ -19,6 +19,8 @@ const AuthPage = () => {
   // KVKK gereği, kişisel veri toplamadan (kayıt) önce kullanıcının
   // aydınlatma metnini okuduğunu onaylaması gerekiyor.
   const [kvkkOnayi, setKvkkOnayi] = useState(false);
+  // İşaretliyse oturum tarayıcı kapansa da duruyor; değilse sekmeyle birlikte bitiyor.
+  const [beniHatirla, setBeniHatirla] = useState(false);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -73,8 +75,11 @@ const AuthPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!isLogin && formData.password.length < 6) {
-        toast.error("Şifre en az 6 karakter olmalı!");
+    // Sunucunun kuralıyla aynı olmak zorunda (8+ karakter, harf ve rakam).
+    // Önceden burada "6 karakter" yazıyordu; 7 karakterlik bir şifre bu
+    // kontrolden geçip sunucuda reddediliyor, kullanıcı sebebini anlamıyordu.
+    if (!isLogin && !/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/.test(formData.password)) {
+        toast.error("Şifre en az 8 karakter olmalı ve hem harf hem rakam içermeli.");
         return;
     }
 
@@ -93,9 +98,9 @@ const AuthPage = () => {
     try {
       const endpoint = isLogin ? `${API_URL}/api/login` : `${API_URL}/api/register`;
       
-      const body = isLogin 
-        ? { email: formData.email, password: formData.password }
-        : { 
+      const body = isLogin
+        ? { email: formData.email, password: formData.password, beniHatirla }
+        : {
             username: `${formData.ad} ${formData.soyad}`, 
             email: formData.email, 
             password: formData.password,
@@ -112,7 +117,7 @@ const AuthPage = () => {
 
       if (response.ok) {
         if (isLogin) {
-          login(data.user, data.token); 
+          login(data.user, data.token, beniHatirla);
           toast.success("Hoş geldiniz!");
           
           if (data.user && data.user.role === 'admin') {
@@ -218,11 +223,26 @@ const AuthPage = () => {
               )}
 
               {isLogin && !isForgotPassword && (
-                <div className="flex justify-end">
-                  <button 
-                    type="button" 
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  {/* Kutunun etrafındaki boşluk BİLEREK var: mobilde parmakla
+                      rahat basılabilmesi için dokunma alanını 44px'e çıkarıyor. */}
+                  <label className="flex items-center cursor-pointer select-none">
+                    <span className="p-3 -m-2 shrink-0 flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={beniHatirla}
+                        onChange={(e) => setBeniHatirla(e.target.checked)}
+                        disabled={loading}
+                        className="w-5 h-5 accent-cyan-600 cursor-pointer"
+                      />
+                    </span>
+                    <span className="text-sm font-bold text-zinc-600 ml-1">Beni hatırla</span>
+                  </label>
+
+                  <button
+                    type="button"
                     onClick={() => { setIsForgotPassword(true); setResetEmailSent(false); }}
-                    className="text-sm font-bold text-cyan-600 hover:text-cyan-800"
+                    className="text-sm font-bold text-cyan-600 hover:text-cyan-800 py-3 -my-1"
                   >
                     Şifremi Unuttum
                   </button>
