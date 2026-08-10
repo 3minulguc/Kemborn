@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PageHeader from '../components/PageHeader';
-import { FiPhoneCall, FiMessageSquare, FiMail, FiMapPin, FiSend, FiCheckCircle } from 'react-icons/fi';
+import { FiPhoneCall, FiMessageSquare, FiMail, FiMapPin, FiSend, FiCheckCircle, FiChevronDown } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { API_URL } from '../config/api';
 import { apiFetch } from '../utils/apiFetch';
@@ -190,16 +190,31 @@ const ContactPage = () => {
                 <label htmlFor="konu" className="block text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">
                   Konu
                 </label>
-                <select id="konu" name="konu" value={form.konu} onChange={degistir} className={inputClass}>
-                  {KONULAR.map(k => <option key={k} value={k}>{k}</option>)}
-                </select>
+                {/* appearance-none ŞART: Safari, select ve textarea'ya macOS'un
+                    sistem vurgu rengini uyguluyor ve kutu odaklanmamışken bile
+                    mavi görünüyordu. Yerel görünümü kapatınca kendi okumuzu
+                    elle koymamız gerekiyor. */}
+                <div className="relative">
+                  <select
+                    id="konu" name="konu" value={form.konu} onChange={degistir}
+                    className={`${inputClass} appearance-none pr-11 cursor-pointer`}
+                  >
+                    {KONULAR.map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                  <FiChevronDown
+                    size={18}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+                  />
+                </div>
               </div>
 
               <div>
+                {/* appearance-none: Safari textarea'ya da sistem vurgu rengini
+                    uyguluyor, kutu odaklanmamışken bile mavi görünüyordu. */}
                 <textarea
                   name="mesaj" value={form.mesaj} onChange={degistir}
                   placeholder="Mesajınız..." rows={6}
-                  className={`${inputClass} resize-y min-h-[140px]`}
+                  className={`${inputClass} appearance-none resize-y min-h-[140px]`}
                   required minLength={10} maxLength={2000}
                 />
                 <p className="text-xs text-zinc-400 font-medium mt-1.5 text-right">
