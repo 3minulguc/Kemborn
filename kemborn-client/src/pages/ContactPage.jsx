@@ -77,10 +77,14 @@ const ContactPage = () => {
 
   // Hızlı erişim kutuları. Eylem metni HER ZAMAN görünür — önceden sadece
   // fareyle üstüne gelince çıkıyordu, yani telefonda hiç görünmüyordu.
+  //
+  // Dördü de AYNI görünümde. WhatsApp bir ara dolu mavi yapılmıştı ama
+  // sayfadaki tek dolu renk olduğu için gözü tek başına üstüne çekiyordu;
+  // dört seçenek eşit ağırlıkta sunulunca sayfa sakinleşiyor.
   const hizli = [
     whatsapp && {
       icon: FiMessageSquare, etiket: 'WhatsApp', deger: formatPhone(whatsapp),
-      href: `https://wa.me/${waNumarasi(whatsapp)}`, eylem: 'Mesaj yaz', vurgulu: true
+      href: `https://wa.me/${waNumarasi(whatsapp)}`, eylem: 'Mesaj yaz'
     },
     telefon && {
       icon: FiPhoneCall, etiket: 'Telefon', deger: formatPhone(telefon),
@@ -115,15 +119,11 @@ const ContactPage = () => {
                 href={k.href}
                 target={k.href.startsWith('http') ? '_blank' : undefined}
                 rel="noopener noreferrer"
-                className={`group flex flex-col gap-2 p-4 rounded-2xl border transition-all ${
-                  k.vurgulu
-                    ? 'bg-cyan-600 border-cyan-600 text-white hover:bg-cyan-700'
-                    : 'bg-white border-zinc-200 text-zinc-900 hover:border-cyan-300 hover:shadow-md'
-                }`}
+                className="group flex flex-col gap-2 p-4 rounded-2xl border bg-white border-zinc-200 text-zinc-900 hover:border-cyan-300 hover:shadow-md transition-all"
               >
-                <Ikon size={20} className={k.vurgulu ? 'text-white' : 'text-cyan-600'} />
+                <Ikon size={20} className="text-cyan-600" />
                 <div>
-                  <p className={`text-[11px] font-black uppercase tracking-wider ${k.vurgulu ? 'text-cyan-50' : 'text-zinc-400'}`}>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-zinc-400">
                     {k.etiket}
                   </p>
                   {/* E-posta 390px'te iki sütunlu kartta tek satıra sığmıyor.
@@ -139,7 +139,7 @@ const ContactPage = () => {
                       : k.deger}
                   </p>
                 </div>
-                <span className={`text-xs font-bold mt-auto ${k.vurgulu ? 'text-cyan-50' : 'text-cyan-600'}`}>
+                <span className="text-xs font-bold mt-auto text-cyan-600">
                   {k.eylem} →
                 </span>
               </a>

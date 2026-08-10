@@ -2,14 +2,16 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <!-- Favicon adreslerindeki ?v=4: tarayıcılar favicon'u çok agresif
-         önbelleğe alır ve dosya değişse bile eskisini göstermeye devam eder.
-         Adres değiştiği için tarayıcı yeni dosyayı taze indirmek zorunda kalır.
-         Favicon'u ileride tekrar değiştirirsen bu sayıyı da artır (?v=5). -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=4" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4" />
+    <!-- Dosya adları BİLEREK "favicon-*" değil: tarayıcılar favicon'u ayrı
+         bir veritabanında, ADRESE göre saklıyor ve ?v=2 gibi sorgu ekleri
+         bazen yeterli olmuyor — eski ikon günlerce ekranda kalabiliyor.
+         Dosya adının kendisi değişince tarayıcının elinde o adrese ait bir
+         kayıt olmuyor, indirmek zorunda kalıyor.
+         İkonu ileride değiştirirsen dosya adını da değiştir. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/kemborn-icon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/kemborn-icon-16.png" />
+    <link rel="icon" type="image/x-icon" href="/kemborn-icon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/kemborn-apple-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Sekme başlığı ve Google arama sonucu -->
