@@ -287,13 +287,27 @@ const Header = () => {
 
           {/* Ana Navigasyon */}
           <div className="px-4">
+            {/* Sıra masaüstü menüsüyle AYNI olmalı (bkz. yukarıdaki nav):
+                Ana Sayfa → Ürünler → Kurulum Rehberi → Sipariş Sorgula →
+                Mağazalarımız → Sosyal Medyalarımız → Hakkımızda → İletişim.
+                Önceden Kurulum Rehberi, Mağazalarımız ve Sosyal Medyalarımız
+                "Kurumsal" başlığının altına, hem de en sona düşmüştü; bunlar
+                kurumsal metin değil, satışa destek olan sayfalar. Aynı sitede
+                iki farklı sıra görmek aradığını bulmayı zorlaştırıyor. */}
             {[
               { path: "/", label: "Ana Sayfa", icon: FiHome },
               { path: "/products", label: "Tüm Ürünler", icon: FiGrid },
+              // Sepetim masaüstünde ayrı bir ikon; mobilde menüde yaşıyor.
+              // Ürünlerin hemen ardında, çünkü alışveriş akışının parçası.
               { path: "/cart", label: "Sepetim", icon: FiShoppingCart, badge: cartCount > 0 ? cartCount : null },
+              { path: "/kurulum-rehberi", label: "Kurulum Rehberi", icon: FiPlayCircle },
               // Misafir müşterinin siparişine ulaşabileceği tek yer; ana
               // grupta olması lazım, alttaki bilgi bölümünde kaybolmasın.
               { path: "/siparis-sorgula", label: "Sipariş Sorgula", icon: FiPackage },
+              { path: "/magazalarimiz", label: "Mağazalarımız", icon: FiShoppingBag },
+              { path: "/sosyal-medyalarimiz", label: "Sosyal Medyalarımız", icon: FiShare2 },
+              { path: "/about", label: "Hakkımızda", icon: FiInfo },
+              { path: "/contact", label: "İletişim", icon: FiPhone },
             ].map((link) => {
               const ItemIcon = link.icon;
               return (
@@ -319,16 +333,14 @@ const Header = () => {
 
           {/* Kurumsal / Bilgi */}
           <div className="px-4 mt-4 pt-4 border-t border-zinc-100">
-            <p className="px-3 mb-1.5 text-[11px] font-black text-zinc-400 uppercase tracking-widest">Kurumsal</p>
+            {/* Burada SADECE yasal metinler var. Masaüstünde bu üçü menüde
+                değil, footer'da duruyor; mobilde footer'a ulaşmak için uzun
+                kaydırma gerektiği için menünün altına da konuyor. */}
+            <p className="px-3 mb-1.5 text-[11px] font-black text-zinc-400 uppercase tracking-widest">Yasal</p>
             {[
               { path: "/delivery", label: "Teslimat ve İade", icon: FiTruck },
               { path: "/policy", label: "Gizlilik Politikası", icon: FiShield },
               { path: "/mesafeli-satis-sozlesmesi", label: "Satış Sözleşmesi", icon: FiFileText },
-              { path: "/contact", label: "İletişim", icon: FiPhone },
-              { path: "/about", label: "Hakkımızda", icon: FiInfo },
-              { path: "/magazalarimiz", label: "Mağazalarımız", icon: FiShoppingBag },
-              { path: "/sosyal-medyalarimiz", label: "Sosyal Medyalarımız", icon: FiShare2 },
-              { path: "/kurulum-rehberi", label: "Kurulum Rehberi", icon: FiPlayCircle },
             ].map((link) => {
               const ItemIcon = link.icon;
               return (
