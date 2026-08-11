@@ -260,6 +260,14 @@ const CheckoutPage = () => {
         <form
           action={formAction}
           method="POST"
+          onSubmit={(e) => {
+            // Ekranda 4'erli gruplanan numaradaki boşlukları, gönderilmeden
+            // hemen önce siliyoruz: PayTR 16 haneyi boşluksuz bekliyor.
+            // Değer yalnızca DOM'da okunup DOM'a geri yazılıyor, hiçbir yerde
+            // saklanmıyor.
+            const alan = e.currentTarget.elements.card_number;
+            if (alan) alan.value = alan.value.replace(/\s/g, '');
+          }}
           className="bg-white p-6 sm:p-8 rounded-[2rem] border border-zinc-200 shadow-sm space-y-4"
         >
           {Object.entries(alanlar).map(([ad, deger]) => (
@@ -281,10 +289,19 @@ const CheckoutPage = () => {
             <label htmlFor="card_number" className="block text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">
               Kart Numarası
             </label>
+            {/* 4'erli gruplama doğrudan DOM üzerinde yapılıyor — değer React
+                state'ine girmiyor. Boşluklar form gönderilirken siliniyor
+                (yukarıdaki onSubmit). maxLength 19 = 16 hane + 3 boşluk.
+                pattern da boşlukları kabul edecek şekilde yazıldı, yoksa
+                tarayıcı "geçersiz" deyip göndermiyor. */}
             <input
               id="card_number" name="card_number" type="text" required
-              inputMode="numeric" pattern="[0-9]{15,16}" maxLength={16}
-              autoComplete="cc-number" placeholder="1234567812345678"
+              inputMode="numeric" pattern="[0-9 ]{15,19}" maxLength={19}
+              autoComplete="cc-number" placeholder="1234 5678 1234 5678"
+              onInput={(e) => {
+                const rakam = e.target.value.replace(/\D/g, '').slice(0, 16);
+                e.target.value = rakam.replace(/(\d{4})(?=\d)/g, '$1 ');
+              }}
               className={`${kartInput} tracking-widest`}
             />
           </div>
