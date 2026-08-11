@@ -86,7 +86,7 @@ const siparisMusterisi = async (orderId) => {
 const confirmOrderPayment = async (orderId) => {
     const orderResult = await client.query('SELECT order_number, user_id, total_amount FROM orders WHERE id = $1', [orderId]);
     if (orderResult.rows.length === 0) return;
-    const { order_number, user_id, total_amount } = orderResult.rows[0];
+    const { order_number, total_amount } = orderResult.rows[0];
 
     const itemsResult = await client.query('SELECT product_id, product_name, quantity, price, color FROM order_items WHERE order_id = $1', [orderId]);
 

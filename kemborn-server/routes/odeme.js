@@ -151,7 +151,8 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
       .update(hashStr + PAYTR_MERCHANT_SALT)
       .digest('base64');
 
-    const frontendBase = process.env.FRONTEND_URL || 'https://kemborn.com';
+    // config/ortam.js'ten geliyor; process.env'i ikinci kez okumaya gerek yok.
+    const frontendBase = FRONTEND_URL;
 
     // Kart bilgileri BURADA YOK ve olmamalı.
     //

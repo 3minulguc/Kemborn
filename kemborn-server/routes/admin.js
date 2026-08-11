@@ -117,7 +117,7 @@ router.put('/api/admin/orders/:id', verifyToken, isAdmin, async (req, res) => {
             return res.status(404).json({ error: "Sipariş bulunamadı." });
         }
         const previousStatus = (beforeResult.rows[0].status || '').toUpperCase();
-        const { order_number, user_id } = beforeResult.rows[0];
+        const { order_number } = beforeResult.rows[0];
         const newStatus = (status || '').toUpperCase();
         const wasPending = SIPARIS_DURUMLARI.ODEME_BEKLENIYOR.includes(previousStatus);
         const isNowConfirmed = !SIPARIS_DURUMLARI.ODEME_BEKLENIYOR.includes(newStatus);
