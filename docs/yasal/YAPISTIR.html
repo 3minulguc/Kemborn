@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Kemborn — Yasal Metinler (yapıştırmalık)</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 15px/1.6 -apple-system, system-ui, sans-serif; max-width: 900px; margin: 0 auto; padding: 32px 20px 80px; background:#fafafa; color:#18181b; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .not { background:#fff; border:1px solid #e4e4e7; border-left:4px solid #0891b2; border-radius:10px; padding:14px 18px; margin:20px 0 32px; font-size:14px; }
+  section { background:#fff; border:1px solid #e4e4e7; border-radius:14px; padding:18px; margin-bottom:22px; }
+  .ust { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  h2 { font-size:17px; margin:0; }
+  .yol { font-size:13px; color:#52525b; margin:6px 0 12px; }
+  button { background:#18181b; color:#fff; border:0; border-radius:9px; padding:9px 18px; font-size:14px; font-weight:700; cursor:pointer; }
+  button:hover { background:#0891b2; }
+  button.ok { background:#15803d; }
+  textarea { width:100%; height:190px; font:12px/1.5 ui-monospace, Menlo, monospace; padding:12px; border:1px solid #d4d4d8; border-radius:9px; background:#fafafa; color:#3f3f46; resize:vertical; }
+  @media (prefers-color-scheme: dark) {
+    body { background:#101012; color:#e8e8ec; }
+    .not, section { background:#18181c; border-color:#2a2a32; }
+    textarea { background:#0e0e11; color:#c8c8d0; border-color:#2a2a32; }
+    .yol { color:#a1a1aa; }
+  }
+</style>
+</head>
+<body>
+<h1>Yasal Metinler</h1>
+<div class="not">
+  <b>Nasıl kullanılır:</b> Her bölümdeki <b>Kopyala</b> düğmesine bas, admin panelinde ilgili alanı
+  <b>“HTML olarak düzenle”</b> moduna al, içindekini sil ve yapıştır. Sonra <b>Kaydet</b>.
+  <br><br>
+  Mesafeli Satış Sözleşmesi'nde <b>vergi dairesi ve vergi numarası</b> için boş bir yer var —
+  ilk gerçek satıştan önce doldurulmalı.
+</div>
+
+  <section>
+    <div class="ust">
+      <h2>Teslimat ve İade Politikası</h2>
+      <button type="button" onclick="kopyala(0)">Kopyala</button>
+    </div>
+    <p class="yol">Admin → Ayarlar → <b>Teslimat ve İade Politikası</b> alanına, <b>“HTML olarak düzenle”</b> açıkken yapıştır.</p>
+    <textarea id="m0" readonly spellcheck="false">&lt;h2&gt;A. TESLİMAT VE GÖNDERİM ESASLARI&lt;/h2&gt;
+
+&lt;h3&gt;1. Gönderim Süreleri&lt;/h3&gt;
+&lt;p&gt;Kemborn üzerinden verilen tüm siparişler, ürün detay sayfasında aksine bir teslimat süresi belirtilmediği sürece &lt;strong&gt;1 ile 3 iş günü&lt;/strong&gt; içerisinde işleme alınarak kargo firmasına teslim edilir. Resmî tatil, bayram ve pazar günlerinde verilen siparişler, takip eden ilk iş gününde kargoya verilir.&lt;/p&gt;
+&lt;p&gt;Gönderimler &lt;strong&gt;DHL&lt;/strong&gt; ile yapılır.&lt;/p&gt;
+&lt;p&gt;Mevzuat gereği teslimat, siparişin onaylanmasından itibaren &lt;strong&gt;en geç 30 gün&lt;/strong&gt; içinde tamamlanır. Bu süre azami süredir; siparişler normal şartlarda çok daha kısa sürede teslim edilir.&lt;/p&gt;
+
+&lt;h3&gt;2. Teslimat Adresi ve Alıcı Yükümlülükleri&lt;/h3&gt;
+&lt;p&gt;Kargo paketi teslim edildikten sonra kargo takip kodu, kayıtlı e-posta adresinize ve profilinizdeki “Siparişlerim” sekmesine yansıtılır. Misafir olarak sipariş verdiyseniz, sipariş numaranız ve e-posta adresinizle “Sipariş Sorgula” sayfasından takip edebilirsiniz.&lt;/p&gt;
+&lt;p&gt;Teslimat anında belirtilen adreste bulunulmaması sebebiyle şubeye dönen ve geri gelen paketlerin tekrar gönderim masrafları Alıcı&#x27;ya aittir.&lt;/p&gt;
+
+&lt;h3&gt;3. Hasarlı Kargo ve Teslim Alma&lt;/h3&gt;
+&lt;p&gt;Ürünü teslim alırken kargo paketini gözle kontrol etmenizi öneririz. Ezilmiş, yırtılmış, ıslanmış veya açılmış paketlerde, kargo görevlisinin yanında paketi açıp fiziki kontrol yapmanız yararınızadır.&lt;/p&gt;
+&lt;p&gt;Üründe hasar tespit edilmesi hâlinde kargo görevlisine &lt;strong&gt;“Hasar Tespit Tutanağı”&lt;/strong&gt; tutturulması ve ürünün teslim alınmadan kargo firmasıyla geri gönderilmesi, sürecin en hızlı çözülmesini sağlar.&lt;/p&gt;
+&lt;p&gt;Tutanak tutulmamış olması, ayıplı ürüne ilişkin yasal haklarınızı ortadan kaldırmaz; ancak hasarın kargo sırasında oluştuğunun ispatını güçleştirir. Bu nedenle tutanak tutulmasını önemle tavsiye ederiz.&lt;/p&gt;
+
+&lt;h2&gt;B. CAYMA HAKKI VE İADE&lt;/h2&gt;
+
+&lt;h3&gt;1. Cayma Süresi&lt;/h3&gt;
+&lt;p&gt;Ürünü teslim aldığınız tarihten itibaren &lt;strong&gt;14 gün&lt;/strong&gt; içinde, hiçbir gerekçe göstermeksizin ve cezai şart ödemeksizin cayma hakkınızı kullanabilirsiniz.&lt;/p&gt;
+&lt;p&gt;Cayma bildiriminizi &lt;strong&gt;kembornn@gmail.com&lt;/strong&gt; adresine, &lt;strong&gt;0850 244 13 86&lt;/strong&gt; numarasına veya sitedeki iletişim formuna iletmeniz yeterlidir. Bildirimde sipariş numaranızı belirtmeniz işlemi hızlandırır.&lt;/p&gt;
+
+&lt;h3&gt;2. İade Kargo Masrafı&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;Cayma hakkı kapsamındaki iadelerde kargo masrafı Kemborn&#x27;a aittir.&lt;/strong&gt; Bizimle iletişime geçtiğinizde iade, anlaşmalı kargo firmamız &lt;strong&gt;DHL&lt;/strong&gt; üzerinden yönlendirilir; ürünü kendi cebinizden göndermeniz gerekmez.&lt;/p&gt;
+
+&lt;h3&gt;3. Ürünün İade Edilme Şekli&lt;/h3&gt;
+&lt;p&gt;Cayma hakkını kullandığınızda ürünü, bildirim tarihinden itibaren &lt;strong&gt;10 gün&lt;/strong&gt; içinde göndermeniz gerekir. Ürünün orijinal kutusu, ambalajı ve varsa tüm standart aksesuarlarıyla birlikte eksiksiz gönderilmesi gerekir.&lt;/p&gt;
+&lt;p&gt;Ürünü, niteliğini ve çalışma şeklini anlamak amacıyla &lt;strong&gt;deneyebilirsiniz&lt;/strong&gt;; bu, cayma hakkınızı ortadan kaldırmaz. Ancak bu amacın ötesindeki kullanımdan kaynaklanan değer kaybından sorumlu olursunuz ve bu tutar iade bedelinden mahsup edilebilir.&lt;/p&gt;
+&lt;p&gt;Ürünün, kullanımdan kaynaklanmayan kırık, çizik veya eksik parça gibi durumlarda ise ilgili değer kaybı değerlendirilerek işlem yapılır.&lt;/p&gt;
+
+&lt;h3&gt;4. Geri Ödeme&lt;/h3&gt;
+&lt;p&gt;Cayma bildiriminizin bize ulaşmasından itibaren &lt;strong&gt;en geç 14 gün&lt;/strong&gt; içinde, ürün bedeli ve varsa teslimat masrafı iade edilir.&lt;/p&gt;
+&lt;p&gt;İade, ödemeyi yaptığınız kredi/banka kartına, lisanslı ödeme kuruluşumuz &lt;strong&gt;PayTR&lt;/strong&gt; aracılığıyla yapılır. Tutarın ekstrenize yansıma süresi bankanızın iç süreçlerine bağlıdır ve Kemborn&#x27;un kontrolü dışındadır.&lt;/p&gt;
+
+&lt;h2&gt;C. GARANTİ VE AYIPLI ÜRÜN&lt;/h2&gt;
+&lt;p&gt;Tüm Kemborn ürünleri &lt;strong&gt;2 (iki) yıl garantilidir&lt;/strong&gt;. Garanti süresi ürünün teslim tarihinde başlar.&lt;/p&gt;
+&lt;p&gt;Ürün kullanımdayken ortaya çıkan ve kullanıcı kaynaklı olmayan arızalarda ürün &lt;strong&gt;ücretsiz onarılır&lt;/strong&gt;. Yedek parça ve teknik destek Kemborn tarafından sağlanır; ürünün yurt dışına gönderilmesi gerekmez.&lt;/p&gt;
+&lt;p&gt;Garanti kapsamı dışında kalan hâller: darbe, düşme, sıvı teması, yetkisiz kişilerce yapılan müdahale ve kullanım kılavuzuna aykırı kullanım kaynaklı arızalar.&lt;/p&gt;
+&lt;p&gt;Teslim aldığınız ürünün ayıplı çıkması hâlinde, 6502 sayılı Tüketicinin Korunması Hakkında Kanun kapsamındaki seçimlik haklarınız (ücretsiz onarım, ayıpsız misli ile değişim, bedel indirimi veya sözleşmeden dönme) saklıdır.&lt;/p&gt;
+&lt;p&gt;Ayıplı ürün bildirimlerinde iade ve gönderim masrafları Kemborn&#x27;a aittir. Bu tür durumlarda kembornn@gmail.com adresinden bizimle iletişime geçmeniz yeterlidir.&lt;/p&gt;
+
+&lt;h2&gt;D. İLETİŞİM&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;E-posta:&lt;/strong&gt; kembornn@gmail.com&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Telefon / WhatsApp:&lt;/strong&gt; 0850 244 13 86&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Adres:&lt;/strong&gt; Sandıklı Mahallesi, Vatan Caddesi, Karahan Park 9 Apt. No:24 D:11, İncirliova / Aydın&lt;/li&gt;
+&lt;/ul&gt;
+</textarea>
+  </section>
+
+  <section>
+    <div class="ust">
+      <h2>Mesafeli Satış Sözleşmesi</h2>
+      <button type="button" onclick="kopyala(1)">Kopyala</button>
+    </div>
+    <p class="yol">Admin → Ayarlar → <b>Mesafeli Satış Sözleşmesi</b> alanına, <b>“HTML olarak düzenle”</b> açıkken yapıştır.</p>
+    <textarea id="m1" readonly spellcheck="false">&lt;h2&gt;MADDE 1 – TARAFLAR&lt;/h2&gt;
+
+&lt;h3&gt;1.1. SATICI&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Ticari Unvan:&lt;/strong&gt; Fatih Faydalı Şahıs İşletmesi&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Marka:&lt;/strong&gt; KEMBORN&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Adres:&lt;/strong&gt; Sandıklı Mahallesi, Vatan Caddesi, Karahan Park 9 Apt. No:24 D:11, İncirliova / Aydın&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Telefon:&lt;/strong&gt; 0850 244 13 86&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;E-posta:&lt;/strong&gt; kembornn@gmail.com&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Web Sitesi:&lt;/strong&gt; www.kemborn.com&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Vergi Dairesi / Vergi No:&lt;/strong&gt; [DOLDURULACAK — vergi levhasındaki bilgi]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Bundan sonra &lt;strong&gt;“SATICI”&lt;/strong&gt; olarak anılacaktır.&lt;/p&gt;
+
+&lt;h3&gt;1.2. ALICI&lt;/h3&gt;
+&lt;p&gt;İşbu sözleşme kapsamında ürün satın alan tüketicinin sipariş sırasında sisteme bildirdiği adı ve soyadı, teslimat adresi, fatura adresi, telefon numarası ve e-posta adresi bilgileri esas alınacaktır. Bundan sonra &lt;strong&gt;“ALICI”&lt;/strong&gt; olarak anılacaktır.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 2 – SÖZLEŞMENİN KONUSU&lt;/h2&gt;
+&lt;p&gt;İşbu Mesafeli Satış Sözleşmesi&#x27;nin konusu, ALICI&#x27;nın www.kemborn.com internet sitesi üzerinden elektronik ortamda sipariş verdiği KEMBORN marka motosiklet kaskı interkomu ve ilgili ürünlerin satışı, teslimi, ödeme koşulları, cayma hakkı ile tarafların hak ve yükümlülüklerinin belirlenmesidir.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 3 – ÜRÜN BİLGİLERİ VE ÖN BİLGİLENDİRME&lt;/h2&gt;
+&lt;p&gt;Siparişe konu ürünün adı, modeli, adedi, temel teknik özellikleri, satış fiyatı, kargo/teslimat bedeli, varsa indirim tutarı ve ödenecek toplam bedel, sipariş tamamlanmadan önce sepet ve ödeme özeti ekranlarında ALICI&#x27;ya açıkça gösterilir.&lt;/p&gt;
+&lt;p&gt;Bu bilgiler ön bilgilendirme niteliğindedir ve siparişin onaylanmasıyla birlikte sözleşmenin ayrılmaz parçası hâline gelir. ALICI, siparişini tamamlamadan önce ürünün temel niteliklerini, satış fiyatını ve ödeme koşullarını inceleyerek kabul ettiğini beyan eder.&lt;/p&gt;
+&lt;p&gt;İnternet sitesinde belirtilen tüm fiyatlara &lt;strong&gt;KDV dâhildir&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 4 – SÖZLEŞMENİN KURULMASI&lt;/h2&gt;
+&lt;p&gt;ALICI, www.kemborn.com üzerinden siparişini tamamlayarak işbu sözleşmenin koşullarını kabul etmiş olur. Sözleşme, ALICI&#x27;nın siparişini elektronik ortamda onaylaması ve ödeme işleminin başarıyla tamamlanmasıyla kurulmuş sayılır.&lt;/p&gt;
+&lt;p&gt;SATICI, siparişe ilişkin bilgileri elektronik ortamda ALICI&#x27;nın erişimine sunar ve mevzuatta öngörülen süre boyunca saklar.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 5 – ÜRÜN BEDELİ VE ÖDEME&lt;/h2&gt;
+&lt;p&gt;Ürünlerin satış fiyatı, sipariş sırasında internet sitesinde güncel olarak gösterilir. ALICI tarafından ödenecek toplam tutar, siparişin son onay aşamasında açıkça belirtilir.&lt;/p&gt;
+&lt;p&gt;Ödeme, internet sitesinde sunulan ödeme yöntemleri aracılığıyla gerçekleştirilir. Kredi kartı ile yapılan ödemelerde işlem, lisanslı ödeme kuruluşunun güvenli altyapısı üzerinden yürütülür; &lt;strong&gt;kart bilgileri SATICI&#x27;nın sunucularına hiçbir aşamada iletilmez ve SATICI tarafından saklanmaz&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 6 – TESLİMAT&lt;/h2&gt;
+&lt;p&gt;Sipariş konusu ürün, ALICI&#x27;nın sipariş sırasında belirttiği teslimat adresine gönderilir.&lt;/p&gt;
+&lt;p&gt;Teslimat, siparişin onaylanmasından itibaren &lt;strong&gt;en geç 30 (otuz) gün&lt;/strong&gt; içinde gerçekleştirilir. Bu süre, mevzuatın öngördüğü azami süredir; ürünler normal şartlarda çok daha kısa sürede kargoya verilir.&lt;/p&gt;
+&lt;p&gt;SATICI&#x27;nın bu süre içinde teslim yapamaması hâlinde ALICI sözleşmeyi feshedebilir; bu durumda ödenen bedel, fesih bildiriminin SATICI&#x27;ya ulaşmasından itibaren 14 (on dört) gün içinde iade edilir.&lt;/p&gt;
+&lt;p&gt;Mücbir sebepler veya kargo firmasından kaynaklanan olağanüstü gecikmeler gibi SATICI&#x27;nın kontrolü dışındaki hâllerde teslimat süresi uzayabilir; bu durumda ALICI bilgilendirilir.&lt;/p&gt;
+&lt;p&gt;Ürün kargoya verildikten sonra kargo takip bilgisi ALICI&#x27;ya iletilir.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 7 – ALICININ BEYAN VE YÜKÜMLÜLÜKLERİ&lt;/h2&gt;
+&lt;p&gt;ALICI;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Sipariş sırasında verdiği bilgilerin doğru ve güncel olduğunu,&lt;/li&gt;
+  &lt;li&gt;Ürünün temel özelliklerini ve satış fiyatını incelediğini,&lt;/li&gt;
+  &lt;li&gt;Ödeme yükümlülüğünü yerine getireceğini,&lt;/li&gt;
+  &lt;li&gt;Teslim sırasında ürünün dış ambalajını kontrol etmesinin kendi yararına olduğunu,&lt;/li&gt;
+  &lt;li&gt;Ürünü teslim aldıktan sonra kullanım ve montaj talimatlarına uygun hareket edeceğini&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;kabul ve beyan eder.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 8 – SATICININ YÜKÜMLÜLÜKLERİ&lt;/h2&gt;
+&lt;p&gt;SATICI, sipariş konusu ürünü siparişte belirtilen özelliklere uygun, ayıpsız, kullanılabilir durumda ve eksiksiz olarak ALICI&#x27;ya teslim etmekle yükümlüdür.&lt;/p&gt;
+&lt;p&gt;Ürünün ayıplı olması hâlinde ALICI&#x27;nın 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve ilgili mevzuattan doğan hakları saklıdır.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 9 – CAYMA HAKKI&lt;/h2&gt;
+&lt;p&gt;ALICI, satın aldığı ürünü teslim aldığı tarihten itibaren &lt;strong&gt;14 (on dört) gün&lt;/strong&gt; içinde, herhangi bir gerekçe göstermeksizin ve cezai şart ödemeksizin sözleşmeden cayma hakkına sahiptir.&lt;/p&gt;
+&lt;p&gt;Cayma hakkının kullanılabilmesi için bu süre içinde SATICI&#x27;ya açık bir bildirimde bulunulması yeterlidir. Bildirim aşağıdaki kanallardan yapılabilir:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;E-posta:&lt;/strong&gt; kembornn@gmail.com&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Telefon:&lt;/strong&gt; 0850 244 13 86&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;İnternet sitesi:&lt;/strong&gt; www.kemborn.com/contact adresindeki iletişim formu&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Cayma bildiriminde sipariş numarasının belirtilmesi, işlemin hızlanmasını sağlar.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 10 – CAYMA HAKKININ KULLANILMASINDA İADE VE MASRAFLAR&lt;/h2&gt;
+&lt;p&gt;Cayma hakkının kullanılması hâlinde ürünün, cayma bildiriminin yapıldığı tarihten itibaren &lt;strong&gt;10 (on) gün&lt;/strong&gt; içinde SATICI&#x27;ya gönderilmesi gerekir.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;İade gönderiminin kargo masrafı SATICI&#x27;ya aittir.&lt;/strong&gt; İade işlemi için kembornn@gmail.com adresinden ya da 0850 244 13 86 numarasından SATICI ile iletişime geçilmesi yeterlidir; iade kargo süreci SATICI tarafından yönlendirilir.&lt;/p&gt;
+&lt;p&gt;Ürünün kutusunun, aksesuarlarının ve varsa birlikte gönderilen diğer parçalarının eksiksiz şekilde iade edilmesi gerekir. Ürünün kullanımdan kaynaklanmayan, ALICI&#x27;nın kusurundan doğan hasarlardan ALICI sorumludur.&lt;/p&gt;
+&lt;p&gt;SATICI, cayma bildiriminin kendisine ulaşmasından itibaren &lt;strong&gt;14 (on dört) gün&lt;/strong&gt; içinde ürün bedelini ve varsa teslimat masraflarını ALICI&#x27;ya iade eder. İade, ALICI&#x27;nın satın alma sırasında kullandığı ödeme aracına uygun şekilde yapılır; kredi kartıyla yapılan ödemelerde tutarın karta yansıma süresi ilgili bankanın işleyişine bağlıdır.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 11 – CAYMA HAKKININ İSTİSNALARI&lt;/h2&gt;
+&lt;p&gt;Mesafeli Sözleşmeler Yönetmeliği&#x27;nde sayılan cayma hakkı istisnaları saklıdır. Bu kapsamda özellikle;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;ALICI&#x27;nın istekleri veya kişisel ihtiyaçları doğrultusunda hazırlanan ürünler,&lt;/li&gt;
+  &lt;li&gt;Tesliminden sonra ambalajı açılmış olması hâlinde iadesi sağlık ve hijyen açısından uygun olmayan ürünler&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;bakımından mevzuatta öngörülen istisnalar uygulanabilir. Ürünün ayıplı olması veya mevzuattan kaynaklanan diğer tüketici hakları bu hükümden etkilenmez.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 12 – AYIPLI ÜRÜN VE GARANTİ&lt;/h2&gt;
+&lt;p&gt;ALICI&#x27;nın teslim aldığı ürünün ayıplı olması hâlinde, 6502 sayılı Kanun kapsamındaki seçimlik hakları (ücretsiz onarım, ayıpsız misli ile değişim, bedel indirimi veya sözleşmeden dönme) saklıdır.&lt;/p&gt;
+&lt;p&gt;Ürünler, kanunda öngörülen asgari garanti süresi kapsamındadır. Garanti şartları ve kapsamı ürün sayfalarında ayrıca belirtilir.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 13 – KİŞİSEL VERİLER&lt;/h2&gt;
+&lt;p&gt;ALICI&#x27;nın sipariş sırasında paylaştığı kişisel veriler, 6698 sayılı Kişisel Verilerin Korunması Kanunu ve ilgili mevzuata uygun şekilde işlenir. Kişisel verilerin işlenmesine ilişkin ayrıntılı bilgi, internet sitesindeki &lt;strong&gt;KVKK Aydınlatma ve Gizlilik Metni&lt;/strong&gt;&#x27;nde yer almaktadır.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 14 – UYUŞMAZLIKLAR&lt;/h2&gt;
+&lt;p&gt;İşbu sözleşmeden doğabilecek uyuşmazlıklarda 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve ilgili mevzuat hükümleri uygulanır.&lt;/p&gt;
+&lt;p&gt;ALICI, şikâyet ve itirazlarını, yerleşim yerinin bulunduğu veya işlemin yapıldığı yerdeki &lt;strong&gt;Tüketici Hakem Heyetlerine&lt;/strong&gt; veya &lt;strong&gt;Tüketici Mahkemelerine&lt;/strong&gt; iletebilir. Hakem heyetlerine başvuruda her yıl Ticaret Bakanlığı tarafından belirlenen parasal sınırlar geçerlidir.&lt;/p&gt;
+
+&lt;h2&gt;MADDE 15 – YÜRÜRLÜK&lt;/h2&gt;
+&lt;p&gt;ALICI, siparişini tamamlamadan önce işbu sözleşmeyi okuyup incelediğini ve hükümlerini kabul ettiğini beyan eder. Sözleşme, ALICI tarafından elektronik ortamda onaylanmasıyla yürürlüğe girer ve sipariş kaydıyla birlikte saklanır.&lt;/p&gt;
+
+&lt;h3&gt;SATICI&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Fatih Faydalı Şahıs İşletmesi — KEMBORN&lt;/li&gt;
+  &lt;li&gt;Sandıklı Mahallesi, Vatan Caddesi, Karahan Park 9 Apt. No:24 D:11, İncirliova / Aydın&lt;/li&gt;
+  &lt;li&gt;Telefon: 0850 244 13 86 · E-posta: kembornn@gmail.com · www.kemborn.com&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Sözleşme tarihi:&lt;/strong&gt; Siparişin onaylandığı tarih.&lt;/p&gt;
+</textarea>
+  </section>
+
+  <section>
+    <div class="ust">
+      <h2>Gizlilik Politikası (KVKK)</h2>
+      <button type="button" onclick="kopyala(2)">Kopyala</button>
+    </div>
+    <p class="yol">Admin → Ayarlar → <b>Gizlilik Politikası (KVKK)</b> alanına, <b>“HTML olarak düzenle”</b> açıkken yapıştır.</p>
+    <textarea id="m2" readonly spellcheck="false">&lt;h2&gt;1. VERİ SORUMLUSU&lt;/h2&gt;
+&lt;p&gt;6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) kapsamında kişisel verilerinizin veri sorumlusu:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Unvan:&lt;/strong&gt; Fatih Faydalı Şahıs İşletmesi&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Marka:&lt;/strong&gt; KEMBORN&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Adres:&lt;/strong&gt; Sandıklı Mahallesi, Vatan Caddesi, Karahan Park 9 Apt. No:24 D:11, İncirliova / Aydın&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Telefon:&lt;/strong&gt; 0850 244 13 86&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;E-posta:&lt;/strong&gt; kembornn@gmail.com&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Web Sitesi:&lt;/strong&gt; www.kemborn.com&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;2. İŞLENEN KİŞİSEL VERİLER&lt;/h2&gt;
+&lt;p&gt;www.kemborn.com üzerinden alışveriş yapan veya bizimle iletişim kuran kişilere ait aşağıdaki veriler, işlemin niteliğine göre işlenebilir:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Ad ve soyad&lt;/li&gt;
+  &lt;li&gt;Telefon numarası&lt;/li&gt;
+  &lt;li&gt;E-posta adresi&lt;/li&gt;
+  &lt;li&gt;Teslimat ve fatura adresi&lt;/li&gt;
+  &lt;li&gt;Sipariş ve satın alınan ürün bilgileri&lt;/li&gt;
+  &lt;li&gt;Ödeme işlemine ilişkin bilgiler (işlem numarası, tutar, sonuç)&lt;/li&gt;
+  &lt;li&gt;İade ve değişim bilgileri&lt;/li&gt;
+  &lt;li&gt;Müşteri talep ve şikâyetleri&lt;/li&gt;
+  &lt;li&gt;İnternet sitesi kullanımına ilişkin teknik bilgiler ve IP adresi&lt;/li&gt;
+  &lt;li&gt;Çerezler aracılığıyla elde edilen bilgiler&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Kredi/banka kartı bilgileriniz KEMBORN tarafından hiçbir aşamada görülmez, sunucularımıza iletilmez ve saklanmaz.&lt;/strong&gt; Ödeme formuna girdiğiniz kart bilgileri doğrudan lisanslı ödeme kuruluşunun (PayTR) güvenli altyapısına iletilir. Bize yalnızca ödemenin başarılı olup olmadığı bilgisi döner.&lt;/p&gt;
+
+&lt;h2&gt;3. KİŞİSEL VERİLERİN İŞLENME AMAÇLARI&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;Siparişlerin alınması, hazırlanması ve teslim edilmesi&lt;/li&gt;
+  &lt;li&gt;Faturalandırma ve ödeme işlemlerinin yürütülmesi&lt;/li&gt;
+  &lt;li&gt;İade, değişim ve cayma işlemlerinin gerçekleştirilmesi&lt;/li&gt;
+  &lt;li&gt;Müşteri taleplerinin cevaplandırılması ve satış sonrası destek&lt;/li&gt;
+  &lt;li&gt;Garanti ve servis süreçlerinin yürütülmesi&lt;/li&gt;
+  &lt;li&gt;Yasal yükümlülüklerin yerine getirilmesi, muhasebe ve finans işlemleri&lt;/li&gt;
+  &lt;li&gt;Hukuki süreçlerin yürütülmesi&lt;/li&gt;
+  &lt;li&gt;Bilgi güvenliğinin ve internet sitesinin güvenli çalışmasının sağlanması&lt;/li&gt;
+  &lt;li&gt;Kullanıcı deneyiminin geliştirilmesi&lt;/li&gt;
+  &lt;li&gt;Açık rıza verilmesi hâlinde ticari elektronik ileti gönderilmesi&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;4. İŞLEMENİN HUKUKİ SEBEPLERİ&lt;/h2&gt;
+&lt;p&gt;Kişisel verileriniz KVKK&#x27;nın 5. maddesinde belirtilen hukuki sebeplere dayanılarak, özellikle;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Bir sözleşmenin kurulması veya ifası için gerekli olması&lt;/li&gt;
+  &lt;li&gt;Veri sorumlusunun hukuki yükümlülüğünü yerine getirmesi&lt;/li&gt;
+  &lt;li&gt;Bir hakkın tesisi, kullanılması veya korunması için zorunlu olması&lt;/li&gt;
+  &lt;li&gt;Temel hak ve özgürlüklerinize zarar vermemek kaydıyla meşru menfaat&lt;/li&gt;
+  &lt;li&gt;Kanunlarda açıkça öngörülmesi&lt;/li&gt;
+  &lt;li&gt;Gerekli hâllerde açık rızanızın bulunması&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Aydınlatma yapılması ile açık rıza alınması birbirinden farklı işlemlerdir. Açık rıza gerektiren bir faaliyet bulunması hâlinde ayrıca açık rıza alınır.&lt;/p&gt;
+
+&lt;h2&gt;5. KİŞİSEL VERİLERİN AKTARILDIĞI TARAFLAR&lt;/h2&gt;
+&lt;p&gt;Kişisel verileriniz, yalnızca işleme amaçlarıyla sınırlı ve gerekli olduğu ölçüde;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Kargo ve lojistik firmalarına&lt;/li&gt;
+  &lt;li&gt;Ödeme kuruluşlarına ve bankalara&lt;/li&gt;
+  &lt;li&gt;Muhasebe ve mali müşavirlik hizmeti sağlayanlara&lt;/li&gt;
+  &lt;li&gt;Bilgi teknolojileri, sunucu ve internet sitesi hizmet sağlayıcılarına&lt;/li&gt;
+  &lt;li&gt;Yetkili servis ve teknik destek sağlayıcılarına&lt;/li&gt;
+  &lt;li&gt;Hukuki ve mali danışmanlara&lt;/li&gt;
+  &lt;li&gt;Yetkili kamu kurum ve kuruluşlarına&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Kişisel verileriniz, kanuni zorunluluk bulunmadıkça üçüncü kişilere satılmaz, kiralanmaz veya pazarlama amacıyla devredilmez.&lt;/p&gt;
+
+&lt;h2&gt;6. YURT DIŞINA AKTARIM&lt;/h2&gt;
+&lt;p&gt;İnternet sitemiz ve veritabanımız, yurt dışında sunucu altyapısı bulunan bulut hizmet sağlayıcıları üzerinde barındırılmaktadır. Bu nedenle kişisel verileriniz, hizmetin sağlanabilmesi için teknik olarak &lt;strong&gt;yurt dışındaki sunucularda işlenebilmekte ve saklanabilmektedir&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;Bu aktarım, KVKK&#x27;nın 9. maddesi kapsamında; sözleşmenin kurulması ve ifası için gerekli olması ile mevzuatın öngördüğü diğer şartlara dayanılarak yapılır. Kullanılan hizmet sağlayıcılar, sektör standardı teknik ve idari güvenlik tedbirlerini uygulayan kuruluşlardır.&lt;/p&gt;
+
+&lt;h2&gt;7. KİŞİSEL VERİLERİN TOPLANMA YÖNTEMİ&lt;/h2&gt;
+&lt;p&gt;Kişisel verileriniz; internet sitesi üzerinden doldurduğunuz sipariş, üyelik ve iletişim formları, e-posta, telefon, çerezler ile satış ve iade işlemleri gibi elektronik veya fiziki yöntemlerle toplanır.&lt;/p&gt;
+
+&lt;h2&gt;8. ÇEREZLER&lt;/h2&gt;
+&lt;p&gt;İnternet sitemizde; sitenin çalışması, oturumunuzun ve sepetinizin korunması, güvenliğin sağlanması ve kullanıcı deneyiminin geliştirilmesi amacıyla çerezler ve benzeri yerel depolama teknolojileri kullanılır.&lt;/p&gt;
+&lt;p&gt;Zorunlu çerezler sitenin çalışması için gereklidir. Analitik, reklam veya pazarlama amaçlı çerez kullanılması hâlinde mevzuata uygun şekilde ayrıca izniniz alınır.&lt;/p&gt;
+&lt;p&gt;Tarayıcınızın ayarlarından çerezleri yönetebilir veya devre dışı bırakabilirsiniz; ancak zorunlu çerezlerin engellenmesi hâlinde sitenin bazı işlevleri (örneğin sepet ve oturum) çalışmayabilir.&lt;/p&gt;
+
+&lt;h2&gt;9. TİCARİ ELEKTRONİK İLETİLER&lt;/h2&gt;
+&lt;p&gt;Kampanya, indirim veya yeni ürün duyurusu gibi ticari elektronik iletiler yalnızca ilgili mevzuata uygun onayınız bulunması hâlinde gönderilir. Bu iletileri almak istemediğinizde, ileti içindeki ret imkânını kullanabilir veya kembornn@gmail.com adresine bildirebilirsiniz.&lt;/p&gt;
+
+&lt;h2&gt;10. SAKLAMA SÜRESİ&lt;/h2&gt;
+&lt;p&gt;Kişisel verileriniz, ilgili mevzuatta öngörülen saklama süreleri boyunca veya işleme amacının gerektirdiği süre kadar saklanır. Satış, fatura ve muhasebe kayıtları bakımından mevzuatın öngördüğü süreler esas alınır.&lt;/p&gt;
+&lt;p&gt;Saklama süresinin sona ermesi veya işlemeyi gerektiren hukuki sebebin ortadan kalkması hâlinde veriler silinir, yok edilir veya anonim hâle getirilir.&lt;/p&gt;
+
+&lt;h2&gt;11. VERİ GÜVENLİĞİ&lt;/h2&gt;
+&lt;p&gt;KEMBORN, kişisel verilerin hukuka aykırı olarak işlenmesini ve verilere hukuka aykırı erişilmesini önlemek ile verilerin güvenli şekilde muhafazasını sağlamak amacıyla, KVKK&#x27;nın 12. maddesi uyarınca gerekli teknik ve idari tedbirleri &lt;strong&gt;alır&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;Bu kapsamda; site genelinde şifreli bağlantı (HTTPS), parolaların geri döndürülemez şekilde saklanması, yetkisiz erişime karşı yetkilendirme kontrolleri ve ödeme bilgilerinin lisanslı ödeme kuruluşu altyapısında işlenmesi gibi önlemler uygulanmaktadır.&lt;/p&gt;
+
+&lt;h2&gt;12. İLGİLİ KİŞİNİN HAKLARI&lt;/h2&gt;
+&lt;p&gt;KVKK&#x27;nın 11. maddesi kapsamında;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Kişisel verilerinizin işlenip işlenmediğini öğrenme&lt;/li&gt;
+  &lt;li&gt;İşlenmişse buna ilişkin bilgi talep etme&lt;/li&gt;
+  &lt;li&gt;İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme&lt;/li&gt;
+  &lt;li&gt;Yurt içinde veya yurt dışında verilerin aktarıldığı üçüncü kişileri bilme&lt;/li&gt;
+  &lt;li&gt;Eksik veya yanlış işlenmiş verilerin düzeltilmesini isteme&lt;/li&gt;
+  &lt;li&gt;Silinmesini veya yok edilmesini isteme&lt;/li&gt;
+  &lt;li&gt;Düzeltme, silme veya yok etme işlemlerinin aktarılan üçüncü kişilere bildirilmesini isteme&lt;/li&gt;
+  &lt;li&gt;Münhasıran otomatik sistemlerle analiz sonucu aleyhinize bir sonuç doğmasına itiraz etme&lt;/li&gt;
+  &lt;li&gt;Kanuna aykırı işleme nedeniyle zarara uğramanız hâlinde zararın giderilmesini talep etme&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;haklarına sahipsiniz.&lt;/p&gt;
+
+&lt;h2&gt;13. BAŞVURU YÖNTEMİ&lt;/h2&gt;
+&lt;p&gt;KVKK kapsamındaki taleplerinizi, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ&#x27;e uygun olarak;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Yazılı olarak:&lt;/strong&gt; Sandıklı Mahallesi, Vatan Caddesi, Karahan Park 9 Apt. No:24 D:11, İncirliova / Aydın adresine ıslak imzalı dilekçe ile&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;E-posta ile:&lt;/strong&gt; Sistemimizde kayıtlı e-posta adresinizden kembornn@gmail.com adresine&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;iletebilirsiniz. Başvurunuzda ad-soyad, iletişim bilgileriniz ve talebinizin konusu açıkça yer almalıdır.&lt;/p&gt;
+&lt;p&gt;Talebiniz, niteliğine göre &lt;strong&gt;en geç 30 (otuz) gün&lt;/strong&gt; içinde ücretsiz olarak sonuçlandırılır. İşlemin ayrıca bir maliyet gerektirmesi hâlinde Kişisel Verileri Koruma Kurulu&#x27;nca belirlenen tarifedeki ücret alınabilir.&lt;/p&gt;
+&lt;p&gt;Başvurunuzun reddedilmesi, verilen cevabı yetersiz bulmanız veya süresinde cevap verilmemesi hâlinde, Kişisel Verileri Koruma Kurulu&#x27;na şikâyette bulunma hakkınız saklıdır.&lt;/p&gt;
+
+&lt;h2&gt;14. GÜNCELLEMELER&lt;/h2&gt;
+&lt;p&gt;Bu metin, mevzuat değişiklikleri veya veri işleme faaliyetlerimizdeki değişiklikler nedeniyle güncellenebilir. Güncel metin, www.kemborn.com adresinde yayımlandığı tarihten itibaren geçerlidir.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Son güncelleme:&lt;/strong&gt; 12.08.2026&lt;/p&gt;
+</textarea>
+  </section>
+<script>
+  function kopyala(i) {
+    const alan = document.getElementById('m' + i);
+    navigator.clipboard.writeText(alan.value).then(() => {
+      const b = alan.closest('section').querySelector('button');
+      const eski = b.textContent;
+      b.textContent = 'Kopyalandı ✓'; b.classList.add('ok');
+      setTimeout(() => { b.textContent = eski; b.classList.remove('ok'); }, 1800);
+    }).catch(() => { alan.select(); document.execCommand('copy'); });
+  }
+</script>
+</body>
+</html>
