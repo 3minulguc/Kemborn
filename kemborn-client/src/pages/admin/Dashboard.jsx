@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiShoppingBag, FiClock, FiDollarSign, FiUsers, FiTruck, FiCheckCircle, FiXCircle, FiBox, FiAlertTriangle, FiCreditCard } from 'react-icons/fi';
+import { FiShoppingBag, FiClock, FiDollarSign, FiUsers, FiTruck, FiCheckCircle, FiXCircle, FiBox, FiCreditCard } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { DURUM } from '../../constants/orderStatus';
 import { apiFetch } from '../../utils/apiFetch';
@@ -150,35 +150,6 @@ const Dashboard = () => {
     },
   ];
 
-  // Mağaza sahibinin HEMEN görmesi gereken durumlar. Sadece gerçekten bir şey
-  // varsa gösteriliyor, yoksa panel gereksiz uyarıyla dolmuyor.
-  const uyarilar = [
-    statsData.paidOrders > 0 && {
-      renk: 'bg-amber-50 border-amber-300 text-amber-900',
-      ikon: <FiCreditCard size={20} className="text-amber-600" />,
-      baslik: `${statsData.paidOrders} yeni sipariş hazırlanmayı bekliyor`,
-      metin: 'Ödemesi alındı, henüz hazırlanmaya başlanmadı.',
-      link: `/admin/orders?status=${encodeURIComponent(DURUM.ODENDI)}`,
-      linkMetni: 'Siparişlere git'
-    },
-    statsData.failedPaymentOrders > 0 && {
-      renk: 'bg-purple-50 border-purple-300 text-purple-900',
-      ikon: <FiAlertTriangle size={20} className="text-purple-600" />,
-      baslik: `${statsData.failedPaymentOrders} siparişte ödeme sorunu var`,
-      metin: 'Ödeme başarısız veya tahsil edilen tutar sipariş tutarıyla uyuşmuyor.',
-      link: `/admin/orders?status=${encodeURIComponent(DURUM.ODEME_BASARISIZ)}`,
-      linkMetni: 'İncele'
-    },
-    statsData.lowStockProducts > 0 && {
-      renk: 'bg-rose-50 border-rose-300 text-rose-900',
-      ikon: <FiAlertTriangle size={20} className="text-rose-600" />,
-      baslik: `${statsData.lowStockProducts} üründe stok azaldı`,
-      metin: `Satıştaki ürünlerden bazılarının stoğu ${statsData.lowStockThreshold} adet veya altına düştü.`,
-      link: '/admin/products',
-      linkMetni: 'Ürünlere git'
-    }
-  ].filter(Boolean);
-
   if (loading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
@@ -190,28 +161,6 @@ const Dashboard = () => {
   return (
     <div className="animate-in fade-in duration-500 font-sans">
       <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 mb-6 sm:mb-8">Yönetici Paneli</h1>
-
-      {/* AKSİYON GEREKTİREN UYARILAR — sadece gerçekten bir şey varsa görünür */}
-      {uyarilar.length > 0 && (
-        <div className="space-y-3 mb-8">
-          {uyarilar.map((u, i) => (
-            <Link
-              key={i}
-              to={u.link}
-              className={`flex items-start sm:items-center gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl border-2 ${u.renk} hover:shadow-md transition-all`}
-            >
-              <span className="shrink-0 mt-0.5 sm:mt-0">{u.ikon}</span>
-              <div className="flex-1 min-w-0">
-                <p className="font-black text-sm sm:text-base leading-snug">{u.baslik}</p>
-                <p className="text-xs sm:text-sm opacity-80 font-medium mt-0.5">{u.metin}</p>
-              </div>
-              <span className="hidden sm:inline shrink-0 text-xs font-black uppercase tracking-wider underline underline-offset-4">
-                {u.linkMetni}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
 
       {/* ÜST DÜZEY ANA KARTLAR GRUBU */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">

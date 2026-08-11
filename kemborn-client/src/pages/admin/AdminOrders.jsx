@@ -237,12 +237,12 @@ const AdminOrders = () => {
         <table className="w-full text-left min-w-[720px]">
           <thead className="bg-zinc-50 border-b border-zinc-200">
             <tr>
-              <th className="p-6 font-black text-zinc-400 uppercase text-xs">Sipariş No</th>
-              <th className="p-6 font-black text-zinc-400 uppercase text-xs">Müşteri</th>
-              <th className="p-6 font-black text-zinc-400 uppercase text-xs">Sipariş Tarihi</th>
-              <th className="p-6 font-black text-zinc-400 uppercase text-xs">Toplam Tutar</th>
-              <th className="p-6 font-black text-zinc-400 uppercase text-xs">Güncel Durum</th>
-              <th className="p-6 font-black text-zinc-400 uppercase text-xs text-right">İşlemler</th>
+              <th className="p-6 font-black text-zinc-400 uppercase text-xs whitespace-nowrap">Sipariş No</th>
+              <th className="p-6 font-black text-zinc-400 uppercase text-xs whitespace-nowrap">Müşteri</th>
+              <th className="p-6 font-black text-zinc-400 uppercase text-xs whitespace-nowrap">Sipariş Tarihi</th>
+              <th className="p-6 font-black text-zinc-400 uppercase text-xs whitespace-nowrap">Toplam Tutar</th>
+              <th className="p-6 font-black text-zinc-400 uppercase text-xs whitespace-nowrap">Güncel Durum</th>
+              <th className="p-6 font-black text-zinc-400 uppercase text-xs text-right whitespace-nowrap">İşlemler</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -253,19 +253,20 @@ const AdminOrders = () => {
             ) : (
               pagedOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-zinc-50/60 transition-colors">
-                  <td className="p-6 font-black text-zinc-900 tracking-wide">{order.order_number || '-'}</td>
-                  <td className="p-6 text-zinc-700 font-bold flex items-center gap-2">
+                  <td className="p-6 font-black text-zinc-900 tracking-wide whitespace-nowrap">{order.order_number || '-'}</td>
+                  <td className="p-6 text-zinc-700 font-bold whitespace-nowrap"><div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 border border-zinc-200 text-xs font-black">{String(order.customer_name || 'K').charAt(0).toUpperCase()}</div>
                     {order.customer_name || 'Bilinmeyen Müşteri'}
+                    </div>
                   </td>
-                  <td className="p-6 text-zinc-500 font-medium text-sm">
+                  <td className="p-6 text-zinc-500 font-medium text-sm whitespace-nowrap">
                     {order.created_at ? new Date(order.created_at).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' }) : '-'}
                   </td>
-                  <td className="p-6 text-cyan-700 font-black">
+                  <td className="p-6 text-cyan-700 font-black whitespace-nowrap">
                     {parseFloat(order.total_amount || 0).toLocaleString('tr-TR')} TL
                   </td>
                   <td className="p-6">
-                    <span className={`px-3 py-1.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${getStatusStyle(order.status)}`}>
+                    <span className={`px-3 py-1.5 rounded-full text-[10px] font-black border uppercase tracking-wider whitespace-nowrap ${getStatusStyle(order.status)}`}>
                       {getStatusLabel(order.status)}
                     </span>
                   </td>
@@ -300,7 +301,7 @@ const AdminOrders = () => {
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="font-black text-zinc-900">{order.order_number || '-'}</span>
-                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider shrink-0 ${getStatusStyle(order.status)}`}>
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider whitespace-nowrap shrink-0 ${getStatusStyle(order.status)}`}>
                   {getStatusLabel(order.status)}
                 </span>
               </div>
@@ -352,7 +353,7 @@ const AdminOrders = () => {
                   <span className="truncate">{selectedOrder.order_number || 'Yükleniyor...'}</span>
                 </h2>
                 {selectedOrder.status && (
-                  <span className={`inline-block mt-2 px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${getStatusStyle(selectedOrder.status)}`}>
+                  <span className={`inline-block mt-2 px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider whitespace-nowrap ${getStatusStyle(selectedOrder.status)}`}>
                     {getStatusLabel(selectedOrder.status)}
                   </span>
                 )}
