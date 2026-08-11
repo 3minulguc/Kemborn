@@ -106,8 +106,24 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
     const userBasketBase64 = Buffer.from(JSON.stringify(userBasket)).toString('base64');
 
     const currency = 'TL';
-    const noInstallment = '0';
-    const maxInstallment = '12';
+
+    // TAKSİT KAPALI — bilinçli bir karar, geçici.
+    //
+    // PayTR'nin Direkt API'sinde tüm işlemler "peşin fiyatına taksit" olarak
+    // işleniyor: müşteri 12 taksit seçse bile sepetteki tutarı öder, aradaki
+    // vade farkı MAĞAZANIN hakedişinden kesilir. Yani 2.999 TL'lik sipariş
+    // 2.999 TL görünür ama hesaba daha azı geçer, taksit arttıkça fark büyür.
+    //
+    // Taksidi açmak için PayTR'den taksit oranlarını alıp vade farkını tutara
+    // eklemek gerekiyor (PayTR'nin verdiği formül):
+    //     tutar / ((100 - taksit oranı) / 100) = taksitli toplam tutar
+    // Bu, sepette gösterilen fiyatı da değiştirir; müşteri "12 taksitte şu
+    // kadar" bilgisini görmeden ödeme adımına gitmemeli.
+    //
+    // O iş yapılana kadar taksit kapalı: eksik tahsilat yapmaktansa taksit
+    // sunmamak tercih edildi.
+    const noInstallment = '1';   // 1 = sadece tek çekim
+    const maxInstallment = '0';  // taksit kapalıyken 0 gönderiliyor
 
     // PayTR iFrame API hash formülü (dokümandaki sıra ile BİREBİR aynı olmalı)
     const hashStr = `${PAYTR_MERCHANT_ID}${userIp}${merchantOid}${customer.email}${priceInKurus}${userBasketBase64}${noInstallment}${maxInstallment}${currency}${PAYTR_TEST_MODE}`;
