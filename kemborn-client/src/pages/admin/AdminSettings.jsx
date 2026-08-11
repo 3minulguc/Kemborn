@@ -3,6 +3,7 @@ import { FiSave, FiPhoneCall, FiMail, FiMapPin, FiFileText } from 'react-icons/f
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css'; // Yeni paketin stili
 import { apiFetch } from '../../utils/apiFetch';
+import { YASAL_VARSAYILAN, YASAL_BASLIK } from '../../content/yasal';
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState({
@@ -27,11 +28,20 @@ const AdminSettings = () => {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // Hangi alanlar HTML kaynagi olarak duzenleniyor.
+  // Yasal metin alanlari VARSAYILAN OLARAK HTML kaynak modunda aciliyor.
   //
-  // NEDEN VAR: Quill zengin metin editoru; icine ham HTML yapistirilinca
-  // etiketleri METIN olarak gosteriyor. Yasal metinler depoda HTML olarak
-  // yaziliyor (docs/yasal/) ve oldugu gibi yapistirilabilmeleri gerekiyor.
+  // NEDEN: bu alanlara HTML yapistiriliyor ve Quill'in gorsel modu yapistirilan
+  // HTML'in bicimini bozuyor. Bir keresinde gizlilik metninin HER satirini
+  // <h2> basliga cevirdi, satir sonlarindan ici bos madde isaretleri uretti ve
+  // butun bosluklari &nbsp; yapip mobilde satir kirilmasini engelledi.
+  // Kaynak modunda (duz metin kutusu) yazilan sey birebir kaydediliyor.
+  // Gorsel editor isteyen icin acilis modu tek tikla degistirilebiliyor.
+  const [htmlModu, setHtmlModu] = useState({
+    distance_selling_policy: true,
+    privacy_policy: true,
+    delivery_return_policy: true
+  });
+  const htmlModunuDegistir = (alan) => setHtmlModu(m => ({ ...m, [alan]: !m[alan] }));
 
   // Gelişmiş Metin Editörü Araç Çubuğu Ayarları
   const quillModules = {
@@ -84,6 +94,62 @@ const AdminSettings = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setSettings(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Yasal metin alani: kaynak modu (duz metin kutusu) veya gorsel editor.
+  //
+  // BILESEN DEGIL, duz fonksiyon: bilesen olarak tanimlansaydi her render'da
+  // yeni bir bilesen turu uretilir, React eskisini sokup yenisini takardi ve
+  // metin kutusu HER HARFTE ODAGI KAYBEDERDI.
+  const metinAlani = (alan) => (
+    htmlModu[alan] ? (
+      <textarea
+        value={settings[alan] || ''}
+        onChange={(e) => handleQuillChange(alan, e.target.value)}
+        spellCheck={false}
+        className="w-full min-h-[320px] p-4 bg-zinc-900 text-zinc-100 rounded-xl font-mono text-xs leading-relaxed border border-zinc-700 focus:outline-none focus:border-cyan-500 appearance-none"
+        placeholder="<h2>Başlık</h2><p>Metin...</p>"
+      />
+    ) : (
+      <div className="bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden [&_.ql-toolbar]:border-none [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-zinc-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[320px] [&_.ql-editor]:text-base">
+        <ReactQuill
+          theme="snow"
+          modules={quillModules}
+          value={settings[alan]}
+          onChange={(val) => handleQuillChange(alan, val)}
+        />
+      </div>
+    )
+  );
+
+  // Kaydedilmis metnin bicimi bozuk mu?
+  //
+  // Gorsel editore HTML yapistirildiginda olusan uc tipik hasari ariyoruz.
+  // Bu bir tahmin, bu yuzden metni DEGISTIRMIYOR — sadece panelde uyari
+  // gosteriyoruz. Duzeltmek her zaman adminin karari.
+  const bicimBozukMu = (html) => {
+    if (!html) return false;
+    const bosBlok = (html.match(/<(li|p)>\s*(&nbsp;|\u00a0|\s)*<\/\1>/g) || []).length;
+    const nbspSayisi = (html.match(/&nbsp;|\u00a0/g) || []).length;
+    const basliklar = (html.match(/<h[1-6][\s>]/g) || []).length;
+    const paragraflar = (html.match(/<p[\s>]/g) || []).length;
+    // Metnin tamami baslik olmus (paragraf hic kalmamis) en agir hasar.
+    const hepBaslik = basliklar > 8 && paragraflar === 0;
+    return hepBaslik || bosBlok >= 3 || nbspSayisi > 40;
+  };
+
+  // Metni depodaki asli ile degistirir. Duzenleme sirasinda bicim bozulursa
+  // ya da bastan baslamak gerekirse tek tiklik cikis yolu.
+  const depodakineDon = (alan) => {
+    const onay = window.confirm(
+      `"${YASAL_BASLIK[alan]}" metni, hazirlanan asil haliyle degistirilecek.\n\n` +
+      'Bu kutudaki mevcut yazi silinir. Degisiklik "Tum Ayarlari Kaydet" dedikten sonra yayina girer.'
+    );
+    if (!onay) return;
+    setSettings(prev => ({ ...prev, [alan]: YASAL_VARSAYILAN[alan] }));
+    // Geri yuklenen metin HTML oldugu icin kaynak moduna geciyoruz; gorsel
+    // editorde acik kalsaydi Quill metni yeniden bicimlendirip bozabilirdi.
+    setHtmlModu(m => ({ ...m, [alan]: true }));
   };
 
   // React-Quill (Editör) için özel handler
@@ -311,20 +377,100 @@ const AdminSettings = () => {
             <FiFileText className="text-cyan-600" /> Yasal Metinler & Politikalar
           </h2>
           
-          {/* Bu üç metin artık depodan geliyor (src/content/yasal/). Editörden
-              çıkarıldılar çünkü zengin metin editörü yapıştırılan HTML'in
-              biçimini bozuyordu: her satır başlığa dönüşüyor, satır sonları boş
-              madde işareti üretiyor ve boşluklar &nbsp; olup mobilde satır
-              kırılmasını engelliyordu. Hukuki metinlerde bu kabul edilemez. */}
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-6 text-sm leading-relaxed text-zinc-600">
-            <p className="font-bold text-zinc-900 mb-2">Mesafeli Satış Sözleşmesi, Gizlilik/KVKK ve Teslimat-İade metinleri buradan düzenlenmiyor.</p>
-            <p className="mb-3">
-              Bu üç belgenin her cümlesi hukuki sorumluluk doğurduğu için metinler artık doğrudan sitenin
-              kaynak dosyalarında tutuluyor. Böylece sayfada yazıldıkları gibi görünüyorlar ve her değişiklik
-              kayıt altına alınıyor. Daha önce editöre yapıştırıldıklarında biçimleri bozuluyordu.
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-relaxed text-amber-900">
+            <p className="font-bold mb-1">Bu üç metin hukuki belge; biçimi bozulursa sitede dağınık görünür.</p>
+            <p>
+              Alanlar <b>HTML kaynak modunda</b> açılıyor: yazdığın şey birebir kaydedilir. Görsel editöre
+              geçersen Quill, yapıştırdığın HTML'in biçimini bozabilir (başlıkları birleştirme, içi boş madde
+              işaretleri, satır kırılmasını engelleyen boşluklar). Bir şey bozulursa
+              <b> "Hazır metne dön"</b> ile hazırlanmış asıl metni geri yükleyebilirsin.
             </p>
-            <p>Değişiklik gerektiğinde bana söyle, metni güncelleyip yayına alayım.</p>
           </div>
+
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <label className="block text-sm font-bold text-zinc-900">Mesafeli Satış Sözleşmesi</label>
+              <div className="flex flex-wrap items-center gap-4">
+                <button type="button" onClick={() => htmlModunuDegistir('distance_selling_policy')} className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline decoration-dotted">
+                  {htmlModu['distance_selling_policy'] ? 'Görsel düzenleyiciye geç' : 'HTML kaynağına dön'}
+                </button>
+                <button type="button" onClick={() => depodakineDon('distance_selling_policy')} className="text-xs font-bold text-cyan-600 hover:text-cyan-800 underline decoration-dotted">
+                  Hazır metne dön
+                </button>
+                <button type="button" onClick={() => handleAutoFix('distance_selling_policy')} className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline decoration-dotted">
+                  Etiketler yazı olarak görünüyorsa: Çöz
+                </button>
+              </div>
+            </div>
+            {metinAlani('distance_selling_policy')}
+            {bicimBozukMu(settings['distance_selling_policy']) && (
+              <p className="text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">
+                Bu metnin biçimi bozuk görünüyor (içi boş madde işaretleri, başlığa dönmüş paragraflar veya
+                satır kırılmasını engelleyen boşluklar). Sitede dağınık görünüyor olabilir —
+                "Hazır metne dön" ile düzeltebilirsin.
+              </p>
+            )}
+            <p className="text-xs text-zinc-500 mt-2">
+              Boş bırakırsan sitede hazırlanmış asıl metin gösterilir; sayfa hiçbir zaman boş kalmaz.
+            </p>
+          </div>
+
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <label className="block text-sm font-bold text-zinc-900">Gizlilik ve KVKK Aydınlatma Metni</label>
+              <div className="flex flex-wrap items-center gap-4">
+                <button type="button" onClick={() => htmlModunuDegistir('privacy_policy')} className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline decoration-dotted">
+                  {htmlModu['privacy_policy'] ? 'Görsel düzenleyiciye geç' : 'HTML kaynağına dön'}
+                </button>
+                <button type="button" onClick={() => depodakineDon('privacy_policy')} className="text-xs font-bold text-cyan-600 hover:text-cyan-800 underline decoration-dotted">
+                  Hazır metne dön
+                </button>
+                <button type="button" onClick={() => handleAutoFix('privacy_policy')} className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline decoration-dotted">
+                  Etiketler yazı olarak görünüyorsa: Çöz
+                </button>
+              </div>
+            </div>
+            {metinAlani('privacy_policy')}
+            {bicimBozukMu(settings['privacy_policy']) && (
+              <p className="text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">
+                Bu metnin biçimi bozuk görünüyor (içi boş madde işaretleri, başlığa dönmüş paragraflar veya
+                satır kırılmasını engelleyen boşluklar). Sitede dağınık görünüyor olabilir —
+                "Hazır metne dön" ile düzeltebilirsin.
+              </p>
+            )}
+            <p className="text-xs text-zinc-500 mt-2">
+              Boş bırakırsan sitede hazırlanmış asıl metin gösterilir; sayfa hiçbir zaman boş kalmaz.
+            </p>
+          </div>
+
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <label className="block text-sm font-bold text-zinc-900">Teslimat ve İade Politikası</label>
+              <div className="flex flex-wrap items-center gap-4">
+                <button type="button" onClick={() => htmlModunuDegistir('delivery_return_policy')} className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline decoration-dotted">
+                  {htmlModu['delivery_return_policy'] ? 'Görsel düzenleyiciye geç' : 'HTML kaynağına dön'}
+                </button>
+                <button type="button" onClick={() => depodakineDon('delivery_return_policy')} className="text-xs font-bold text-cyan-600 hover:text-cyan-800 underline decoration-dotted">
+                  Hazır metne dön
+                </button>
+                <button type="button" onClick={() => handleAutoFix('delivery_return_policy')} className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline decoration-dotted">
+                  Etiketler yazı olarak görünüyorsa: Çöz
+                </button>
+              </div>
+            </div>
+            {metinAlani('delivery_return_policy')}
+            {bicimBozukMu(settings['delivery_return_policy']) && (
+              <p className="text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">
+                Bu metnin biçimi bozuk görünüyor (içi boş madde işaretleri, başlığa dönmüş paragraflar veya
+                satır kırılmasını engelleyen boşluklar). Sitede dağınık görünüyor olabilir —
+                "Hazır metne dön" ile düzeltebilirsin.
+              </p>
+            )}
+            <p className="text-xs text-zinc-500 mt-2">
+              Boş bırakırsan sitede hazırlanmış asıl metin gösterilir; sayfa hiçbir zaman boş kalmaz.
+            </p>
+          </div>
+
         </div>
 
         {/* KAYDET BUTONU */}

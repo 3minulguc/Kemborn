@@ -1,11 +1,7 @@
 import YasalIcerik from '../components/YasalIcerik';
-import metin from '../content/yasal/mesafeli-satis.html?raw';
 
 const DistanceSellingPage = () => (
-  <YasalIcerik
-    baslik="Mesafeli Satış Sözleşmesi"
-    html={metin}
-  />
+  <YasalIcerik baslik="Mesafeli Satış Sözleşmesi" alan="distance_selling_policy" />
 );
 
 export default DistanceSellingPage;
