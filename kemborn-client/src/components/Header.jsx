@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo, FiShoppingBag, FiShare2, FiPlayCircle, FiPackage } from 'react-icons/fi';
+import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo, FiShoppingBag, FiShare2, FiPlayCircle, FiPackage, FiChevronDown } from 'react-icons/fi';
 import { useCart } from '../context/CartContext'; 
 import { useAuth } from '../context/AuthContext';
 import { urunAramayaUyuyorMu } from '../utils/search';
 import { API_URL } from '../config/api';
+
+// Yasal metinler tek yerde tanımlı: hem üst menüdeki açılır listeyi hem de
+// "şu an yasal bir sayfadayım" vurgusunu buradan besliyoruz. İki ayrı liste
+// tutulsaydı biri güncellenip diğeri unutulurdu.
+const YASAL_SAYFALAR = [
+  { yol: '/delivery', etiket: 'Teslimat ve İade' },
+  { yol: '/policy', etiket: 'Gizlilik Politikası' },
+  { yol: '/mesafeli-satis-sozlesmesi', etiket: 'Mesafeli Satış Sözleşmesi' }
+];
+const YASAL_YOLLARI = YASAL_SAYFALAR.map(s => s.yol);
 
 const Header = () => {
   const location = useLocation();
@@ -17,6 +27,25 @@ const Header = () => {
   const searchRef = useRef(null); 
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const [yasalAcik, setYasalAcik] = useState(false);
+  const yasalRef = useRef(null);
+
+  // Açılır menü dışarı tıklayınca ve Escape ile kapanmalı; sadece tekrar
+  // butona basınca kapanması, menüyü yanlışlıkla açan kullanıcıyı sıkıştırıyor.
+  useEffect(() => {
+    if (!yasalAcik) return;
+    const disariTiklandi = (e) => {
+      if (yasalRef.current && !yasalRef.current.contains(e.target)) setYasalAcik(false);
+    };
+    const escBasildi = (e) => { if (e.key === 'Escape') setYasalAcik(false); };
+    document.addEventListener('mousedown', disariTiklandi);
+    document.addEventListener('keydown', escBasildi);
+    return () => {
+      document.removeEventListener('mousedown', disariTiklandi);
+      document.removeEventListener('keydown', escBasildi);
+    };
+  }, [yasalAcik]);
 
   const cartCount = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
 
@@ -48,6 +77,8 @@ const Header = () => {
   // URL değiştiğinde çalışan güvenlik önlemi
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    // Yasal açılır menüsü de kapansın (tarayıcının geri tuşu dahil).
+    setYasalAcik(false);
     document.body.style.overflow = 'unset';
   }, [location.pathname]);
 
@@ -204,15 +235,17 @@ const Header = () => {
         </div>
 
         <nav className="hidden md:block w-full border-b border-zinc-200 bg-zinc-50 py-3 relative z-40">
-          {/* NAV'DA NE VAR, NE YOK:
-              Yasal metin sayfaları (Teslimat ve İade, Gizlilik Politikası,
-              Mesafeli Satış Sözleşmesi) BİLEREK burada değil — footer'daki
-              "Yardım" başlığı altında duruyorlar. Yasal zorunluluk bunların
-              ERİŞİLEBİLİR olması, üst menüde bulunması değil; footer bunun
-              standart yeri. Üç uzun etiket menünün yarısını yiyor ve
-              müşterinin gerçekten aradığı sayfalara yer bırakmıyordu.
-              Sıra müşterinin yolculuğuna göre: gez → öğren → siparişini takip et. */}
-          <div className="max-w-7xl mx-auto px-4 flex justify-center gap-8 overflow-x-auto">
+          {/* Sıra müşterinin yolculuğuna göre: gez → öğren → siparişini takip et.
+              Yasal metinler footer'da da duruyor (standart yeri orası) ama burada
+              da bir açılır menüde toplandı: müşteri satın almadan önce "iade
+              koşulları ne?" sorusunun cevabını ararken sayfanın en altına inmek
+              zorunda kalmasın. Üç uzun etiketi yan yana koymak menünün yarısını
+              yiyordu, açılır menü bu yüzden. */}
+          {/* overflow-x-auto DEĞİL: kaydırma kabı, "Yasal" açılır listesini
+              kırpıyordu (panel DOM'da vardı ama görünmüyordu). Dar ekranda
+              yatay kaydırmaktansa alt satıra sarmak hem sorunu çözüyor hem
+              de gizli kalan bağlantı bırakmıyor. */}
+          <div className="max-w-7xl mx-auto px-4 flex justify-center items-center flex-wrap gap-x-8 gap-y-2">
             <Link to="/" className={`${isActive("/")} text-sm whitespace-nowrap`}>Ana Sayfa</Link>
             <Link to="/products" className={`${isActive("/products")} text-sm whitespace-nowrap`}>Ürünler</Link>
             <Link to="/kurulum-rehberi" className={`${isActive("/kurulum-rehberi")} text-sm whitespace-nowrap`}>Kurulum Rehberi</Link>
@@ -221,6 +254,42 @@ const Header = () => {
             <Link to="/sosyal-medyalarimiz" className={`${isActive("/sosyal-medyalarimiz")} text-sm whitespace-nowrap`}>Sosyal Medyalarımız</Link>
             <Link to="/about" className={`${isActive("/about")} text-sm whitespace-nowrap`}>Hakkımızda</Link>
             <Link to="/contact" className={`${isActive("/contact")} text-sm whitespace-nowrap`}>İletişim</Link>
+
+            {/* YASAL — açılır menü */}
+            <div className="relative" ref={yasalRef}>
+              <button
+                type="button"
+                onClick={() => setYasalAcik(a => !a)}
+                aria-expanded={yasalAcik}
+                aria-haspopup="true"
+                className={`${YASAL_YOLLARI.includes(location.pathname) ? 'text-cyan-700' : 'text-zinc-600 hover:text-cyan-700'} text-sm font-bold whitespace-nowrap flex items-center gap-1 transition-colors`}
+              >
+                Yasal
+                <FiChevronDown
+                  size={15}
+                  className={`transition-transform duration-200 ${yasalAcik ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {yasalAcik && (
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-60 bg-white rounded-2xl border border-zinc-200 shadow-xl py-2 z-50">
+                  {YASAL_SAYFALAR.map((s) => (
+                    <Link
+                      key={s.yol}
+                      to={s.yol}
+                      onClick={() => setYasalAcik(false)}
+                      className={`block px-4 py-2.5 text-sm font-bold transition-colors ${
+                        location.pathname === s.yol
+                          ? 'text-cyan-700 bg-cyan-50'
+                          : 'text-zinc-600 hover:text-cyan-700 hover:bg-zinc-50'
+                      }`}
+                    >
+                      {s.etiket}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </nav>
       </header>
