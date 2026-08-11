@@ -1,4 +1,5 @@
 const express = require('express');
+const { round2 } = require('../lib/para');
 const { client, transactionIle } = require('../config/veritabani');
 const { verifyToken, verifyTokenOptional, verifyOwnership, isAdminUser } = require('../middleware/kimlik');
 const { resetPasswordLimiter, siparisLimiter } = require('../config/limitler');
@@ -64,7 +65,6 @@ router.get('/api/orders/:orderId', verifyToken, async (req, res) => {
 // birim fiyatlar products tablosundan, kargo ücreti store_settings
 // tablosundan okunur. Böylece tarayıcıdan sahte fiyat göndererek ürünü
 // bedavaya almak mümkün değildir.
-const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 // conn: transaction bağlantısı. Sipariş oluşturulurken stok kontrolü ile
 // rezervasyonun AYNI transaction içinde, aynı görüntü üzerinde çalışması için

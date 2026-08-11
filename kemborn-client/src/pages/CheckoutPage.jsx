@@ -5,15 +5,17 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { FiLock, FiShield, FiCreditCard, FiMapPin, FiUserX, FiShoppingCart } from 'react-icons/fi';
 import { apiFetch } from '../utils/apiFetch';
+import { selectOkStyle } from '../utils/formStil';
+import { formatPrice } from '../utils/format';
 
 const CheckoutPage = () => {
   const { cart = [] } = useCart();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ ad: '', soyad: '', email: '', telefon: '', adres: '' });
-  // PayTR iFrame API: token alındığında ödeme formu PayTR'nin sayfasına
-  // yönlendirmek yerine DOĞRUDAN bu sayfanın içinde (iframe ile) açılır.
-  const [paytrToken, setPaytrToken] = useState(null);
+  // PayTR Direkt API: sunucu imzayı ve formun gizli alanlarını üretiyor,
+  // kart bilgileri bu sayfadaki formdan DOĞRUDAN PayTR'ye gidiyor.
+  const [odeme, setOdeme] = useState(null); // { formAction, alanlar }
   // Sunucu, sepetteki fiyatların değiştiğini bildirirse doğru tutarı buraya
   // yazıyoruz ve müşteriye güncel tutarı gösteriyoruz.
   const [serverTotal, setServerTotal] = useState(null);
@@ -21,25 +23,6 @@ const CheckoutPage = () => {
   // ÖNCE müşterinin mesafeli satış sözleşmesini ve ön bilgilendirmeyi
   // onaylaması zorunludur. Onay verilmeden ödeme adımına geçilmez.
   const [sozlesmeOnayi, setSozlesmeOnayi] = useState(false);
-
-  // PayTR'nin iframe'i otomatik yükseklik ayarlaması için resmi script'i (bir
-  // kere) sayfaya ekliyoruz, token geldiğinde de iframe'e bağlıyoruz.
-  useEffect(() => {
-    if (!paytrToken) return;
-    const scriptId = 'paytr-iframe-resizer';
-    const initResizer = () => {
-      if (window.iFrameResize) window.iFrameResize({}, '#paytriframe');
-    };
-    if (document.getElementById(scriptId)) {
-      initResizer();
-      return;
-    }
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = 'https://www.paytr.com/js/iframeResizer.min.js';
-    script.onload = initResizer;
-    document.body.appendChild(script);
-  }, [paytrToken]);
 
   // Kargo ücreti ve bedava kargo sınırı artık admin panelinden (Ayarlar) geliyor
   const [shippingSettings, setShippingSettings] = useState({ shipping_fee: 99.90, free_shipping_threshold: 1000 });
@@ -207,9 +190,9 @@ const CheckoutPage = () => {
 
       const paymentData = await paymentResponse.json();
 
-      if (paymentResponse.ok && paymentData?.token) {
+      if (paymentResponse.ok && paymentData?.alanlar) {
         toast.dismiss(loadingToast);
-        setPaytrToken(paymentData.token);
+        setOdeme(paymentData);
         setLoading(false);
       } else {
         throw new Error(paymentData.error || "Ödeme formu alınamadı");
@@ -250,25 +233,107 @@ const CheckoutPage = () => {
     );
   }
 
-  // Token geldiyse, sipariş bilgi formu yerine doğrudan PayTR'nin güvenli
-  // ödeme formunu (iframe) gösteriyoruz — müşteri siteden hiç ayrılmıyor.
-  if (paytrToken) {
+  // Sipariş oluştuysa, bilgi formu yerine kart formunu gösteriyoruz.
+  //
+  // KART ALANLARI BİLEREK "uncontrolled" — value/onChange YOK.
+  // React state'ine bağlanırsa kart numarası ve CVV uygulamanın belleğinden
+  // geçer; bir hata ayıklama log'u, bir hata raporlama aracı ya da dikkatsiz
+  // bir console.log kolayca sızdırabilir. Bu haliyle değerler yalnızca DOM'da
+  // durur ve form gönderildiğinde doğrudan PayTR'ye gider.
+  //
+  // Aynı sebeple kart numarası boşluklarla biçimlendirilmiyor: biçimlendirme
+  // değeri JS'e okutup geri yazmayı gerektirirdi.
+  if (odeme) {
+    const { formAction, alanlar } = odeme;
+    const buYil = new Date().getFullYear();
+    const kartInput = "w-full bg-zinc-50 border border-zinc-200 text-zinc-900 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-cyan-600/20 focus:border-cyan-600 transition-all placeholder:text-zinc-400 font-medium appearance-none";
+
     return (
-      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-12 min-h-[60vh]">
-        <h1 className="text-3xl sm:text-4xl font-black mb-6 text-zinc-900 tracking-tight">Güvenli Ödeme</h1>
-        <div className="bg-white p-2 sm:p-4 rounded-[2rem] border border-zinc-200 shadow-sm">
-          <iframe
-            src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
-            id="paytriframe"
-            title="PayTR Güvenli Ödeme"
-            frameBorder="0"
-            scrolling="no"
-            style={{ width: '100%', minHeight: '600px' }}
-          />
-        </div>
+      <main className="w-full max-w-2xl mx-auto px-4 sm:px-6 py-12 min-h-[60vh]">
+        <h1 className="text-3xl sm:text-4xl font-black mb-2 text-zinc-900 tracking-tight">Güvenli Ödeme</h1>
+        <p className="text-zinc-500 font-medium mb-8">
+          Ödenecek tutar: <b className="text-zinc-900">{formatPrice(alanlar.payment_amount)} TL</b>
+        </p>
+
+        {/* action DOĞRUDAN PayTR — kendi sunucumuza POST etmiyoruz.
+            PayTR dokümanı bunu şart koşuyor. */}
+        <form
+          action={formAction}
+          method="POST"
+          className="bg-white p-6 sm:p-8 rounded-[2rem] border border-zinc-200 shadow-sm space-y-4"
+        >
+          {Object.entries(alanlar).map(([ad, deger]) => (
+            <input key={ad} type="hidden" name={ad} value={deger} />
+          ))}
+
+          <div>
+            <label htmlFor="cc_owner" className="block text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">
+              Kart Üzerindeki İsim
+            </label>
+            <input
+              id="cc_owner" name="cc_owner" type="text" required maxLength={60}
+              autoComplete="cc-name" placeholder="AD SOYAD"
+              className={`${kartInput} uppercase`}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="card_number" className="block text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">
+              Kart Numarası
+            </label>
+            <input
+              id="card_number" name="card_number" type="text" required
+              inputMode="numeric" pattern="[0-9]{15,16}" maxLength={16}
+              autoComplete="cc-number" placeholder="1234567812345678"
+              className={`${kartInput} tracking-widest`}
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label htmlFor="expiry_month" className="block text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">Ay</label>
+              <select id="expiry_month" name="expiry_month" required autoComplete="cc-exp-month"
+                      className={kartInput} style={selectOkStyle} defaultValue="">
+                <option value="" disabled>AA</option>
+                {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
+                  .map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="expiry_year" className="block text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">Yıl</label>
+              <select id="expiry_year" name="expiry_year" required autoComplete="cc-exp-year"
+                      className={kartInput} style={selectOkStyle} defaultValue="">
+                <option value="" disabled>YY</option>
+                {Array.from({ length: 15 }, (_, i) => String(buYil + i).slice(-2))
+                  .map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="cvv" className="block text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">CVV</label>
+              <input
+                id="cvv" name="cvv" type="text" required
+                inputMode="numeric" pattern="[0-9]{3,4}" maxLength={4}
+                autoComplete="cc-csc" placeholder="123"
+                className={kartInput}
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white py-4 rounded-2xl font-black text-lg hover:bg-cyan-600 transition-all mt-2"
+          >
+            <FiLock size={18} /> {formatPrice(alanlar.payment_amount)} TL Öde
+          </button>
+
+          <p className="text-center text-xs font-medium text-zinc-400 pt-1">
+            Devamında bankanızın 3D Secure doğrulama ekranına yönlendirileceksiniz.
+          </p>
+        </form>
+
         <div className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-zinc-400">
           <FiShield size={18} className="text-cyan-600" />
-          <span>Kart bilgileriniz PayTR güvencesiyle 256-bit SSL ile korunmaktadır.</span>
+          <span>Kart bilgileriniz Kemborn sunucularına hiç uğramadan doğrudan PayTR'ye iletilir.</span>
         </div>
       </main>
     );

@@ -5,6 +5,7 @@ const { siparisLimiter } = require('../config/limitler');
 const { stokIadeEt, stokAyrilmisMi } = require('../domain/stok');
 const { confirmOrderPayment } = require('../domain/siparis');
 const { logToFile } = require('../lib/log');
+const { round2 } = require('../lib/para');
 const { FRONTEND_URL } = require('../config/ortam');
 const { PAYTR_MERCHANT_ID, PAYTR_MERCHANT_KEY, PAYTR_MERCHANT_SALT, PAYTR_TEST_MODE } = require('../config/paytr');
 const crypto = require('crypto');
@@ -15,20 +16,27 @@ const router = express.Router();
 // --- ÖDEME ROTALARI ---
 // ==========================================
 // ==========================================
-// GEÇİCİ ÇÖZÜM: Mağazada şu an "Entegrasyon (Pro API)" değil, sadece
-// "Link ile Ödeme (Basic API)" aktif olduğu için, PayTR onayı gelene kadar
-// Link API kullanıyoruz. Pro API onaylanınca bu rotayı iframe/get-token
-// akışına geri çevireceğiz (kodu arşivde duruyor).
+// PAYTR — DİREKT API (Sanal POS)
 // ==========================================
-// ==========================================
-// PAYTR — iFRAME API (Direkt API / Sanal POS entegrasyonu)
-// ==========================================
-// NOT: Bu, PayTR'nin "Link ile Ödeme" API'sinden FARKLI bir entegrasyondur.
-// Müşteri PayTR'nin kendi sayfasına yönlendirilmiyor — ödeme formu doğrudan
-// kemborn.com üzerinde (iframe içinde) açılıyor. Bunun çalışabilmesi için
-// PayTR Mağaza Paneli'nde "Direkt API / iFrame" servisinin mağaza için
-// (445827 - kemborn.com) AÇIK/onaylı olması şart. Kapalıysa PayTR şu hatayı
-// döner: "Magaziniz icin ... servis yetkisi bulunmuyor."
+// Mağaza 445827'de AÇIK olan entegrasyon bu. Daha önce iFrame API kullanıyorduk
+// ama PayTR o yetkiyi tanımlamadı; test isteğine verdiği cevap aynen şuydu:
+// "Mağazanızda Direkt API yetkisi tanımlıdır. iFrame API entegrasyonu için
+// yazılım destek ekibiyle iletişime geçin."
+//
+// AKIŞ — üç adım, ikisi bizde değil:
+//   1. Bu uç nokta imzayı (paytr_token) ve formun gizli alanlarını üretir.
+//   2. Tarayıcı, kart bilgileriyle birlikte formu DOĞRUDAN PayTR'ye POST eder
+//      (https://www.paytr.com/odeme). Kart verisi bu sunucuya HİÇ uğramaz —
+//      PayTR dokümanı bunu şart koşuyor: "Üye iş yerinin kendi sunucusuna
+//      POST kesinlikle yapılmamalıdır."
+//   3. PayTR 3D Secure'ü yürütür, sonucu /api/paytr-notify adresine bildirir
+//      ve müşteriyi merchant_ok_url / merchant_fail_url adresine döndürür.
+//
+// iFRAME API'DEN ÜÇ KRİTİK FARK (karıştırılırsa sessizce bozulur):
+//   tutar    kuruş tam sayı ("299999")  ->  ondalıklı TL ("2999.99")
+//   sepet    base64                     ->  düz JSON
+//   hash     ...basket+no_installment+max_installment+currency+test
+//            ->  ...payment_type+installment_count+currency+test+non_3d
 router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res) => {
   // DİKKAT: body'deki price / items alanları BİLEREK okunmuyor. Tahsil edilecek
   // tutar ve sepet içeriği, veritabanındaki kayıtlı siparişten alınıyor.
@@ -84,7 +92,13 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
     const merchantOid = order.order_number.replace(/-/g, '');
     // TUTAR BURADAN GELİYOR — istemciden değil, veritabanındaki siparişten.
     const orderTotal = parseFloat(order.total_amount) || 0;
-    const priceInKurus = Math.round(orderTotal * 100);
+
+    // TUTAR FORMATI — iFrame API ile Direkt API BURADA AYRIŞIYOR.
+    // iFrame kuruş cinsinden tam sayı istiyordu (2999.99 TL -> "299999").
+    // Direkt API ondalıklı TL istiyor: nokta ve noktadan sonra iki hane.
+    // Karıştırılırsa müşteriden 100 KATI tahsil edilir; bu yüzden ayrı bir
+    // değişken ve bu yorum var.
+    const paymentAmount = orderTotal.toFixed(2);   // "2999.99"
     const userIp = req.ip || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || '127.0.0.1';
     const userName = `${customer.ad || ''} ${customer.soyad || ''}`.trim() || 'Kemborn Müşterisi';
 
@@ -103,7 +117,8 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
       userBasket.push(['Kargo Ücreti', shippingLine.toFixed(2), 1]);
     }
 
-    const userBasketBase64 = Buffer.from(JSON.stringify(userBasket)).toString('base64');
+    // DİKKAT — iFrame API'den farklı: sepet base64 DEĞİL, düz JSON gönderiliyor.
+    const userBasketJson = JSON.stringify(userBasket);
 
     const currency = 'TL';
 
@@ -122,11 +137,15 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
     //
     // O iş yapılana kadar taksit kapalı: eksik tahsilat yapmaktansa taksit
     // sunmamak tercih edildi.
-    const noInstallment = '1';   // 1 = sadece tek çekim
-    const maxInstallment = '0';  // taksit kapalıyken 0 gönderiliyor
+    const paymentType = 'card';
+    const installmentCount = '0';   // 0 = taksitsiz (tek çekim)
+    const non3d = '0';              // 0 = 3D Secure AÇIK
 
-    // PayTR iFrame API hash formülü (dokümandaki sıra ile BİREBİR aynı olmalı)
-    const hashStr = `${PAYTR_MERCHANT_ID}${userIp}${merchantOid}${customer.email}${priceInKurus}${userBasketBase64}${noInstallment}${maxInstallment}${currency}${PAYTR_TEST_MODE}`;
+    // PayTR Direkt API hash formülü — sıra dokümandaki ile BİREBİR aynı olmalı.
+    // iFrame API'ninkinden FARKLI: sepet ve taksit alanları yerine
+    // payment_type / installment_count / non_3d giriyor, merchant_ok_url ve
+    // merchant_fail_url ise hash'e HİÇ girmiyor.
+    const hashStr = `${PAYTR_MERCHANT_ID}${userIp}${merchantOid}${customer.email}${paymentAmount}${paymentType}${installmentCount}${currency}${PAYTR_TEST_MODE}${non3d}`;
     const paytrToken = crypto
       .createHmac('sha256', PAYTR_MERCHANT_KEY)
       .update(hashStr + PAYTR_MERCHANT_SALT)
@@ -134,48 +153,46 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
 
     const frontendBase = process.env.FRONTEND_URL || 'https://kemborn.com';
 
-    const body = new URLSearchParams({
-      merchant_id: PAYTR_MERCHANT_ID,
-      user_ip: userIp,
-      merchant_oid: merchantOid,
-      email: customer.email,
-      payment_amount: priceInKurus.toString(),
-      paytr_token: paytrToken,
-      user_basket: userBasketBase64,
-      debug_on: '1',
-      no_installment: noInstallment,
-      max_installment: maxInstallment,
-      user_name: userName,
-      user_address: customer.adres,
-      user_phone: customer.telefon,
-      // Sipariş numarası dönüş adresine ekleniyor: başarı sayfası hangi siparişi
-      // doğrulayacağını böyle biliyor. (Önceden adres boştu ve sayfa hiçbir
-      // kontrol yapmadan "Sipariş Başarılı!" diyordu.)
-      merchant_ok_url: `${frontendBase}/success?order=${encodeURIComponent(order.order_number)}`,
-      merchant_fail_url: `${frontendBase}/checkout?odeme=basarisiz`,
-      timeout_limit: '30',
-      currency,
-      test_mode: PAYTR_TEST_MODE,
-      lang: 'tr'
-      // NOT: Bildirim (webhook) adresi buradan değil, PayTR Mağaza Paneli >
-      // Ayarlar > Bildirim URL kısmından ayarlanıyor. O adresin
-      // https://<backend-adresin>/api/paytr-notify olarak girilmesi gerekiyor.
+    // Kart bilgileri BURADA YOK ve olmamalı.
+    //
+    // Direkt API'de ödeme formu müşterinin tarayıcısından DOĞRUDAN PayTR'ye
+    // POST ediliyor; PayTR dokümanı bunu şart koşuyor: "Üye iş yerinin kendi
+    // sunucusuna POST kesinlikle yapılmamalıdır." Kart numarası ve CVV bu
+    // sunucuya hiç uğramıyor — hash'e de girmiyorlar, o yüzden imzayı burada
+    // üretebiliyoruz.
+    //
+    // Bu uç nokta sadece formun gizli alanlarını hazırlıyor. Tutar yine
+    // veritabanındaki siparişten geliyor, istemciden değil.
+    res.json({
+      formAction: 'https://www.paytr.com/odeme',
+      alanlar: {
+        merchant_id: PAYTR_MERCHANT_ID,
+        user_ip: userIp,
+        merchant_oid: merchantOid,
+        email: customer.email,
+        payment_amount: paymentAmount,
+        paytr_token: paytrToken,
+        payment_type: paymentType,
+        installment_count: installmentCount,
+        currency,
+        test_mode: PAYTR_TEST_MODE,
+        non_3d: non3d,
+        user_basket: userBasketJson,
+        user_name: userName,
+        user_address: customer.adres,
+        user_phone: customer.telefon,
+        // Sipariş numarası dönüş adresine ekleniyor: başarı sayfası hangi siparişi
+        // doğrulayacağını böyle biliyor. (Önceden adres boştu ve sayfa hiçbir
+        // kontrol yapmadan "Sipariş Başarılı!" diyordu.)
+        merchant_ok_url: `${frontendBase}/success?order=${encodeURIComponent(order.order_number)}`,
+        merchant_fail_url: `${frontendBase}/checkout?odeme=basarisiz`,
+        debug_on: '1',
+        client_lang: 'tr'
+        // NOT: Bildirim (webhook) adresi buradan değil, PayTR Mağaza Paneli >
+        // Ayarlar > Bildirim URL kısmından ayarlanıyor. Girilen adres:
+        // https://kemborn-production.up.railway.app/api/paytr-notify
+      }
     });
-
-    const paytrResponse = await fetch('https://www.paytr.com/odeme/api/get-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body
-    });
-    const result = await paytrResponse.json();
-
-    if (result.status === 'success') {
-      res.json({ token: result.token });
-    } else {
-      console.error("PayTR token oluşturma hatası:", result.reason);
-      logToFile('error.log', `PAYTR GET-TOKEN HATASI: ${result.reason}`);
-      res.status(500).json({ error: result.reason || "Ödeme başlatılamadı, lütfen tekrar deneyin." });
-    }
   } catch (err) {
     console.error("PayTR isteği sırasında hata:", err);
     res.status(500).json({ error: "Ödeme sistemine ulaşılamadı, lütfen tekrar deneyin." });
