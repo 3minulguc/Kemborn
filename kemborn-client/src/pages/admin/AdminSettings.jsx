@@ -32,8 +32,6 @@ const AdminSettings = () => {
   // NEDEN VAR: Quill zengin metin editoru; icine ham HTML yapistirilinca
   // etiketleri METIN olarak gosteriyor. Yasal metinler depoda HTML olarak
   // yaziliyor (docs/yasal/) ve oldugu gibi yapistirilabilmeleri gerekiyor.
-  const [htmlModu, setHtmlModu] = useState({});
-  const htmlModunuDegistir = (alan) => setHtmlModu(m => ({ ...m, [alan]: !m[alan] }));
 
   // Gelişmiş Metin Editörü Araç Çubuğu Ayarları
   const quillModules = {
@@ -87,32 +85,6 @@ const AdminSettings = () => {
     const { name, value } = e.target;
     setSettings(prev => ({ ...prev, [name]: value }));
   };
-
-  // Yasal metin alanlari icin editor: gorsel mod (Quill) ile HTML kaynak modu
-  // arasinda gecis yapabiliyor.
-  // BILESEN DEGIL, duz fonksiyon: bilesen olarak tanimlansaydi her render'da
-  // yeni bir bilesen turu uretilir, React eskisini sokup yenisini takardi ve
-  // metin kutusu her harfte ODAGI KAYBEDERDI.
-  const metinAlani = (alan) => (
-    htmlModu[alan] ? (
-      <textarea
-        value={settings[alan] || ''}
-        onChange={(e) => handleQuillChange(alan, e.target.value)}
-        spellCheck={false}
-        className="w-full min-h-[250px] p-4 bg-zinc-900 text-zinc-100 rounded-xl font-mono text-xs leading-relaxed border border-zinc-700 focus:outline-none focus:border-cyan-500 appearance-none"
-        placeholder="<h2>Baslik</h2><p>Metin...</p>"
-      />
-    ) : (
-      <div className="bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden [&_.ql-toolbar]:border-none [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-zinc-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[250px] [&_.ql-editor]:text-base">
-        <ReactQuill
-          theme="snow"
-          modules={quillModules}
-          value={settings[alan]}
-          onChange={(val) => handleQuillChange(alan, val)}
-        />
-      </div>
-    )
-  );
 
   // React-Quill (Editör) için özel handler
   const handleQuillChange = (name, value) => {
@@ -339,43 +311,19 @@ const AdminSettings = () => {
             <FiFileText className="text-cyan-600" /> Yasal Metinler & Politikalar
           </h2>
           
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-bold text-zinc-900">Mesafeli Satış Sözleşmesi</label>
-              <div className="flex items-center gap-4">
-                <button type="button" onClick={() => htmlModunuDegistir('distance_selling_policy')} className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline decoration-dotted">
-                  {htmlModu['distance_selling_policy'] ? 'Görsel düzenleyiciye dön' : 'HTML olarak düzenle'}
-                </button>
-                <button type="button" onClick={() => handleAutoFix('distance_selling_policy')} className="text-xs font-bold text-cyan-600 hover:text-cyan-800 underline decoration-dotted">Bozuk görünüyorsa: Otomatik Düzelt</button>
-              </div>
-            </div>
-            {metinAlani('distance_selling_policy')}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-bold text-zinc-900">Gizlilik Politikası</label>
-              <div className="flex items-center gap-4">
-                <button type="button" onClick={() => htmlModunuDegistir('privacy_policy')} className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline decoration-dotted">
-                  {htmlModu['privacy_policy'] ? 'Görsel düzenleyiciye dön' : 'HTML olarak düzenle'}
-                </button>
-                <button type="button" onClick={() => handleAutoFix('privacy_policy')} className="text-xs font-bold text-cyan-600 hover:text-cyan-800 underline decoration-dotted">Bozuk görünüyorsa: Otomatik Düzelt</button>
-              </div>
-            </div>
-            {metinAlani('privacy_policy')}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-bold text-zinc-900">Teslimat ve İade Politikası</label>
-              <div className="flex items-center gap-4">
-                <button type="button" onClick={() => htmlModunuDegistir('delivery_return_policy')} className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline decoration-dotted">
-                  {htmlModu['delivery_return_policy'] ? 'Görsel düzenleyiciye dön' : 'HTML olarak düzenle'}
-                </button>
-                <button type="button" onClick={() => handleAutoFix('delivery_return_policy')} className="text-xs font-bold text-cyan-600 hover:text-cyan-800 underline decoration-dotted">Bozuk görünüyorsa: Otomatik Düzelt</button>
-              </div>
-            </div>
-            {metinAlani('delivery_return_policy')}
+          {/* Bu üç metin artık depodan geliyor (src/content/yasal/). Editörden
+              çıkarıldılar çünkü zengin metin editörü yapıştırılan HTML'in
+              biçimini bozuyordu: her satır başlığa dönüşüyor, satır sonları boş
+              madde işareti üretiyor ve boşluklar &nbsp; olup mobilde satır
+              kırılmasını engelliyordu. Hukuki metinlerde bu kabul edilemez. */}
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-6 text-sm leading-relaxed text-zinc-600">
+            <p className="font-bold text-zinc-900 mb-2">Mesafeli Satış Sözleşmesi, Gizlilik/KVKK ve Teslimat-İade metinleri buradan düzenlenmiyor.</p>
+            <p className="mb-3">
+              Bu üç belgenin her cümlesi hukuki sorumluluk doğurduğu için metinler artık doğrudan sitenin
+              kaynak dosyalarında tutuluyor. Böylece sayfada yazıldıkları gibi görünüyorlar ve her değişiklik
+              kayıt altına alınıyor. Daha önce editöre yapıştırıldıklarında biçimleri bozuluyordu.
+            </p>
+            <p>Değişiklik gerektiğinde bana söyle, metni güncelleyip yayına alayım.</p>
           </div>
         </div>
 
