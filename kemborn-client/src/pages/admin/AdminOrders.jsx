@@ -212,6 +212,9 @@ const AdminOrders = () => {
               <button
                 key={s.deger}
                 onClick={() => handleTabChange(s.deger)}
+                // Hangi sekmenin seçili olduğu şu an sadece renkten anlaşılıyor;
+                // ekran okuyucu için de, test için de tutamak lazım.
+                aria-pressed={aktif}
                 className={`shrink-0 px-4 min-h-[44px] rounded-xl font-black text-xs uppercase tracking-wider transition-all border ${
                   aktif
                     ? `bg-white ${s.renk} shadow-sm border-zinc-200`
