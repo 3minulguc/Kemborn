@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import ScrollToTop from './components/ScrollToTop'; // 1. Importu ekledik
 import CookieConsent from './components/CookieConsent';
+import Analitik from './components/Analitik';
 import CanonicalUrl from './components/CanonicalUrl';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFoundPage from './pages/NotFoundPage';
@@ -126,6 +127,7 @@ function App() {
               <Route path="settings" element={<AdminSettings />} />
             </Route>
           </Routes>
+          <Analitik />
           <CookieConsent />
         </CartProvider>
       </AuthProvider>

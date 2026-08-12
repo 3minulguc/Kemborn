@@ -21,6 +21,32 @@ cp .env.example .env.production
 # içine VITE_API_URL=https://<backend-adresin> yaz
 ```
 
+## Ölçümleme (Google Analytics / Meta Pixel)
+
+İkisi de **isteğe bağlı** ve varsayılan olarak **kapalı**:
+
+| Değişken | Nereden alınır |
+|---|---|
+| `VITE_GA4_ID` | Google Analytics → Yönetici → Veri akışları (`G-` ile başlar) |
+| `VITE_META_PIXEL_ID` | Meta Events Manager → Veri kaynakları |
+
+Nasıl çalışıyor:
+
+- **Kimlik boşken** hiçbir script yüklenmez, site tek bir fazladan istek bile
+  atmaz. Çerez banner'ı "bilgilendirme" modunda kalır (tek "Anladım" butonu).
+- **Kimlik doluyken** banner "Kabul Et / Reddet" moduna geçer ve ölçüm araçları
+  **yalnızca kullanıcı kabul ederse** yüklenir. KVKK gereği böyle olmak zorunda;
+  takip çerezi için sessiz kabul geçerli değil, bu yüzden banner'ı X ile
+  kapatmak da reddetme sayılıyor.
+
+Toplanan olaylar: `page_view`, `view_item`, `add_to_cart`, `begin_checkout`,
+`purchase`. Hepsi `src/utils/analitik.js` üzerinden geçiyor — yeni bir olay
+eklemek gerekirse orası tek giriş noktası.
+
+Yayına alırken kimlikler **Vercel → Settings → Environment Variables** altına
+da eklenmeli. Vite değişkenleri derleme anında gömüldüğü için, ekledikten
+sonra **yeniden dağıtım (redeploy) şart** — yoksa eski paket çalışmaya devam eder.
+
 ## Script'ler
 
 | Komut | Ne yapar |

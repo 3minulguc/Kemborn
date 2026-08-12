@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
+import { olayGonder } from '../utils/analitik';
 import { useAuth } from '../hooks/useAuth';
 import { FiPackage, FiShoppingBag, FiCheckCircle, FiClock, FiXCircle, FiRefreshCw, FiSearch } from 'react-icons/fi';
 import { API_URL } from '../config/api';
@@ -54,6 +55,14 @@ const SuccessPage = () => {
           // Sepeti SADECE ödeme gerçekten onaylandığında ve bir kez temizle
           if (!sepetTemizlendi.current) {
             sepetTemizlendi.current = true;
+            // Satın alma olayı da tam burada: ödeme SUNUCUDAN onaylandı ve
+            // bu blok sipariş başına yalnızca bir kez çalışıyor. Sayfayı
+            // yenileyen müşteri cirosu iki kez saydırmıyor.
+            olayGonder('purchase', {
+              transaction_id: veri.orderNumber,
+              currency: 'TRY',
+              value: Number(veri.totalAmount) || 0
+            });
             clearCart?.();
           }
         } else if (veri.basarisiz) {

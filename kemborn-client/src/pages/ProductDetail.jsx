@@ -6,6 +6,7 @@ import { FiHeart, FiTruck, FiShield, FiPlayCircle, FiChevronLeft, FiChevronRight
 import toast from 'react-hot-toast'; 
 import { formatPrice } from '../utils/format';
 import ProductCard from '../components/ProductCard';
+import { olayGonder, urunuBicimle } from '../utils/analitik';
 import Seo from '../components/Seo';
 import { useFavorites } from '../hooks/useFavorites';
 import { temizHtml } from '../utils/sanitize';
@@ -53,6 +54,11 @@ const ProductDetail = () => {
           if (foundProduct.colors && foundProduct.colors.length > 0) {
             setSelectedColor(foundProduct.colors[0]);
           }
+          olayGonder('view_item', {
+            currency: 'TRY',
+            value: Number(foundProduct.price) || 0,
+            items: [urunuBicimle(foundProduct)]
+          });
         }
 
         const settingsResponse = await apiFetch(`/api/settings`);

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { CartContext } from './contexts';
 import { useAuth } from '../hooks/useAuth';
+import { olayGonder, urunuBicimle } from '../utils/analitik';
 
 
 // Sepet, giriş yapan kullanıcıya özel bir anahtarda saklanır. Böylece:
@@ -80,6 +81,14 @@ export const CartProvider = ({ children }) => {
       }];
     });
     
+    // Sepete ekleme sitede birkaç yerden yapılıyor (ürün sayfası, sepette
+    // adet artırma vb.); ölçüm buraya konuyor ki tek yerden ve eksiksiz sayılsın.
+    olayGonder('add_to_cart', {
+      currency: 'TRY',
+      value: price * quantity,
+      items: [urunuBicimle({ ...product, price }, quantity, color)]
+    });
+
     toast.success(`${product.name} sepete eklendi!`);
   };
 

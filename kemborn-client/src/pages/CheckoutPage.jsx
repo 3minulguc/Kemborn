@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
@@ -7,6 +7,7 @@ import { FiLock, FiShield, FiCreditCard, FiMapPin, FiUserX, FiShoppingCart } fro
 import { apiFetch } from '../utils/apiFetch';
 import { selectOkStyle } from '../utils/formStil';
 import { formatPrice } from '../utils/format';
+import { olayGonder, urunuBicimle } from '../utils/analitik';
 
 const CheckoutPage = () => {
   const { cart = [] } = useCart();
@@ -108,6 +109,23 @@ const CheckoutPage = () => {
   // Ödenecek tutar: normalde bizim hesabımız, sunucu düzeltme bildirdiyse onunki.
   // Nihai tutarı her zaman sunucu belirler; buradaki hesap sadece gösterim içindir.
   const displayedTotal = priceCorrection ?? grandTotal;
+
+  // "Ödemeye başladı" olayı: sepeti dolu bir müşteri bu sayfaya ilk geldiğinde
+  // bir kez. Ref ile korunuyor, yoksa her yeniden çizimde tekrar gönderilir ve
+  // huni sayıları şişer.
+  const odemeBaslamaGonderildi = useRef(false);
+  useEffect(() => {
+    if (odemeBaslamaGonderildi.current || cart.length === 0) return;
+    odemeBaslamaGonderildi.current = true;
+    olayGonder('begin_checkout', {
+      currency: 'TRY',
+      value: displayedTotal,
+      items: cart.map(u => urunuBicimle(u, u.quantity, u.color))
+    });
+    // Sepet sonradan değişse bile olay tekrar gönderilmiyor; bu yüzden
+    // bağımlılık listesi bilerek dar tutuldu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.length]);
 
   const handleCompleteOrder = async () => {
     if (isCartEmpty) return;
