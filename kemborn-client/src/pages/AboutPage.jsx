@@ -9,8 +9,8 @@ import { FiShield, FiRefreshCw, FiTool } from 'react-icons/fi';
 const GUVENCELER = [
   {
     ikon: FiShield,
-    baslik: '2 Yıl Garanti',
-    metin: 'Tüm Kemborn ürünleri 2 yıl garantilidir. Kullanım sırasında ortaya çıkan arızalarda ürün ücretsiz onarılır.'
+    baslik: '1 Yıl Garanti',
+    metin: 'Tüm Kemborn ürünleri, Kemborn tarafından doğrudan sağlanan 1 yıl garantilidir. Kullanım sırasında ortaya çıkan arızalarda ürün ücretsiz onarılır.'
   },
   {
     ikon: FiRefreshCw,
@@ -36,7 +36,7 @@ const AboutPage = () => {
         <section>
           <h2 className="text-2xl font-bold text-zinc-900 mb-4">Türkiye'nin Kendi İnterkomu</h2>
           <p>
-            Kemborn, <strong className="text-zinc-900">Türkiye'de Türk patentiyle üretilen tek motosiklet
+            Kemborn, <strong className="text-zinc-900">Türk patenti ile üretilen bir motosiklet
             interkom sistemidir</strong>. Tasarımdan üretime kadar her aşama yerli mühendislikle yürütülüyor;
             ürünü biz geliştiriyor, biz üretiyor ve arkasında biz duruyoruz.
           </p>
@@ -86,7 +86,7 @@ const AboutPage = () => {
         <section>
           <h2 className="text-2xl font-bold text-zinc-900 mb-4">Neden Kemborn?</h2>
           <ul className="list-disc list-inside space-y-2">
-            <li>Türkiye'de Türk patentiyle üretilen tek interkom sistemi.</li>
+            <li>Türk patenti ile üretilen interkom sistemi.</li>
             <li>Tamamen yerli tasarım ve mühendislik.</li>
             <li>Zorlu hava ve yol koşullarında test edilmiş dayanıklılık.</li>
             <li>Sürüş ergonomisini bozmayan şık ve kompakt tasarım.</li>

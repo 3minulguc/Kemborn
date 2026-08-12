@@ -231,7 +231,7 @@ const Header = () => {
         </div>
 
         <div className="bg-[#121212] py-1.5 text-center text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase">
-          TÜRK PATENTLİ TEK İNTERKOM
+          TÜRK PATENTLİ İNTERKOM
         </div>
 
         <nav className="hidden md:block w-full border-b border-zinc-200 bg-zinc-50 py-3 relative z-40">
