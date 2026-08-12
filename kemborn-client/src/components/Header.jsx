@@ -74,11 +74,20 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // URL değiştiğinde çalışan güvenlik önlemi
-  useEffect(() => {
+  // Sayfa değişince açık menüler kapansın (tarayıcının geri tuşu dahil).
+  //
+  // Eskiden useEffect'teydi: yeni sayfa bir kere menü HÂLÂ AÇIKKEN çiziliyor,
+  // sonra effect menüyü kapatıp ikinci kez çizdiriyordu — mobilde menünün
+  // bir an yeni sayfanın üstünde kaldığı bu yüzden görülüyordu.
+  const [oncekiYol, setOncekiYol] = useState(location.pathname);
+  if (location.pathname !== oncekiYol) {
+    setOncekiYol(location.pathname);
     setIsMobileMenuOpen(false);
-    // Yasal açılır menüsü de kapansın (tarayıcının geri tuşu dahil).
     setYasalAcik(false);
+  }
+
+  // Gövde kaydırma kilidini açmak DOM'a dokunmak; o yüzden effect'te kalıyor.
+  useEffect(() => {
     document.body.style.overflow = 'unset';
   }, [location.pathname]);
 

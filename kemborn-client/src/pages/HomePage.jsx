@@ -104,7 +104,7 @@ const HomePage = () => {
             alt="Virajda motosiklet süren iki sürücü"
             className="h-full w-full object-cover"
             loading="eager"
-            fetchpriority="high"
+            fetchPriority="high"
           />
         </picture>
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/80 via-black/35 to-black/10" />

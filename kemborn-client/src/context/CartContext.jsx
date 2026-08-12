@@ -20,10 +20,18 @@ export const CartProvider = ({ children }) => {
 
   // Giriş yapan kullanıcı değiştiğinde (giriş/çıkış), o kullanıcıya ait
   // kayıtlı sepeti yükle. Sayfa ilk açıldığında da aynı mantıkla çalışır.
+  //
+  // BİLEREK effect'te bırakıldı. react-hooks kuralı burayı "türetilmiş durum"
+  // sanıp render sırasında yapılmasını istiyor, ama bu effect hemen alttaki
+  // kaydetme effect'iyle justLoaded bayrağı üzerinden eşleşiyor: sıralamayı
+  // bozan bir değişiklik, yeni yüklenen sepetin üstüne boş sepeti yazar ve
+  // müşterinin sepeti sessizce boşalır. Bu dosyanın testi de yok. Lansmandan
+  // sonra iki effect birlikte, testle beraber ele alınmalı.
   useEffect(() => {
     justLoaded.current = true;
     try {
       const savedCart = localStorage.getItem(getCartStorageKey(user?.id));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCart(savedCart ? JSON.parse(savedCart) : []);
     } catch {
       setCart([]);

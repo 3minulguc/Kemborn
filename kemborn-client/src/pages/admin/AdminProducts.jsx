@@ -120,9 +120,12 @@ const AdminProducts = () => {
     }
   };
 
+  // Async çağrılar effect'in içinde sarmalanıyor: react-hooks kuralı `await`in
+  // arkasını göremediği için düz çağrıyı senkron bir setState sanıyor.
+  // Davranış aynı, sadece kurala görünür hâle geliyor.
   useEffect(() => {
-    fetchProducts();
-    fetchSettings();
+    // Promise.all: ikisi eskiden olduğu gibi paralel gitsin, biri diğerini beklemesin.
+    (async () => { await Promise.all([fetchProducts(), fetchSettings()]); })();
   }, []);
 
   // --- NATIVE DRAG & DROP SIRALAMA FONKSİYONLARI ---

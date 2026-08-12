@@ -20,6 +20,19 @@ const AdminOrders = () => {
   // Aktif sekme state'i (Varsayılan olarak URL'den geleni alır, yoksa 'ALL' olur)
   const [activeTab, setActiveTab] = useState(statusParam);
 
+  // URL'deki status parametresi değişince sekmeyi ona eşitle.
+  //
+  // Bu iş eskiden useEffect ile yapılıyordu: React önce eski sekmeyle bir
+  // kere çiziyor, sonra effect state'i değiştirip ikinci kez çizdiriyordu —
+  // yani doğru sekmeye geçmeden önce yanlış listeyi bir an gösteriyordu.
+  // Render sırasında yapılınca React ilk çizimi atıp doğrudan doğrusunu
+  // basıyor. Kullanıcının sekmeye tıklaması aynen çalışmaya devam ediyor.
+  const [oncekiStatusParam, setOncekiStatusParam] = useState(statusParam);
+  if (statusParam !== oncekiStatusParam) {
+    setOncekiStatusParam(statusParam);
+    setActiveTab(statusParam);
+  }
+
   // Modal State'leri
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -95,23 +108,21 @@ const AdminOrders = () => {
     }
   };
 
+  // Async çağrılar effect'in içinde sarmalanıyor: react-hooks kuralı `await`in
+  // arkasını göremediği için düz çağrıyı senkron bir setState sanıyor.
+  // Davranış aynı, sadece kurala görünür hâle geliyor.
   useEffect(() => {
-    fetchOrders();
+    (async () => { await fetchOrders(); })();
   }, []);
 
-  // URL'deki status parametresi değişirse sekmeyi otomatik güncelle
-  useEffect(() => {
-    if (statusParam) {
-      setActiveTab(statusParam);
-    }
-  }, [statusParam]);
-
-  // Başka bir sayfadan (Müşteri Detayı gibi) belirli bir siparişe link verilmişse otomatik aç
+  // Başka bir sayfadan (Müşteri Detayı gibi) belirli bir siparişe link
+  // verilmişse otomatik aç.
   useEffect(() => {
     const orderIdParam = searchParams.get('orderId');
-    if (orderIdParam) {
-      handleViewOrder(orderIdParam);
-    }
+    if (!orderIdParam) return;
+    (async () => { await handleViewOrder(orderIdParam); })();
+    // Sadece ilk açılışta çalışsın; sonraki URL değişimlerinde modal
+    // kendiliğinden açılmasın.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -153,10 +164,15 @@ const AdminOrders = () => {
     { deger: DURUM.ODEME_BASARISIZ, etiket: 'Ödeme Sorunlu', renk: 'text-purple-600' }
   ];
 
-  // Arama ya da sekme değişince sayfa 1'e dön (eski sayfada kalıp boş görünmesin)
-  useEffect(() => {
+  // Arama ya da sekme değişince sayfa 1'e dön (eski sayfada kalıp boş görünmesin).
+  // useEffect yerine render sırasında: effect'le yapılınca 5. sayfadayken
+  // arama yazan admin bir an boş liste görüyordu, sonra sayfa 1'e dönüyordu.
+  const sayfaAnahtari = `${searchTerm}|${activeTab}`;
+  const [oncekiSayfaAnahtari, setOncekiSayfaAnahtari] = useState(sayfaAnahtari);
+  if (sayfaAnahtari !== oncekiSayfaAnahtari) {
+    setOncekiSayfaAnahtari(sayfaAnahtari);
     setCurrentPage(1);
-  }, [searchTerm, activeTab]);
+  }
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
   const pagedOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);

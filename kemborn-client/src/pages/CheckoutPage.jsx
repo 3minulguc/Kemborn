@@ -63,20 +63,29 @@ const CheckoutPage = () => {
     setFormData(prev => ({ ...prev, telefon: formatted }));
   };
 
-  useEffect(() => {
+  // Giriş yapan kullanıcının ad/soyad/e-postasını forma doldur.
+  //
+  // useEffect ile yapılıyordu: form önce boş çiziliyor, sonra effect doluyordu.
+  // Yani müşteri ödeme sayfasına girdiğinde alanların bir an boş olup sonra
+  // dolduğunu görüyordu. Render sırasında yapılınca form ilk çizimde dolu geliyor.
+  // Kullanıcı değişirse (giriş/çıkış) alanlar yeniden eşitleniyor, ama
+  // müşterinin elle yazdığı diğer alanlara dokunulmuyor.
+  // Başlangıç değeri bilerek null: sayfa açıldığında kullanıcı ZATEN girişliyse
+  // de karşılaştırma bir kere farklı çıksın ve form dolsun. Buraya user?.id
+  // yazılsaydı girişli kullanıcının formu hiç dolmazdı.
+  const [oncekiKullanici, setOncekiKullanici] = useState(null);
+  if ((user?.id ?? null) !== oncekiKullanici) {
+    setOncekiKullanici(user?.id ?? null);
     if (user) {
-      const nameParts = user?.username ? user.username.split(' ') : [];
-      const userAd = nameParts[0] || '';
-      const userSoyad = nameParts.slice(1).join(' ') || '';
-
+      const adParcalari = user.username ? user.username.split(' ') : [];
       setFormData(prev => ({
         ...prev,
-        ad: userAd,
-        soyad: userSoyad,
-        email: user?.email || ''
+        ad: adParcalari[0] || '',
+        soyad: adParcalari.slice(1).join(' ') || '',
+        email: user.email || ''
       }));
     }
-  }, [user]);
+  }
 
   const isCartEmpty = !cart || cart.length === 0;
 
