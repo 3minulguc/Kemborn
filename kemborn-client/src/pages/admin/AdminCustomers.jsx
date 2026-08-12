@@ -257,20 +257,22 @@ const AdminCustomers = () => {
                           <button
                             key={order.id}
                             onClick={() => navigate(`/admin/orders?orderId=${order.id}`)}
-                            className="w-full bg-white p-4 rounded-2xl border border-zinc-200 hover:border-cyan-500 hover:shadow-sm transition-all grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 text-left"
+                            className="w-full bg-white p-4 rounded-2xl border border-zinc-200 hover:border-cyan-500 hover:shadow-sm transition-all grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] items-start md:items-center gap-2 md:gap-4 text-left"
                           >
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex items-center justify-between gap-2 md:block">
                               <p className="font-black text-zinc-900 truncate">{order.order_number}</p>
-                              <p className="text-xs font-bold text-zinc-400">{new Date(order.created_at).toLocaleDateString('tr-TR')}</p>
+                              <p className="text-xs font-bold text-zinc-400 whitespace-nowrap shrink-0">{new Date(order.created_at).toLocaleDateString('tr-TR')}</p>
                             </div>
-                            <div className={`px-3 py-1 rounded-full text-xs font-black uppercase whitespace-nowrap ${
-                                order.status === 'KARGODA' ? 'bg-cyan-50 text-cyan-700' : 
-                                order.status === 'TAMAMLANDI' || order.status === 'TESLİM EDİLDİ' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'
-                            }`}>
-                              {order.status}
+                            <div className="flex items-center justify-between gap-2 md:contents">
+                              <div className={`px-3 py-1 rounded-full text-xs font-black uppercase whitespace-nowrap ${
+                                  order.status === 'KARGODA' ? 'bg-cyan-50 text-cyan-700' :
+                                  order.status === 'TAMAMLANDI' || order.status === 'TESLİM EDİLDİ' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'
+                              }`}>
+                                {order.status}
+                              </div>
+                              <p className="font-black text-zinc-900 whitespace-nowrap text-right w-24">{order.total_amount} TL</p>
+                              <FiChevronRight className="text-zinc-300 shrink-0 hidden md:block" />
                             </div>
-                            <p className="font-black text-zinc-900 whitespace-nowrap text-right w-24">{order.total_amount} TL</p>
-                            <FiChevronRight className="text-zinc-300" />
                           </button>
                         ))}
                       </div>
