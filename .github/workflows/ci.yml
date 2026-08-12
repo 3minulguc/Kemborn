@@ -46,10 +46,12 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Lint (bilgilendirici — kapatmaz)
-        # NOT: Kodda ~34 dosyada bu oturumdan onceye ait, ilgisiz lint hatasi
-        # var (kullanilmayan "React" importu, yakalanip kullanilmayan hata
-        # degiskeni vb.). Bunlari duzeltmek ayri bir is; su an CI'i kirmizi
-        # yapip anlamsizlastirmasin diye lint burada zorunlu degil.
+        # NOT: ~50 mekanik hata (kullanilmayan importlar, yakalanip
+        # kullanilmayan hata degiskeni) temizlendi. Geriye kalan ~14 uyari
+        # (react-hooks/set-state-in-effect vb.) "mount'ta veri cek" gibi
+        # standart ve guvenli desenleri daha siki bir kuralla isaretliyor;
+        # duzeltmek veri cekme mimarisini yeniden yapilandirmak demek —
+        # bilerek dokunulmadi. O yuzden lint burada hala zorunlu degil.
 
         run: npm run lint
         continue-on-error: true
