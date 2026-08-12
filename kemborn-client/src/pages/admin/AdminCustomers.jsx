@@ -81,9 +81,14 @@ const AdminCustomers = () => {
     return String(c.username || '').toLowerCase().includes(term) || String(c.email || '').toLowerCase().includes(term);
   });
 
-  useEffect(() => {
+  // Arama değişince sayfa 1'e dön. useEffect yerine render sırasında:
+  // effect'le yapılınca 3. sayfadayken arama yazan admin bir an boş liste
+  // görüyordu, sonra sayfa 1'e dönüyordu.
+  const [oncekiArama, setOncekiArama] = useState(searchTerm);
+  if (searchTerm !== oncekiArama) {
+    setOncekiArama(searchTerm);
     setCurrentPage(1);
-  }, [searchTerm]);
+  }
 
   const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / PAGE_SIZE));
   const pagedCustomers = filteredCustomers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);

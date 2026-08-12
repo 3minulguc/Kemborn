@@ -36,13 +36,19 @@ const FavoritesPage = () => {
     }
   };
 
+  // Async çağrı effect'in içinde sarmalanıyor: react-hooks kuralı `await`in
+  // arkasını göremediği için düz `fetchFavorites()` çağrısını senkron bir
+  // setState sanıyor. Davranış aynı, sadece kurala görünür hâle geliyor.
   useEffect(() => {
     if (!user) {
       toast.error("Favorilerinizi görmek için giriş yapmalısınız.");
-      navigate('/auth'); // YENİ: Senin rotana göre /auth olarak düzeltildi
-    } else {
-      fetchFavorites();
+      navigate('/auth');
+      return;
     }
+    (async () => { await fetchFavorites(); })();
+    // fetchFavorites her render'da yeniden tanımlanıyor; bağımlılığa
+    // eklenirse effect sonsuz döner.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
 
   const removeFromFavorites = async (productId) => {

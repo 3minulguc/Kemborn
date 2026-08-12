@@ -199,9 +199,12 @@ const ProductDetail = () => {
       <div className="grid md:grid-cols-[2fr_3fr] gap-8 md:gap-12 items-start mb-10 md:mb-16">
         
         {/* Görsel Alanı */}
-        <div className="bg-white p-5 md:p-8 rounded-3xl border border-zinc-200 shadow-sm">
+        {/* min-w-0: içindeki yatay kayan önizleme şeridi olmasa kapsayıcı
+            kendi içeriği kadar genişliyor ve sayfayı sağa taşırıyordu
+            (grid/flex öğelerinin varsayılan min-width:auto davranışı). */}
+        <div className="min-w-0 bg-white p-5 md:p-8 rounded-3xl border border-zinc-200 shadow-sm">
           <div 
-            className="w-full aspect-[4/5] max-h-[70vh] bg-zinc-50 rounded-2xl flex items-center justify-center relative overflow-hidden touch-pan-y"
+            className="group/galeri w-full aspect-[4/5] max-h-[70vh] bg-zinc-50 rounded-2xl flex items-center justify-center relative overflow-hidden touch-pan-y"
             onTouchStart={(e) => {
               touchStartXRef.current = e.touches[0].clientX;
               touchStartYRef.current = e.touches[0].clientY;
@@ -239,30 +242,40 @@ const ProductDetail = () => {
                <span className="text-zinc-400 font-medium">Ürün Görseli Yok</span>
             )}
 
-            {/* OK İLE GALERİDE GEZİNME */}
+            {/* OK İLE GALERİDE GEZİNME — SADECE MASAÜSTÜ
+                Mobilde parmakla kaydırma zaten çalışıyor (yukarıdaki
+                onTouchStart/End); oklar hem gereksizdi hem de görselin
+                üstüne binip dağınık duruyordu. */}
             {galleryMedia.length > 1 && (
               <>
                 <button
                   onClick={() => setSelectedMediaIndex((prev) => (prev - 1 + galleryMedia.length) % galleryMedia.length)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 md:w-11 md:h-11 bg-white/90 hover:bg-white text-zinc-900 rounded-full flex items-center justify-center shadow-md transition-all"
+                  className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white/80 hover:bg-white text-zinc-900 rounded-full items-center justify-center shadow-md opacity-0 group-hover/galeri:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
                   aria-label="Önceki görsel"
                 >
                   <FiChevronLeft size={20} />
                 </button>
                 <button
                   onClick={() => setSelectedMediaIndex((prev) => (prev + 1) % galleryMedia.length)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 md:w-11 md:h-11 bg-white/90 hover:bg-white text-zinc-900 rounded-full flex items-center justify-center shadow-md transition-all"
+                  className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white/80 hover:bg-white text-zinc-900 rounded-full items-center justify-center shadow-md opacity-0 group-hover/galeri:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
                   aria-label="Sonraki görsel"
                 >
                   <FiChevronRight size={20} />
                 </button>
+
+                {/* Kaçıncı görselde olduğunu gösteren sayaç */}
+                <span className="absolute bottom-3 right-3 z-20 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                  {selectedMediaIndex + 1} / {galleryMedia.length}
+                </span>
               </>
             )}
           </div>
 
-          {/* KAYDIRMA NOKTALARI */}
+          {/* KAYDIRMA NOKTALARI — SADECE MOBİL
+              Masaüstünde zaten oklar ve önizleme şeridi var; üçü birden
+              gereksiz tekrardı. */}
           {galleryMedia.length > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-3">
+            <div className="md:hidden flex items-center justify-center gap-2 mt-3">
               {galleryMedia.map((_, index) => (
                 <button
                   key={index}
@@ -276,23 +289,28 @@ const ProductDetail = () => {
             </div>
           )}
 
-          {/* GALERİ KÜÇÜK RESİMLERİ */}
+          {/* ÖNİZLEME ŞERİDİ
+              flex-wrap idi: 8 görselde iki sıraya taşıyor ve mobilde ekranın
+              yarısını yiyordu. Artık tek sıra; sığmayınca yatay kayıyor
+              (kaydırma çubuğu gizli, parmakla/trackpad ile kayıyor). */}
           {galleryMedia.length > 1 && (
-            <div className="flex flex-wrap gap-3 mt-4">
+            <div className="flex gap-2.5 md:gap-3 mt-3 md:mt-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-1 px-1 pb-1">
               {galleryMedia.map((media, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedMediaIndex(index)}
-                  style={{ width: '64px', height: '64px', flexShrink: 0, flexGrow: 0 }}
-                  className={`md:!w-20 md:!h-20 relative rounded-xl overflow-hidden border-2 transition-all ${
-                    index === selectedMediaIndex ? 'border-cyan-600' : 'border-zinc-200 hover:border-zinc-300'
+                  aria-label={`${index + 1}. görseli göster`}
+                  className={`snap-start shrink-0 w-14 h-14 md:w-[72px] md:h-[72px] relative rounded-xl overflow-hidden border-2 transition-all ${
+                    index === selectedMediaIndex
+                      ? 'border-cyan-600'
+                      : 'border-zinc-200 opacity-70 hover:opacity-100 hover:border-zinc-300'
                   }`}
                 >
                   {media.type === 'video' ? (
                     <>
                       <video src={media.url} className="w-full h-full object-cover" muted />
                       <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <FiPlayCircle className="text-white" size={20} />
+                        <FiPlayCircle className="text-white" size={18} />
                       </div>
                     </>
                   ) : (
@@ -475,7 +493,7 @@ const ProductDetail = () => {
           {activeTab === 'warranty' && (
             <div className="space-y-4 bg-zinc-50 p-5 md:p-6 rounded-2xl border border-zinc-100">
               <p className="text-zinc-900 font-bold mb-3 md:mb-4 border-b border-zinc-200 pb-2">
-                {product.warranty_info || "2 Yıl Kemborn Türkiye Garantili"}
+                {product.warranty_info || "1 Yıl Kemborn Türkiye Garantili"}
               </p>
               <div className="text-sm md:text-base text-zinc-700">
                 {storeSettings.warranty_tab_bullets ? (

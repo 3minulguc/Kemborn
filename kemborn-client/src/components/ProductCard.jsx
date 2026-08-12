@@ -1,15 +1,17 @@
 import { Link } from 'react-router-dom';
-import { FiHeart, FiShoppingBag } from 'react-icons/fi';
-import { useCart } from '../context/CartContext';
+import { FiHeart, FiArrowRight } from 'react-icons/fi';
 import { formatPrice } from '../utils/format';
 
 // TEK, ORTAK vitrin kartı. Ana Sayfa, Ürünler sayfası ve Ürün Detayı'ndaki
 // "Benzer Ürünler" bölümü DAHİL, ürünün kart halinde göründüğü HER yerde
 // bu bileşen kullanılır — böylece hepsi birebir aynı görünür ve tek yerden
 // güncellenir.
+//
+// KARTTAN SEPETE EKLEME YOK. Eskiden köşede bir çanta ikonu vardı ve renk
+// hiç sorulmadan listenin ilkini (Siyah) sepete atıyordu — en pahalı iki
+// üründe üç renk var, kırmızı isteyen müşteriye siyah gidiyordu. Kart artık
+// tek iş yapıyor: ürün sayfasına götürmek. Renk, adet ve stok seçimi orada.
 const ProductCard = ({ product, favoriteIds, onToggleFavorite }) => {
-  const { addToCart } = useCart();
-
   const stockByColor = (product.stock_by_color && typeof product.stock_by_color === 'object') ? product.stock_by_color : {};
   const usesColorStock = Object.keys(stockByColor).length > 0;
   const isOutOfStock = usesColorStock
@@ -17,13 +19,6 @@ const ProductCard = ({ product, favoriteIds, onToggleFavorite }) => {
     : parseInt(product.stock_quantity || 0, 10) <= 0;
 
   const isFavorite = favoriteIds?.has(product.id);
-
-  const handleAddToCart = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (isOutOfStock) return;
-    addToCart(product, 1, (product.colors && product.colors.length > 0) ? product.colors[0] : 'Siyah');
-  };
 
   return (
     <Link
@@ -66,8 +61,13 @@ const ProductCard = ({ product, favoriteIds, onToggleFavorite }) => {
       </div>
 
       <div className="flex flex-col flex-grow px-0.5 md:px-2 pb-0.5 md:pb-2">
-        {/* ÜRÜN ADI */}
-        <h3 className="text-xs md:text-xl font-black text-zinc-900 mb-0.5 md:mb-2 line-clamp-1 group-hover:text-cyan-600 transition-colors">
+        {/* ÜRÜN ADI
+            line-clamp-1 idi: "X2 Pro İnterkom Set..." diye kesiliyordu, üç
+            kartta birden üç nokta görünüyordu. İki satıra izin verildi ve
+            sabit yükseklik verildi ki kartların alt hizası bozulmasın.
+            Ağırlık 900 (font-black) idi — sayfadaki her başlıkla aynı
+            kalınlıktaydı, hiyerarşi kayboluyordu. */}
+        <h3 className="text-[13px] md:text-[17px] font-semibold leading-snug text-zinc-900 mb-0.5 md:mb-2 line-clamp-2 md:min-h-[2.6em] group-hover:text-cyan-600 transition-colors">
           {product.name}
         </h3>
 
@@ -76,24 +76,20 @@ const ProductCard = ({ product, favoriteIds, onToggleFavorite }) => {
           {product.short_description || 'Ürün açıklaması bulunmuyor.'}
         </p>
 
-        {/* FİYAT + SEPETE EKLE */}
-        <div className="flex justify-between items-center mt-auto pt-1.5 md:pt-4 border-t border-zinc-100 relative z-20">
-          <span className="text-sm md:text-2xl font-black text-cyan-700 tracking-tight">
+        {/* FİYAT — kartın tek vurgusu. Sağdaki "İncele" bir buton değil,
+            sadece kartın tıklanabilir olduğunu belli eden sessiz bir işaret;
+            bu yüzden soluk duruyor ve karta gelince renkleniyor. */}
+        <div className="mt-auto pt-1.5 md:pt-4 border-t border-zinc-100 flex items-center justify-between gap-2">
+          <span className="text-sm md:text-xl font-bold text-cyan-700 tracking-tight whitespace-nowrap">
             {formatPrice(product.price)} TL
           </span>
 
-          <button
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
-            className={`flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl transition-all shadow-sm transform active:scale-95 ${
-              isOutOfStock
-                ? 'bg-zinc-50 text-zinc-300 cursor-not-allowed'
-                : 'bg-cyan-600 text-white hover:bg-cyan-700 shadow-cyan-600/30'
-            }`}
-            title={isOutOfStock ? 'Stokta Yok' : 'Hızlıca Sepete Ekle'}
-          >
-            <FiShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
-          </button>
+          <span className={`flex items-center gap-1 text-[10px] md:text-xs font-semibold whitespace-nowrap shrink-0 transition-colors ${
+            isOutOfStock ? 'text-zinc-300' : 'text-zinc-400 group-hover:text-cyan-600'
+          }`}>
+            İncele
+            <FiArrowRight className="w-3 h-3 md:w-3.5 md:h-3.5 transition-transform group-hover:translate-x-0.5" />
+          </span>
         </div>
       </div>
     </Link>

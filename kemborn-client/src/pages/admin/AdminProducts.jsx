@@ -92,7 +92,7 @@ const AdminProducts = () => {
     video_url: '',
     long_description: '',  
     technical_specs: '', 
-    warranty_info: '2 Yıl Kemborn Türkiye Garantili', 
+    warranty_info: '1 Yıl Kemborn Türkiye Garantili', 
     colors: [], 
     isVisible: true,
     badge: '',
@@ -120,9 +120,12 @@ const AdminProducts = () => {
     }
   };
 
+  // Async çağrılar effect'in içinde sarmalanıyor: react-hooks kuralı `await`in
+  // arkasını göremediği için düz çağrıyı senkron bir setState sanıyor.
+  // Davranış aynı, sadece kurala görünür hâle geliyor.
   useEffect(() => {
-    fetchProducts();
-    fetchSettings();
+    // Promise.all: ikisi eskiden olduğu gibi paralel gitsin, biri diğerini beklemesin.
+    (async () => { await Promise.all([fetchProducts(), fetchSettings()]); })();
   }, []);
 
   // --- NATIVE DRAG & DROP SIRALAMA FONKSİYONLARI ---
@@ -206,7 +209,7 @@ const AdminProducts = () => {
       video_url: product?.video_url || '',
       long_description: product?.long_description || '',
       technical_specs: product?.technical_specs || '',
-      warranty_info: product?.warranty_info || '2 Yıl Kemborn Türkiye Garantili',
+      warranty_info: product?.warranty_info || '1 Yıl Kemborn Türkiye Garantili',
       colors: product?.colors || [],
       isVisible: product?.isVisible ?? true,
       badge: product?.badge || '',

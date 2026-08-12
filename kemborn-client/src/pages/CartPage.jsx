@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { FiTrash2, FiShoppingBag, FiMinus, FiPlus, FiArrowRight, FiLock, FiShield } from 'react-icons/fi';
+import { FiTrash2, FiX, FiShoppingBag, FiMinus, FiPlus, FiArrowRight, FiLock, FiShield } from 'react-icons/fi';
 import { formatPrice } from '../utils/format';
 import { API_URL } from '../config/api';
 import PageHeader from '../components/PageHeader';
@@ -47,7 +47,7 @@ const CartPage = () => {
             onClick={clearCart} 
             className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-red-500 transition-colors bg-zinc-50 hover:bg-red-50 px-4 py-2 rounded-xl"
           >
-            <FiTrash2 size={16} /> <span className="hidden sm:inline">Sepeti Temizle</span>
+            <FiTrash2 size={16} /> Sepeti Temizle
           </button>
         </div>
       )}
@@ -108,13 +108,18 @@ const CartPage = () => {
                         </div>
                       </Link>
 
-                      {/* Silme Butonu */}
-                      <button 
-                        onClick={() => removeFromCart(item.uniqueKey || item.id)} 
+                      {/* Silme Butonu
+                          Çöp kutusu değil çarpı: üstteki "Sepeti Temizle"
+                          butonu da çöp kutusuydu, ikisi yan yana aynı ikonu
+                          gösterince hangisinin tek ürünü hangisinin tüm
+                          sepeti sildiği anlaşılmıyordu. Çarpı "bunu listeden
+                          çıkar" demek, çöp kutusu "hepsini sil" demek. */}
+                      <button
+                        onClick={() => removeFromCart(item.uniqueKey || item.id)}
                         className="p-2.5 text-zinc-400 bg-zinc-50 rounded-xl hover:bg-red-50 hover:text-red-500 transition-colors shrink-0"
-                        title="Ürünü Sil"
+                        title="Ürünü Sepetten Çıkar"
                       >
-                        <FiTrash2 size={18} />
+                        <FiX size={18} />
                       </button>
                     </div>
 

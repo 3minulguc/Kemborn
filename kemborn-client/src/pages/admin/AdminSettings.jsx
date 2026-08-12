@@ -71,8 +71,11 @@ const AdminSettings = () => {
     }
   };
 
+  // Async çağrı effect'in içinde sarmalanıyor: react-hooks kuralı `await`in
+  // arkasını göremediği için düz `fetchSettings()` çağrısını senkron bir
+  // setState sanıyor. Davranış aynı, sadece kurala görünür hâle geliyor.
   useEffect(() => {
-    fetchSettings();
+    (async () => { await fetchSettings(); })();
   }, []);
 
   // Standart inputlar için

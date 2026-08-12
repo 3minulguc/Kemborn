@@ -3,7 +3,6 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ScrollToTop from '../components/ScrollToTop';
 import BackToTop from '../components/BackToTop';
-import MarketplaceWidget from '../components/MarketplaceWidget';
 
 const MainLayout = () => {
   return (
@@ -17,7 +16,10 @@ const MainLayout = () => {
         <Outlet /> {/* Tüm sayfalar ve UserLayout buraya render olacak */}
       </main>
       <Footer />
-      <MarketplaceWidget />
+      {/* Sağ kenardaki sabit pazaryeri butonu kaldırıldı: sepette ürün
+          fiyatının üstünü örtüyordu ve "Yukarı Çık" butonuyla aynı köşeyi
+          paylaşıyordu. Pazaryeri linkleri Mağazalarımız sayfasında,
+          ana sayfadaki pazaryeri şeridinde ve footer'da zaten var. */}
       <BackToTop />
     </div>
   );

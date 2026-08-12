@@ -11,19 +11,28 @@ export const useFavorites = () => {
   const { user } = useAuth();
   const [favoriteIds, setFavoriteIds] = useState(new Set());
 
+  // İstek dönmeden kullanıcı sayfadan çıkarsa (ya da hızlıca giriş/çıkış
+  // yaparsa) geç gelen cevabın state'i ezmesini engellemek için iptal bayrağı.
   useEffect(() => {
-    if (!user) {
-      setFavoriteIds(new Set());
-      return;
-    }
-    apiFetch(`/api/favorites/${user.id}`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
+    let iptal = false;
+
+    (async () => {
+      if (!user) {
+        if (!iptal) setFavoriteIds(new Set());
+        return;
+      }
+      try {
+        const res = await apiFetch(`/api/favorites/${user.id}`);
+        const data = await res.json();
+        if (!iptal && Array.isArray(data)) {
           setFavoriteIds(new Set(data.map(p => p.id)));
         }
-      })
-      .catch(() => {});
+      } catch {
+        // Favoriler çekilemezse sessizce boş kalsın; sayfa çalışmaya devam etsin.
+      }
+    })();
+
+    return () => { iptal = true; };
   }, [user]);
 
   const toggleFavorite = useCallback(async (e, productId) => {
