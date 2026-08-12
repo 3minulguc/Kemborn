@@ -6,7 +6,7 @@ import { API_URL } from '../config/api';
 const STORES = [
   { key: 'trendyol_url', label: 'Trendyol', color: 'from-[#F27A1A] to-[#d96a12]' },
   { key: 'hepsiburada_url', label: 'Hepsiburada', color: 'from-[#FF6000] to-[#e05600]' },
-  { key: 'n11_url', label: 'n11', color: 'from-[#F5A623] to-[#dd950f]' },
+  { key: 'n11_url', label: 'n11', color: 'from-[#7B2E8E] to-[#652577]' },
 ];
 
 const StoresPage = () => {
