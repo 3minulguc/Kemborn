@@ -5,6 +5,7 @@ const { verifyToken, verifyTokenOptional, verifyOwnership, isAdminUser } = requi
 const { resetPasswordLimiter, siparisLimiter } = require('../config/limitler');
 const { SIPARIS_DURUMLARI } = require('../domain/siparisDurumlari');
 const { stokRezerveEt } = require('../domain/stok');
+const { epostaGercekMi } = require('../domain/eposta');
 const crypto = require('crypto');
 
 const router = express.Router();
@@ -273,8 +274,8 @@ router.post('/api/orders', verifyTokenOptional, siparisLimiter, async (req, res)
         if (!ad) {
             return res.status(400).json({ error: "Ad soyad zorunludur." });
         }
-        if (!eposta || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(eposta)) {
-            return res.status(400).json({ error: "Geçerli bir e-posta adresi girin." });
+        if (!(await epostaGercekMi(eposta))) {
+            return res.status(400).json({ error: "Bu e-posta adresi geçersiz görünüyor. Sipariş bildirimlerinin ulaşması için lütfen kontrol edip tekrar deneyin." });
         }
         if (telefon.length !== 11) {
             return res.status(400).json({ error: "Geçerli bir telefon numarası girin (başında 0 ile 11 hane)." });

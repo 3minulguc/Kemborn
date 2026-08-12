@@ -2,6 +2,7 @@ const express = require('express');
 const { client } = require('../config/veritabani');
 const { authLimiter, resetPasswordLimiter } = require('../config/limitler');
 const { sifreKuraliniDenetle, SAHTE_PAROLA_HASH } = require('../domain/sifre');
+const { epostaGercekMi } = require('../domain/eposta');
 const { sendMail, buildEmailHtml } = require('../lib/eposta');
 const { JWT_SECRET, FRONTEND_URL } = require('../config/ortam');
 const bcrypt = require('bcryptjs');
@@ -19,8 +20,8 @@ router.post('/api/register', authLimiter, async (req, res) => {
     if (!username || !username.trim()) {
         return res.status(400).json({ error: "Ad soyad boş olamaz." });
     }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return res.status(400).json({ error: "Geçerli bir e-posta adresi girin." });
+    if (!(await epostaGercekMi(email))) {
+        return res.status(400).json({ error: "Bu e-posta adresi geçersiz görünüyor. Lütfen kontrol edip tekrar deneyin." });
     }
     const sifreHatasi = sifreKuraliniDenetle(password);
     if (sifreHatasi) {

@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FiSearch, FiX, FiSliders } from 'react-icons/fi';
 import PageHeader from '../components/PageHeader';
 import ProductCard from '../components/ProductCard';
 import { useFavorites } from '../hooks/useFavorites';
-import { urunAramayaUyuyorMu } from '../utils/search';
 import { API_URL } from '../config/api';
 import { selectStil, selectOkStyle } from '../utils/formStil';
 
@@ -32,43 +31,45 @@ const ProductsPage = () => {
     setSearchParams(yeni, { replace: true });
   };
 
+  // Arama, filtre ve fiyat sıralaması artık SUNUCUDA yapılıyor (/api/products
+  // zaten bunu destekliyordu, kullanılmıyordu — 5 üründe fark etmez ama katalog
+  // büyüdükçe her açılışta tüm ürünleri indirmek yerine sadece istenen dilim
+  // geliyor). "İsme göre" sıralama istisna: Türkçe harf sırası (İ/I, Ç, Ş...)
+  // veritabanı collation'ına bağlı ve garanti değil, o yüzden istemcide kalıyor.
+  //
+  // Yazarken her harfte sunucuya istek atmamak için 350ms bekleniyor (debounce).
   useEffect(() => {
-    fetch(`${API_URL}/api/products`)
-      .then((res) => res.json())
-      .then((data) => {
-        setProducts(data || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Ürünler yüklenirken hata oluştu:", err);
-        setLoading(false);
-      });
-  }, []);
+    const zamanlayici = setTimeout(() => {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (searchTerm.trim()) params.set('search', searchTerm.trim());
+      if (onlyInStock) params.set('inStock', 'true');
+      if (sortBy === 'price-asc' || sortBy === 'price-desc') params.set('sort', sortBy);
 
-  const visibleProducts = useMemo(() => {
-    let list = [...products];
+      fetch(`${API_URL}/api/products?${params.toString()}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setProducts(Array.isArray(data) ? data : []);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error('Ürünler yüklenirken hata oluştu:', err);
+          setLoading(false);
+        });
+    }, 350);
 
-    if (searchTerm.trim()) {
-      // Türkçe uyumlu karşılaştırma: "interkom" yazınca "İnterkom" da bulunsun.
-      // Düz toLowerCase() ile büyük "İ" harfi eşleşmiyordu — bkz. utils/search.js
-      list = list.filter(p => urunAramayaUyuyorMu(p, searchTerm));
-    }
+    return () => clearTimeout(zamanlayici);
+  }, [searchTerm, onlyInStock, sortBy]);
 
-    if (onlyInStock) {
-      list = list.filter(p => parseInt(p.stock_quantity || 0) > 0);
-    }
-
-    if (sortBy === 'price-asc') list.sort((a, b) => parseFloat(a.price || 0) - parseFloat(b.price || 0));
-    else if (sortBy === 'price-desc') list.sort((a, b) => parseFloat(b.price || 0) - parseFloat(a.price || 0));
-    else if (sortBy === 'name') list.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
-
-    return list;
-  }, [products, searchTerm, sortBy, onlyInStock]);
+  // "İsme göre" sıralama tek istemci-tarafı işlem: Türkçe uyumlu localeCompare.
+  const visibleProducts = sortBy === 'name'
+    ? [...products].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'))
+    : products;
 
   return (
     <main className="pb-16 md:pb-24 font-sans bg-white">
       <PageHeader title="Tüm Ürünler" />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-16 mt-4 md:mt-12">
 
         {/* ARAMA / FİLTRE / SIRALAMA ÇUBUĞU */}
@@ -123,7 +124,7 @@ const ProductsPage = () => {
           <p className="text-center font-bold text-zinc-500 animate-pulse">Ürünler yükleniyor...</p>
         ) : visibleProducts.length === 0 ? (
           <div className="text-center py-12 px-4">
-            {products.length === 0 ? (
+            {!searchTerm && !onlyInStock ? (
               <p className="font-bold text-zinc-400">Mağazada henüz ürün bulunmuyor.</p>
             ) : (
               <>

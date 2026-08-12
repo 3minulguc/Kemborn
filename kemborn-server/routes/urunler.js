@@ -3,6 +3,7 @@ const { client, transactionIle } = require('../config/veritabani');
 const { verifyToken, isAdmin } = require('../middleware/kimlik');
 const { JWT_SECRET } = require('../config/ortam');
 const jwt = require('jsonwebtoken');
+const { aramaIcinNormalize, sqlKatlamaParametreleri } = require('../domain/arama');
 
 const router = express.Router();
 
@@ -24,17 +25,41 @@ router.get('/api/products', async (req, res) => {
     }
   }
 
-  // --- ARAMA / FİLTRE / SAYFALAMA PARAMETRELERİ ---
-  const { search, minPrice, maxPrice, inStock, page, limit } = req.query;
+  // --- ARAMA / FİLTRE / SIRALAMA / SAYFALAMA PARAMETRELERİ ---
+  const { search, minPrice, maxPrice, inStock, sort, page, limit } = req.query;
   const conditions = [];
   const values = [];
+
+  // ORDER BY'a kullanıcı girdisi doğrudan eklenmiyor (SQL injection riski);
+  // sadece bu listedeki sabit ifadelerden biri seçilebiliyor.
+  //
+  // "name" sıralaması BURADA YOK: Türkçe harf sırası (İ/I, Ç, Ş...) veritabanı
+  // collation'ına bağlı ve production'da hangi collation'ların kurulu olduğu
+  // garanti değil — yanlış adı denemek sıralama isteğini 500'letebilirdi.
+  // İsme göre sıralama istemci tarafında, zaten Türkçe uyumlu localeCompare
+  // kullanan mevcut mantıkla yapılmaya devam ediyor.
+  const SIRALAMA_SECENEKLERI = {
+    'price-asc': 'price ASC',
+    'price-desc': 'price DESC',
+    default: 'sort_order ASC, id DESC'
+  };
+  const siralama = SIRALAMA_SECENEKLERI[sort] || SIRALAMA_SECENEKLERI.default;
 
   if (!isAdminRequest) {
     conditions.push('is_visible = true');
   }
   if (search && search.trim()) {
-    values.push(`%${search.trim()}%`);
-    conditions.push(`(name ILIKE $${values.length} OR short_description ILIKE $${values.length})`);
+    // Turkce "İ" -> "i" katlamasi client'taki utils/search.js ile ayni
+    // mantikla burada da yapiliyor (translate ile), yoksa "interkom" aratan
+    // musteri "İnterkom Seti" adli urunu bulamaz — daha once yasanmis bir hata.
+    const [katlamaFrom, katlamaTo] = sqlKatlamaParametreleri();
+    values.push(katlamaFrom, katlamaTo, `%${aramaIcinNormalize(search)}%`);
+    const fromIdx = values.length - 2;
+    const toIdx = values.length - 1;
+    const termIdx = values.length;
+    conditions.push(
+      `(translate(lower(name), $${fromIdx}, $${toIdx}) ILIKE $${termIdx} OR translate(lower(short_description), $${fromIdx}, $${toIdx}) ILIKE $${termIdx})`
+    );
   }
   if (minPrice) {
     values.push(parseFloat(minPrice));
@@ -57,7 +82,7 @@ router.get('/api/products', async (req, res) => {
   const offset = (safePage - 1) * safeLimit;
 
   try {
-    let query = `SELECT * FROM products ${whereClause} ORDER BY sort_order ASC, id DESC`;
+    let query = `SELECT * FROM products ${whereClause} ORDER BY ${siralama}`;
     if (usesPagination) {
       query += ` LIMIT ${safeLimit} OFFSET ${offset}`;
     }
