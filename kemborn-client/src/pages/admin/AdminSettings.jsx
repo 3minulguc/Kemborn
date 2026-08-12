@@ -28,18 +28,18 @@ const AdminSettings = () => {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // Yasal metin alanlari VARSAYILAN OLARAK HTML kaynak modunda aciliyor.
+  // Yasal metin alanlari VARSAYILAN OLARAK GORSEL editorde aciliyor — admin
+  // duz yazi gorup duzenlesin, kod gormesin.
   //
-  // NEDEN: bu alanlara HTML yapistiriliyor ve Quill'in gorsel modu yapistirilan
-  // HTML'in bicimini bozuyor. Bir keresinde gizlilik metninin HER satirini
-  // <h2> basliga cevirdi, satir sonlarindan ici bos madde isaretleri uretti ve
-  // butun bosluklari &nbsp; yapip mobilde satir kirilmasini engelledi.
-  // Kaynak modunda (duz metin kutusu) yazilan sey birebir kaydediliyor.
-  // Gorsel editor isteyen icin acilis modu tek tikla degistirilebiliyor.
+  // Daha once bozulma, DISARIDAN kopyalanmis ham HTML metni Quill'e
+  // yapistirinca oluyordu (her satiri baslik yapmis, ici bos madde isareti
+  // uretmisti). Panel icinden yazip duzenlemek bu sorunu yaratmiyor. O yuzden
+  // kaynak (kod) modu tamamen kaldirilmadi ama artik varsayilan degil; sadece
+  // disaridan hazir HTML yapistirmak gerektiginde "Kod görünümü" ile acilir.
   const [htmlModu, setHtmlModu] = useState({
-    distance_selling_policy: true,
-    privacy_policy: true,
-    delivery_return_policy: true
+    distance_selling_policy: false,
+    privacy_policy: false,
+    delivery_return_policy: false
   });
   const htmlModunuDegistir = (alan) => setHtmlModu(m => ({ ...m, [alan]: !m[alan] }));
 
@@ -147,9 +147,11 @@ const AdminSettings = () => {
     );
     if (!onay) return;
     setSettings(prev => ({ ...prev, [alan]: YASAL_VARSAYILAN[alan] }));
-    // Geri yuklenen metin HTML oldugu icin kaynak moduna geciyoruz; gorsel
-    // editorde acik kalsaydi Quill metni yeniden bicimlendirip bozabilirdi.
-    setHtmlModu(m => ({ ...m, [alan]: true }));
+    // Gorsel editore GERI DONUYORUZ. Bozulma, disaridan yapistirilan ham
+    // metinden kaynaklaniyordu; Quill'e programatik olarak temiz HTML
+    // vermek (bu durumda oldugu gibi) sorun yaratmiyor, duz yazi olarak
+    // dogru gorunur.
+    setHtmlModu(m => ({ ...m, [alan]: false }));
   };
 
   // React-Quill (Editör) için özel handler
@@ -380,9 +382,9 @@ const AdminSettings = () => {
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-relaxed text-amber-900">
             <p className="font-bold mb-1">Bu üç metin hukuki belge; biçimi bozulursa sitede dağınık görünür.</p>
             <p>
-              Alanlar <b>HTML kaynak modunda</b> açılıyor: yazdığın şey birebir kaydedilir. Görsel editöre
-              geçersen Quill, yapıştırdığın HTML'in biçimini bozabilir (başlıkları birleştirme, içi boş madde
-              işaretleri, satır kırılmasını engelleyen boşluklar). Bir şey bozulursa
+              Kutunun içine tıklayıp normal yazı gibi düzenleyebilirsin — kod görmezsin. Tek dikkat edeceğin
+              şey: başka bir yerden (Word, not defteri, ChatGPT vb.) kopyaladığın metni buraya yapıştırma; bu,
+              biçimi bozan şeydi. Sadece bu kutunun içinde yazıp düzenlemek sorun çıkarmaz. Bir şey bozulursa
               <b> "Hazır metne dön"</b> ile hazırlanmış asıl metni geri yükleyebilirsin.
             </p>
           </div>
