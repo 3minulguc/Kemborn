@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
+import { useCart } from '../hooks/useCart';
+import { useAuth } from '../hooks/useAuth';
 import { FiPackage, FiShoppingBag, FiCheckCircle, FiClock, FiXCircle, FiRefreshCw, FiSearch } from 'react-icons/fi';
 import { API_URL } from '../config/api';
 import { apiFetch } from '../utils/apiFetch';

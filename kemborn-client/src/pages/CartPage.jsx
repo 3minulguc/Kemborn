@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
+import { useCart } from '../hooks/useCart';
 import { FiTrash2, FiX, FiShoppingBag, FiMinus, FiPlus, FiArrowRight, FiLock, FiShield } from 'react-icons/fi';
 import { formatPrice } from '../utils/format';
 import { API_URL } from '../config/api';

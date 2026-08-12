@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { FiUser, FiShoppingCart, FiSearch, FiInstagram, FiArrowRight, FiMenu, FiX, FiHome, FiGrid, FiTruck, FiShield, FiFileText, FiPhone, FiInfo, FiShoppingBag, FiShare2, FiPlayCircle, FiPackage, FiChevronDown } from 'react-icons/fi';
-import { useCart } from '../context/CartContext'; 
-import { useAuth } from '../context/AuthContext';
+import { useCart } from '../hooks/useCart'; 
+import { useAuth } from '../hooks/useAuth';
 import { urunAramayaUyuyorMu } from '../utils/search';
 import { API_URL } from '../config/api';
 

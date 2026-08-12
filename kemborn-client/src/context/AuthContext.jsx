@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from './contexts';
 import toast from 'react-hot-toast';
 import {
   getToken,
@@ -10,7 +11,6 @@ import {
   SESSION_EXPIRED_EVENT
 } from '../utils/auth';
 
-const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
@@ -66,5 +66,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => useContext(AuthContext);

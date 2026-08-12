@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiHome, FiPackage, FiShoppingCart, FiUsers, FiSettings, FiLogOut, FiMenu, FiX } from 'react-icons/fi';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 // BİLEŞEN, AdminLayout'un İÇİNDE DEĞİL: içeride tanımlansaydı her render'da
 // yeni bir bileşen türü üretilir, React nav listesini sökup yeniden takardı

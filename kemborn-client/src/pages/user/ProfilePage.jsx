@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiSave, FiUser, FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { useAuth } from '../../context/AuthContext'; 
+import { useAuth } from '../../hooks/useAuth'; 
 import { apiFetch } from '../../utils/apiFetch';
 
 const ProfilePage = () => {

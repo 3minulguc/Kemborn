@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
+import { useCart } from '../hooks/useCart';
+import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-hot-toast';
 import { FiLock, FiShield, FiCreditCard, FiMapPin, FiUserX, FiShoppingCart } from 'react-icons/fi';
 import { apiFetch } from '../utils/apiFetch';

@@ -1,8 +1,8 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { useAuth } from './AuthContext';
+import { CartContext } from './contexts';
+import { useAuth } from '../hooks/useAuth';
 
-const CartContext = createContext();
 
 // Sepet, giriş yapan kullanıcıya özel bir anahtarda saklanır. Böylece:
 // - Bir kullanıcı çıkış yapıp tekrar giriş yaptığında KENDİ sepeti duruyor olur.
@@ -139,5 +139,3 @@ export const CartProvider = ({ children }) => {
     </CartContext.Provider>
   );
 };
-
-export const useCart = () => useContext(CartContext);

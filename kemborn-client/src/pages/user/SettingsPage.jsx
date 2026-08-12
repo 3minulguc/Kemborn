@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FiSave } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { useAuth } from '../../context/AuthContext'; 
+import { useAuth } from '../../hooks/useAuth'; 
 import { apiFetch } from '../../utils/apiFetch';
 
 const SettingsPage = () => {

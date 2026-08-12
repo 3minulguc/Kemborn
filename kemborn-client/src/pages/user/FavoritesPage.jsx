@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; 
 import { FiShoppingCart, FiTrash2 } from 'react-icons/fi';
-import { useCart } from '../../context/CartContext';
-import { useAuth } from "../../context/AuthContext";
+import { useCart } from '../../hooks/useCart';
+import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../../utils/apiFetch';
 
