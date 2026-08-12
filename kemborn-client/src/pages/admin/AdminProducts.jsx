@@ -968,12 +968,12 @@ const AdminProducts = () => {
                     <input className={`text-2xl font-black text-zinc-900 mb-1 ${inlineInputClass}`} placeholder="Ürün Adı" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                     <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-wider mt-2 mb-1">Ürün Açıklaması (kart ve detay sayfasında aynı görünür)</label>
                     <textarea className={`appearance-none text-zinc-500 text-sm leading-snug mb-3 h-12 resize-none ${inlineInputClass}`} placeholder="Ürün açıklaması..." value={formData.short_description} onChange={e => setFormData({...formData, short_description: e.target.value, page_description: e.target.value})} />
-                    <div className="flex items-center justify-between mt-2 gap-4">
-                      <div className="flex items-baseline gap-1">
-                        <input type="text" inputMode="numeric" className={`text-2xl font-black w-14 text-right text-cyan-700 ${inlineInputClass}`} placeholder="0" value={getLiraPart(formData.price)} onChange={e => updatePriceLira(e.target.value)} />
-                        <span className="text-2xl font-black text-cyan-700">,</span>
-                        <input type="text" inputMode="numeric" className={`text-lg font-black w-10 text-cyan-700 ${inlineInputClass}`} placeholder="00" value={getKurusPart(formData.price)} onChange={e => updatePriceKurus(e.target.value)} />
-                        <span className="text-2xl font-black text-cyan-700 ml-1">TL</span>
+                    <div className="flex items-center justify-between mt-2 gap-2">
+                      <div className="flex items-baseline gap-1 shrink-0 min-w-0">
+                        <input type="text" inputMode="numeric" className={`text-2xl font-black w-14 text-right text-cyan-700 shrink-0 ${inlineInputClass}`} placeholder="0" value={getLiraPart(formData.price)} onChange={e => updatePriceLira(e.target.value)} />
+                        <span className="text-2xl font-black text-cyan-700 shrink-0 whitespace-nowrap">,</span>
+                        <input type="text" inputMode="numeric" className={`text-lg font-black w-10 text-cyan-700 shrink-0 ${inlineInputClass}`} placeholder="00" value={getKurusPart(formData.price)} onChange={e => updatePriceKurus(e.target.value)} />
+                        <span className="text-2xl font-black text-cyan-700 ml-1 shrink-0 whitespace-nowrap">TL</span>
                       </div>
                       <button className={`p-3 rounded-xl transition-all shrink-0 ${isOutOfStock ? 'bg-zinc-100 text-zinc-300 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-cyan-600'}`}>
                         <FiShoppingCart size={18} />
@@ -998,11 +998,11 @@ const AdminProducts = () => {
                     </div>
                     <div className="w-full md:w-1/2 flex flex-col justify-start">
                       <input className={`text-4xl font-black text-zinc-900 mb-2 ${inlineInputClass}`} placeholder="Ürün Adı" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-                      <div className="flex items-baseline gap-2 mb-6">
-                        <input type="text" inputMode="numeric" className={`text-2xl font-black w-16 text-right text-cyan-600 ${inlineInputClass}`} placeholder="0" value={getLiraPart(formData.price)} onChange={e => updatePriceLira(e.target.value)} />
-                        <span className="text-2xl font-black text-cyan-600">,</span>
-                        <input type="text" inputMode="numeric" className={`text-lg font-black w-10 text-cyan-600 ${inlineInputClass}`} placeholder="00" value={getKurusPart(formData.price)} onChange={e => updatePriceKurus(e.target.value)} />
-                        <span className="text-2xl font-black text-cyan-600">TL</span>
+                      <div className="flex items-baseline gap-2 mb-6 flex-wrap">
+                        <input type="text" inputMode="numeric" className={`text-2xl font-black w-16 text-right text-cyan-600 shrink-0 ${inlineInputClass}`} placeholder="0" value={getLiraPart(formData.price)} onChange={e => updatePriceLira(e.target.value)} />
+                        <span className="text-2xl font-black text-cyan-600 shrink-0 whitespace-nowrap">,</span>
+                        <input type="text" inputMode="numeric" className={`text-lg font-black w-10 text-cyan-600 shrink-0 ${inlineInputClass}`} placeholder="00" value={getKurusPart(formData.price)} onChange={e => updatePriceKurus(e.target.value)} />
+                        <span className="text-2xl font-black text-cyan-600 shrink-0 whitespace-nowrap">TL</span>
                       </div>
                       <textarea className={`appearance-none text-zinc-500 text-sm leading-relaxed mb-6 h-20 resize-none ${inlineInputClass}`} placeholder="Ürün açıklaması..." value={formData.short_description} onChange={e => setFormData({...formData, short_description: e.target.value, page_description: e.target.value})} />
                       <div className="mb-6 p-4 bg-zinc-50 rounded-2xl border border-zinc-100">

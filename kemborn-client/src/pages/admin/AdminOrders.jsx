@@ -411,19 +411,19 @@ const AdminOrders = () => {
                       <h3 className="font-black text-zinc-900 mb-3 text-sm flex items-center gap-2"><FiPackage className="text-cyan-600"/> Paketteki Ürünler</h3>
                       <div className="space-y-3">
                         {selectedOrder.items.map(item => (
-                          <div key={item.id} className="bg-white border border-zinc-200 p-4 rounded-2xl flex justify-between items-center shadow-sm hover:border-zinc-300 transition-all">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-zinc-50 rounded-xl flex items-center justify-center font-black text-zinc-700 border border-zinc-100 text-sm shadow-inner">
+                          <div key={item.id} className="bg-white border border-zinc-200 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-x-4 gap-y-3 shadow-sm hover:border-zinc-300 transition-all">
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className="w-12 h-12 bg-zinc-50 rounded-xl flex items-center justify-center font-black text-zinc-700 border border-zinc-100 text-sm shadow-inner shrink-0">
                                 {item.quantity || 1}x
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <p className="font-black text-zinc-800 text-sm">{item.product_name}</p>
                                 <p className="text-[11px] font-black text-cyan-600 uppercase mt-1 bg-cyan-50 px-2.5 py-0.5 rounded-md border border-cyan-100 w-fit">
                                   Seçim: {item.color || 'Siyah (Standart)'}
                                 </p>
                               </div>
                             </div>
-                            <p className="font-black text-zinc-900 text-base">{parseFloat(item.price || 0).toLocaleString('tr-TR')} TL</p>
+                            <p className="font-black text-zinc-900 text-base whitespace-nowrap ml-auto">{parseFloat(item.price || 0).toLocaleString('tr-TR')} TL</p>
                           </div>
                         ))}
                       </div>
@@ -431,7 +431,7 @@ const AdminOrders = () => {
                   </div>
 
                   {/* SAĞ ALAN: LOJİSTİK YÖNETİM FORMU VE TARİH VERİLERİ */}
-                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 h-fit sticky top-0 flex flex-col justify-between">
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 h-fit lg:sticky lg:top-0 flex flex-col justify-between">
                     <div>
                       <h3 className="font-black text-zinc-900 mb-5 text-sm flex items-center gap-2 border-b border-zinc-200 pb-4 uppercase tracking-wider">Durum & Kargo Ayarı</h3>
                       
