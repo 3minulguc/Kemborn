@@ -8,4 +8,9 @@ export default defineConfig({
     react(),
     tailwindcss() // Tailwind motorunu tekrar çalıştırıyoruz
   ],
+  test: {
+    // jsdom: bazı testler localStorage/DOM kullanıyor (utils/auth.js,
+    // utils/sanitize.js). Varsayılan 'node' ortamında bunlar tanımsız kalır.
+    environment: 'jsdom'
+  }
 })

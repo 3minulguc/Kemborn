@@ -30,7 +30,19 @@ module.exports = [
     }
   },
   {
+    // Test dosyaları Vitest'in gerektirdiği ES modülü söz dizimini (import/
+    // export) kullanıyor; sunucunun geri kalanı CommonJS. İkisi ayrı
+    // sourceType istiyor, aynı .js blokta çakışıyorlardı.
+    files: ['**/__tests__/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: 'module',
+      globals: { ...globals.node }
+    }
+  },
+  {
     files: ['**/*.js'],
+    ignores: ['**/__tests__/**/*.js'],
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: 'commonjs',

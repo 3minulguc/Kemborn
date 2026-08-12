@@ -1,0 +1,55 @@
+name: CI
+
+# main'e her push'ta ve her PR'da calisir. Amac: test/CI hic yoktu, bir
+# degisiklik "server.js'i 23 dosyaya bolerken export unutuldu" gibi sessiz
+# hatalari en azindan kritik is mantigi (para, sifre, stok, arama, e-posta
+# dogrulama) icin otomatik yakalasin.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  server:
+    name: Sunucu — test + lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kemborn-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kemborn-server/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Lint (bilgilendirici — kapatmaz)
+        run: npm run lint
+        continue-on-error: true
+
+  client:
+    name: İstemci — test + build + lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kemborn-client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kemborn-client/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Lint (bilgilendirici — kapatmaz)
+        # NOT: Kodda ~34 dosyada bu oturumdan onceye ait, ilgisiz lint hatasi
+        # var (kullanilmayan "React" importu, yakalanip kullanilmayan hata
+        # degiskeni vb.). Bunlari duzeltmek ayri bir is; su an CI'i kirmizi
+        # yapip anlamsizlastirmasin diye lint burada zorunlu degil.
+
+        run: npm run lint
+        continue-on-error: true

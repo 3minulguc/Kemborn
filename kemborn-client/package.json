@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "mobil": "node scripts/mobil-kontrol.mjs"
+    "mobil": "node scripts/mobil-kontrol.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "dompurify": "^3.4.13",
@@ -31,9 +32,11 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.15",
     "puppeteer-core": "^23.11.1",
     "tailwindcss": "^4.3.0",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.10"
   }
 }

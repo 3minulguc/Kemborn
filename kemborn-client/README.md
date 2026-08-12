@@ -1,16 +1,77 @@
-# React + Vite
+# Kemborn Intercom — İstemci
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Kemborn Intercom e-ticaret sitesinin frontend'i. React 19 + Vite + Tailwind.
+Backend için [`kemborn-server`](../kemborn-server/README.md)'a bakın.
 
-Currently, two official plugins are available:
+## Kurulum
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+Varsayılan olarak `http://localhost:5005` adresindeki sunucuya bağlanır
+(bkz. `src/config/api.js`) — ayrı bir `.env` dosyasına gerek yok, sunucu
+yerelde açıksa direkt çalışır.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Canlıya çıkarken gerçek API adresini belirtmek için:
 
-## Expanding the ESLint configuration
+```bash
+cp .env.example .env.production
+# içine VITE_API_URL=https://<backend-adresin> yaz
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Script'ler
+
+| Komut | Ne yapar |
+|---|---|
+| `npm run dev` | Geliştirme sunucusu |
+| `npm run build` | Production build (`dist/`) |
+| `npm run preview` | Build edilmiş halini yerelde önizle |
+| `npm run lint` | ESLint |
+| `npm run mobil` | 390px genişlikte ekran görüntüsü + dokunma hedefi/taşma kontrolü (`scripts/mobil-kontrol.mjs`) |
+
+## Mobil doğrulama
+
+**Bu projede mobil birinci önceliktir.** Arayüzle ilgili her değişiklik hem
+390px hem masaüstü genişliğinde doğrulanmalı. `npm run mobil` otomatik
+ölçüm yapar (yatay taşma, 44px'in altında dokunma hedefi) ama tek başına
+yeterli değil — bazı bozukluklar (metin bölünmesi, üst üste binme) sadece
+ekran görüntüsünde fark edilir. Şüpheli bir değişiklikten sonra ilgili
+sayfanın ekran görüntüsünü almak en güvenlisi.
+
+## Klasör yapısı
+
+| Klasör | İçerik |
+|---|---|
+| `src/pages/` | Sayfa bileşenleri (`admin/` ve `user/` alt klasörleri panel sayfaları) |
+| `src/components/` | Sayfalar arası paylaşılan bileşenler (Header, Footer, ProductCard...) |
+| `src/context/` | React Context (kimlik doğrulama durumu) |
+| `src/hooks/` | Paylaşılan hook'lar (favoriler vb.) |
+| `src/utils/` | Saf yardımcı fonksiyonlar — biçimlendirme, arama normalizasyonu, HTML temizleme |
+| `src/content/yasal/` | Mesafeli satış, KVKK, teslimat-iade metinlerinin **tek kaynağı**. Admin panelindeki "Sıfırla" düğmesi buradan besleniyor. |
+| `src/config/` | API adresi gibi ortam bazlı sabitler |
+
+## Yasal metinler
+
+`src/content/yasal/` altındaki üç HTML dosyası hukuki belge — düzenlemek
+için admin panelini kullan (Ayarlar → Yasal Metinler), doğrudan bu
+dosyaları elden düzenlemek yerine. Panel değişikliği veritabanına yazar;
+bu dosyalar sadece "bozulursa dönülecek asıl metin" olarak duruyor.
+
+## Deploy (Vercel)
+
+`vercel.json` içindeki rewrite kuralı SPA yönlendirmesi için zorunlu —
+onsuz `/about` gibi bir adrese doğrudan girmek (yenileme dahil) 404 döner.
+Vercel projesinin **Root Directory** ayarının `kemborn-client` olduğundan
+emin ol; aksi halde bu dosya hiç okunmaz.
+
+## Testler
+
+```bash
+npm test
+```
+
+Saf yardımcı fonksiyonlar (`src/utils/`) için Vitest testleri var. CI,
+`main`'e her push'ta ve her PR'da bunları ve ESLint'i otomatik çalıştırır
+(`.github/workflows/ci.yml`).
