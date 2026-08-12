@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiSearch, FiPackage, FiTruck, FiMapPin } from 'react-icons/fi';
+import { FiSearch, FiTruck, FiMapPin } from 'react-icons/fi';
 import PageHeader from '../components/PageHeader';
 import { durumGorunumu, musteriDurumEtiketi } from '../constants/orderStatus';
 import { formatPrice } from '../utils/format';

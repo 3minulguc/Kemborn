@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiArrowLeft, FiPackage, FiMapPin, FiTruck, FiCreditCard, FiCalendar } from 'react-icons/fi';
 import { durumGorunumu, musteriDurumEtiketi } from '../../constants/orderStatus';

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom'; // Dashboard'dan gelen parametreyi okumak için
-import { FiEye, FiSearch, FiX, FiSave, FiPackage, FiMapPin, FiTruck, FiUser, FiCreditCard, FiCalendar, FiClock, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiEye, FiSearch, FiX, FiSave, FiPackage, FiMapPin, FiTruck, FiUser, FiCreditCard, FiCalendar } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { DURUM, durumuCozumle, durumGorunumu, ELLE_ATANABILIR_DURUMLAR } from '../../constants/orderStatus';
 import { apiFetch } from '../../utils/apiFetch';
@@ -26,22 +26,6 @@ const AdminOrders = () => {
   const [editForm, setEditForm] = useState({ status: '', tracking_number: '' });
   const [saving, setSaving] = useState(false);
 
-  // URL'deki status parametresi değişirse sekmeyi otomatik güncelle
-  useEffect(() => {
-    if (statusParam) {
-      setActiveTab(statusParam);
-    }
-  }, [statusParam]);
-
-  // Başka bir sayfadan (Müşteri Detayı gibi) belirli bir siparişe link verilmişse otomatik aç
-  useEffect(() => {
-    const orderIdParam = searchParams.get('orderId');
-    if (orderIdParam) {
-      handleViewOrder(orderIdParam);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // 1. Tüm Siparişleri Çek
   const fetchOrders = async () => {
     try {
@@ -58,10 +42,6 @@ const AdminOrders = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchOrders();
-  }, []);
 
   // 2. Sipariş Detayını Çek (Modal İçin)
   const handleViewOrder = async (orderId) => {
@@ -114,6 +94,26 @@ const AdminOrders = () => {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  // URL'deki status parametresi değişirse sekmeyi otomatik güncelle
+  useEffect(() => {
+    if (statusParam) {
+      setActiveTab(statusParam);
+    }
+  }, [statusParam]);
+
+  // Başka bir sayfadan (Müşteri Detayı gibi) belirli bir siparişe link verilmişse otomatik aç
+  useEffect(() => {
+    const orderIdParam = searchParams.get('orderId');
+    if (orderIdParam) {
+      handleViewOrder(orderIdParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Bir siparişin durumu, verilen sekmeye ait mi? Türkçe karakterli/karaktersiz
   // tüm yazım varyantları orderStatus.js içinde tek yerden çözümleniyor.

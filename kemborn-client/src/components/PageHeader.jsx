@@ -1,4 +1,3 @@
-import React from 'react';
 
 const PageHeader = ({ title }) => (
   <div className="max-w-7xl mx-auto px-4 py-16 text-center">

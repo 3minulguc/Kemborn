@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FiSave, FiPhoneCall, FiMail, FiMapPin, FiFileText } from 'react-icons/fi';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css'; // Yeni paketin stili
@@ -39,10 +39,6 @@ const AdminSettings = () => {
     ],
   };
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
   const fetchSettings = async () => {
     try {
       const response = await apiFetch(`/api/settings`);
@@ -74,6 +70,10 @@ const AdminSettings = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
   // Standart inputlar için
   const handleChange = (e) => {

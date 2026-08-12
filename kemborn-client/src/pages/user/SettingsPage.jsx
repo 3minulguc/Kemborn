@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FiSave } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext'; 
@@ -38,8 +38,7 @@ const SettingsPage = () => {
       if (contentType && contentType.includes("application/json")) {
         data = await res.json();
       } else {
-        // Eğer backend çöktüyse ve JSON yerine HTML/Metin döndürdüyse bunu yakala
-        const textError = await res.text();
+        // Backend JSON yerine HTML/Metin döndürdüyse (muhtemelen çökmüş demektir)
         throw new Error("Backend beklenmeyen bir format döndürdü (Muhtemelen çöktü). Terminali kontrol edin.");
       }
 

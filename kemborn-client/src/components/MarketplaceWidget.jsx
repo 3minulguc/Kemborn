@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FiShoppingBag, FiX, FiExternalLink } from 'react-icons/fi';
 import { API_URL } from '../config/api';
 

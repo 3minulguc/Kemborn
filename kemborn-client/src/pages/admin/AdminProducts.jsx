@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiSave, FiImage, FiVideo, FiShoppingCart, FiEye, FiEyeOff, FiHeart, FiTruck, FiShield, FiCheck, FiMenu, FiLoader, FiZoomIn, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown } from 'react-icons/fi';
 import { API_URL } from '../../config/api';
@@ -612,7 +612,6 @@ const AdminProducts = () => {
 
   const isOutOfStock = parseInt(formData.stock_quantity || 0) <= 0;
   const inlineInputClass = "w-full bg-zinc-50/70 border-b-2 border-dashed border-zinc-300 hover:border-cyan-500 focus:border-cyan-600 focus:bg-cyan-50/50 outline-none transition-all rounded-t-md px-1.5 py-0.5 cursor-text";
-  const hideArrowsClass = "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
   return (
     <div className="animate-in fade-in duration-500">

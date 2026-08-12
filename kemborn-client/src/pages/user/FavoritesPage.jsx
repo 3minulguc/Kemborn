@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; 
 import { FiShoppingCart, FiTrash2 } from 'react-icons/fi';
 import { useCart } from '../../context/CartContext';

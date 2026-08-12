@@ -62,7 +62,7 @@ const Seo = ({ baslik, aciklama, gorsel, kanonik, sema }) => {
 
     // Canonical: aynı içeriğin farklı adreslerden (örn. Vercel önizleme
     // adresleri) indekslenmesini önler.
-    let canonicalEl = null;
+    let canonicalEl;
     if (kanonik) {
       canonicalEl = document.head.querySelector('link[rel="canonical"]');
       if (!canonicalEl) {

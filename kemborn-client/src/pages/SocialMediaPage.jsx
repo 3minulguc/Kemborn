@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '../components/PageHeader';
 import { FiExternalLink, FiInstagram } from 'react-icons/fi';
 import { API_URL } from '../config/api';

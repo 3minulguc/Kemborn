@@ -1,7 +1,31 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiHome, FiPackage, FiShoppingCart, FiUsers, FiSettings, FiLogOut, FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+
+// BİLEŞEN, AdminLayout'un İÇİNDE DEĞİL: içeride tanımlansaydı her render'da
+// yeni bir bileşen türü üretilir, React nav listesini sökup yeniden takardı
+// (hover/geçiş durumları kaybolur, gereksiz DOM churn olur) — aynı sınıf
+// hata bu oturumda başka dosyalarda odak kaybına yol açmıştı.
+const NavLinks = ({ menuItems, isActivePath, onNavigate }) => (
+  <>
+    {menuItems.map((item) => (
+      <Link
+        key={item.path}
+        to={item.path}
+        onClick={onNavigate}
+        className={`flex items-center gap-4 p-4 rounded-2xl transition-all font-semibold ${
+          isActivePath(item.path)
+            ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20'
+            : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+        }`}
+      >
+        <span className="text-xl">{item.icon}</span>
+        {item.name}
+      </Link>
+    ))}
+  </>
+);
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -30,26 +54,6 @@ const AdminLayout = () => {
   const isActivePath = (path) => path === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(path);
   const currentPageName = menuItems.find(item => isActivePath(item.path))?.name || 'Admin';
 
-  const NavLinks = ({ onNavigate }) => (
-    <>
-      {menuItems.map((item) => (
-        <Link 
-          key={item.path} 
-          to={item.path} 
-          onClick={onNavigate}
-          className={`flex items-center gap-4 p-4 rounded-2xl transition-all font-semibold ${
-            isActivePath(item.path)
-              ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20' 
-              : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-          }`}
-        >
-          <span className="text-xl">{item.icon}</span> 
-          {item.name}
-        </Link>
-      ))}
-    </>
-  );
-
   return (
     <div className="flex min-h-screen bg-zinc-50 font-sans">
 
@@ -76,7 +80,7 @@ const AdminLayout = () => {
               </button>
             </div>
             <nav className="space-y-2 flex-grow">
-              <NavLinks onNavigate={() => setIsMobileMenuOpen(false)} />
+              <NavLinks menuItems={menuItems} isActivePath={isActivePath} onNavigate={() => setIsMobileMenuOpen(false)} />
             </nav>
             <button 
               onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}
@@ -102,7 +106,7 @@ const AdminLayout = () => {
         
         {/* Navigasyon */}
         <nav className="space-y-2 flex-grow">
-          <NavLinks onNavigate={() => {}} />
+          <NavLinks menuItems={menuItems} isActivePath={isActivePath} onNavigate={() => {}} />
         </nav>
 
         {/* Çıkış Yap Butonu */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiMail, FiPhone, FiMapPin, FiPackage, FiHeart, FiX, FiLock, FiUser, FiSearch, FiChevronRight } from 'react-icons/fi';
 import toast from 'react-hot-toast';

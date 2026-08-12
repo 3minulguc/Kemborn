@@ -1,4 +1,3 @@
-import React from 'react';
 import PageHeader from '../components/PageHeader';
 import { FiPlayCircle, FiFileText, FiClock } from 'react-icons/fi';
 

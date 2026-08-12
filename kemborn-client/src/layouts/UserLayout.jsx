@@ -1,4 +1,3 @@
-import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { FiUser, FiPackage, FiHeart, FiSettings, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';

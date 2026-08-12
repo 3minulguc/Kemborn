@@ -17,5 +17,11 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Yakalanan ama kullanılmayan hata değişkeni yaygın ve zararsız
+      // (catch (err) { toast.error("..."); }) — sunucu tarafında da aynı
+      // istisna var (kemborn-server/eslint.config.js).
+      'no-unused-vars': ['error', { caughtErrors: 'none' }],
+    },
   },
 ])
