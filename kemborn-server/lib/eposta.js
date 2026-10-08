@@ -14,7 +14,18 @@ const { logToFile } = require('./log');
 let mailTransporter = null;
 if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
   mailTransporter = nodemailer.createTransport({
-    service: 'gmail',
+    // service: 'gmail' yerine host/port elle verildi: Railway'in çıkışında IPv6
+    // çalışmıyor, "service" kısayolu bağlantıyı bazen IPv6'ya düşürüp
+    // ENETUNREACH/Connection timeout ile dakikalarca bekletiyordu (sipariş ve
+    // iletişim formu istekleri bu yüzden kilitleniyordu). family: 4 bağlantıyı
+    // doğrudan IPv4'e zorluyor.
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    family: 4,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_APP_PASSWORD
