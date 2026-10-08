@@ -1,42 +1,33 @@
-// E-posta gönderme altyapısı (Gmail SMTP).
+// E-posta gönderme altyapısı (Resend — HTTPS API).
 //
-// NOT: EMAIL_USER ve EMAIL_APP_PASSWORD .env dosyasında tanımlı değilse,
-// e-posta gönderimi sessizce atlanır (sunucu çökmez, sadece log'a yazar).
-// EMAIL_APP_PASSWORD normal Gmail şifresi DEĞİL, Google Hesabı'ndan üretilen
-// 16 haneli "Uygulama Şifresi"dir (2 Adımlı Doğrulama açık olmalı).
+// Önceden Gmail SMTP (nodemailer) kullanılıyordu. Railway'in çıkışı SMTP
+// portlarını (465 VE 587) tamamen bloke ediyor — IPv4'e zorlasan da,
+// STARTTLS'e geçsen de "Connection timeout" ile dakikalarca bekleyip
+// başarısız oluyordu, sipariş ve iletişim formu istekleri bu yüzden
+// kilitleniyordu (madde 66/72). Resend düz HTTPS (443) üzerinden çalıştığı
+// için bu port bloğundan etkilenmiyor.
+//
+// NOT: RESEND_API_KEY .env dosyasında tanımlı değilse, e-posta gönderimi
+// sessizce atlanır (sunucu çökmez, sadece log'a yazar).
 
 // dotenv'in yüklendiğinden emin olmak için (bkz. config/ortam.js)
 require('../config/ortam');
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const { logToFile } = require('./log');
 
-let mailTransporter = null;
-if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-  mailTransporter = nodemailer.createTransport({
-    // service: 'gmail' yerine host/port elle verildi: Railway'in çıkışında IPv6
-    // çalışmıyor, "service" kısayolu bağlantıyı bazen IPv6'ya düşürüp
-    // ENETUNREACH/Connection timeout ile dakikalarca bekletiyordu (sipariş ve
-    // iletişim formu istekleri bu yüzden kilitleniyordu). family: 4 bağlantıyı
-    // doğrudan IPv4'e zorluyor. Port 465 (SMTPS) IPv4'te de zaman aşımına
-    // uğradı — Railway'in çıkışında muhtemelen tamamen kapalı; 587 (STARTTLS)
-    // deneniyor.
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    family: 4,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_APP_PASSWORD
-    }
-  });
+let resend = null;
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
 } else {
-  console.warn('⚠️  UYARI: EMAIL_USER / EMAIL_APP_PASSWORD .env dosyasında tanımlı değil. Sipariş/kargo/şifre e-postaları gönderilmeyecek.');
+  console.warn('⚠️  UYARI: RESEND_API_KEY .env dosyasında tanımlı değil. Sipariş/kargo/şifre e-postaları gönderilmeyecek.');
 }
+
+// Gönderen adresi. kemborn.com Resend'de doğrulanana kadar sadece Resend'in
+// test adresi (onboarding@resend.dev) kullanılabilir — o da yalnızca Resend
+// hesabının kendi adresine teslim olur, gerçek müşteriye gitmez. Domain
+// doğrulanınca Railway'de EMAIL_FROM tanımlanıp buraya dokunmadan geçilir.
+const GONDEREN_ADRESI = process.env.EMAIL_FROM || 'Kemborn <onboarding@resend.dev>';
 
 // Tüm e-postalarda kullanılan ortak, sade HTML şablonu
 const buildEmailHtml = (title, bodyHtml) => `
@@ -52,25 +43,25 @@ const buildEmailHtml = (title, bodyHtml) => `
   </div>
 `;
 
-// Mağaza sahibine bildirim gidecek adres. Tanımlı değilse EMAIL_USER'a düşer
-// (mağaza zaten kendi Gmail hesabından gönderiyor).
-const MAGAZA_BILDIRIM_ADRESI = process.env.ADMIN_NOTIFY_EMAIL || process.env.EMAIL_USER || null;
+// Mağaza sahibine bildirim gidecek adres (yeni sipariş, iletişim formu mesajı vb).
+const MAGAZA_BILDIRIM_ADRESI = process.env.ADMIN_NOTIFY_EMAIL || null;
 
 // "Best effort" gönderim: e-posta gönderilemese bile ana işlemi (sipariş, şifre vs.) DURDURMAZ.
 //
-// replyTo: iletişim formu için gerekli. Mesaj mağazanın kendi Gmail'inden
+// replyTo: iletişim formu için gerekli. Mesaj mağazanın kendi adresinden
 // gönderiliyor, dolayısıyla "Yanıtla" dediğinde kendine cevap yazmış olurdun.
 // Bu alan doluysa yanıt doğrudan müşteriye gider.
 const sendMail = async (to, subject, html, replyTo = null) => {
-  if (!mailTransporter || !to) return;
+  if (!resend || !to) return;
   try {
-    await mailTransporter.sendMail({
-      from: `"Kemborn" <${process.env.EMAIL_USER}>`,
+    const { error } = await resend.emails.send({
+      from: GONDEREN_ADRESI,
       to,
       subject,
       html,
-      ...(replyTo ? { replyTo } : {})
+      ...(replyTo ? { reply_to: replyTo } : {})
     });
+    if (error) throw new Error(error.message || JSON.stringify(error));
   } catch (err) {
     console.error('❌ E-posta gönderilemedi:', err.message);
     logToFile('error.log', `MAIL SEND ERROR (to: ${to}, subject: ${subject}): ${err.message}`);
