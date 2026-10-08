@@ -18,10 +18,13 @@ if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
     // çalışmıyor, "service" kısayolu bağlantıyı bazen IPv6'ya düşürüp
     // ENETUNREACH/Connection timeout ile dakikalarca bekletiyordu (sipariş ve
     // iletişim formu istekleri bu yüzden kilitleniyordu). family: 4 bağlantıyı
-    // doğrudan IPv4'e zorluyor.
+    // doğrudan IPv4'e zorluyor. Port 465 (SMTPS) IPv4'te de zaman aşımına
+    // uğradı — Railway'in çıkışında muhtemelen tamamen kapalı; 587 (STARTTLS)
+    // deneniyor.
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
+    requireTLS: true,
     family: 4,
     connectionTimeout: 10000,
     greetingTimeout: 10000,
