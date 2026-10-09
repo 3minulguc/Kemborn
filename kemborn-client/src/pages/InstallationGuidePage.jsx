@@ -9,18 +9,18 @@ import {
 const ADIMLAR = [
   {
     icon: FiZap,
-    baslik: 'Şarj edin',
-    metin: 'İlk kullanımdan önce her iki kulaklık ünitesini de birlikte verilen USB kabloyla tam dolana kadar şarj edin. Şarj tamamlanınca LED ışığı renk değiştirir.'
+    baslik: 'Şarj edin ve açın',
+    metin: 'İlk kullanımdan önce her iki kulaklık ünitesini de birlikte verilen USB kabloyla tam dolana kadar şarj edin. Şarj tamamlanınca LED ışığı renk değiştirir. İntercom\'u açmak için küçük M tuşuna ve ortadaki yuvarlak güç tuşuna aynı anda basın; kapatmak için de her iki ünitede bu iki tuşa yine aynı anda basın.'
   },
   {
     icon: FiHeadphones,
     baslik: 'Kaska takın',
-    metin: 'Üniteyi kaskınızın kenarına kelepçe mekanizmasıyla sabitleyin. Hoparlörleri kulaklarınızın hizasına, mikrofonu ağzınıza yakın olacak şekilde yerleştirin.'
+    metin: 'Üniteyi birlikte verilen yapıştırma aparatıyla kaskınızın kenarına sabitleyin. Hoparlörleri kulaklarınızın hizasına, mikrofonu ağzınıza yakın olacak şekilde yerleştirin.'
   },
   {
     icon: FiWifi,
     baslik: 'İki kaskı eşleştirin',
-    metin: 'Her iki ünitenin de güç düğmesine birlikte basılı tutarak eşleştirme moduna alın. LED\'ler karşılıklı yanıp sönmeye başladığında eşleştirme tamamlanmış olur.'
+    metin: 'Her iki intercom\'un M tuşuna basarak ikisini de intercom moduna alın. Ardından ünitelerden birinin M tuşuna uzun basarak arama moduna alın; iki ünite birbirini bularak eşleşir.'
   },
   {
     icon: FiSmartphone,
@@ -30,7 +30,7 @@ const ADIMLAR = [
   {
     icon: FiSliders,
     baslik: 'Temel kontroller',
-    metin: 'Güç düğmesiyle açma/kapama, yan tuşlarla ses seviyesi ayarı ve konuşma başlatma/bitirme yapılır. Düğmeler sürüş eldiveniyle de kolayca kullanılabilecek şekilde tasarlanmıştır.'
+    metin: 'Açma/kapama M ve güç tuşlarına birlikte basılarak, yan tuşlarla ses seviyesi ayarı ve konuşma başlatma/bitirme yapılır. Düğmeler sürüş eldiveniyle de kolayca kullanılabilecek şekilde tasarlanmıştır.'
   },
   {
     icon: FiMusic,
