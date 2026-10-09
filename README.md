@@ -29,8 +29,8 @@ Her klasörün kendi kurulum talimatı kendi README'sinde:
 |---|---|
 | **Frontend** | React 19, Vite, Tailwind CSS, React Router |
 | **Backend** | Node.js, Express, PostgreSQL |
-| **Ödeme** | PayTR (Direkt API / iFrame) |
-| **E-posta** | Nodemailer (Gmail SMTP) |
+| **Ödeme** | PayTR Direkt API (3D Secure, 2-12 taksit) |
+| **E-posta** | Resend (HTTPS API) |
 | **Barındırma** | Vercel (frontend) · Railway (backend + veritabanı) |
 | **Test / CI** | Vitest, GitHub Actions |
 
