@@ -89,7 +89,13 @@ CREATE TABLE IF NOT EXISTS orders (
     guest_phone         character varying(20),
     -- Misafirin kendi siparişine erişmesini sağlayan tahmin edilemez anahtar.
     -- Üyede oturum var; misafirde ödeme başlatma ve durum sorgulama bununla doğrulanır.
-    access_token        character varying(64)
+    access_token        character varying(64),
+
+    -- --- TAKSİT (bkz. migrations/003_taksit.sql) ---
+    -- 0 = tek çekim. İkisini de PayTR ödeme bildirimi yazar.
+    taksit_sayisi       integer DEFAULT 0,
+    -- Karttan gerçekte çekilen tutar (vade farkı dahil); total_amount değişmez.
+    tahsil_edilen_tutar numeric(10,2)
 );
 
 -- Misafir sipariş sorgulama (sipariş no + e-posta) ve erişim anahtarı aramaları

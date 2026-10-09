@@ -6,11 +6,73 @@ const { stokIadeEt, stokAyrilmisMi } = require('../domain/stok');
 const { confirmOrderPayment } = require('../domain/siparis');
 const { logToFile } = require('../lib/log');
 const { round2 } = require('../lib/para');
+const { taksitOranlari, kartBilgisi, taksitSecenekleri, GECERLI_TAKSITLER } = require('../lib/taksit');
 const { FRONTEND_URL } = require('../config/ortam');
 const { PAYTR_MERCHANT_ID, PAYTR_MERCHANT_KEY, PAYTR_MERCHANT_SALT, PAYTR_TEST_MODE } = require('../config/paytr');
 const crypto = require('crypto');
 
 const router = express.Router();
+
+// Sipariş, sahibine ait olduğu kanıtlanırsa döner; yoksa null.
+// GÜVENLİK: Sipariş numarası tek başına yeterli değil — sahibi olduğunu da
+// kanıtlamak gerekiyor. Üyede bu kanıt oturum token'ı, misafirde sipariş
+// oluşturulurken verilen erişim anahtarı. İkisi de yoksa erişim yok.
+async function sahibininSiparisi(req, basketId, erisimAnahtari) {
+  const orderRes = req.user?.id
+    ? await client.query(
+        'SELECT id, order_number, total_amount, status FROM orders WHERE order_number = $1 AND user_id = $2',
+        [String(basketId), req.user.id]
+      )
+    : await client.query(
+        'SELECT id, order_number, total_amount, status FROM orders WHERE order_number = $1 AND access_token = $2 AND access_token IS NOT NULL',
+        [String(basketId), String(erisimAnahtari || '')]
+      );
+  return orderRes.rows[0] || null;
+}
+
+// Kart numarasının ilk 8 hanesi. Daha azı gelirse null (taksit sorulamaz).
+const binAyikla = (bin) => {
+  const rakam = String(bin || '').replace(/\D/g, '');
+  return rakam.length >= 8 ? rakam.slice(0, 8) : null;
+};
+
+// ==========================================
+// --- TAKSİT ---
+// ==========================================
+// Ürün sayfasındaki taksit tablosu için. Tutara bağlı değil; hesap istemcide
+// aynı formülle yapılıyor, ama o sadece GÖSTERİM. Tahsil edilecek tutarı her
+// zaman /api/payment hesaplıyor.
+router.get('/api/taksit-oranlari', async (req, res) => {
+  const tablo = await taksitOranlari();
+  if (!tablo) return res.json({ maxTaksit: 0, oranlar: {} });
+  res.set('Cache-Control', 'public, max-age=600');
+  res.json({ maxTaksit: tablo.maxTaksit, oranlar: tablo.oranlar });
+});
+
+// Ödeme sayfasında kart numarası yazılırken çağrılıyor: bu kart ve bu sipariş
+// için hangi taksitler var, her biri toplam kaç TL.
+router.post('/api/taksit-secenekleri', verifyTokenOptional, siparisLimiter, async (req, res) => {
+  const { basketId, erisimAnahtari } = req.body;
+  const bin = binAyikla(req.body.bin);
+  if (!basketId || !bin) return res.status(400).json({ error: 'Kart veya sipariş bilgisi eksik.' });
+
+  try {
+    const order = await sahibininSiparisi(req, basketId, erisimAnahtari);
+    if (!order) return res.status(404).json({ error: 'Sipariş bulunamadı.' });
+
+    const [oranTablosu, kart] = await Promise.all([
+      taksitOranlari(),
+      kartBilgisi(bin).catch((err) => { console.error('BIN sorgusu:', err.message); return undefined; })
+    ]);
+    if (kart === undefined) {
+      return res.json({ ...taksitSecenekleri(parseFloat(order.total_amount) || 0, null, null), neden: 'Kart bilgisi doğrulanamadı, şu an yalnızca tek çekim yapılabilir.' });
+    }
+    res.json(taksitSecenekleri(parseFloat(order.total_amount) || 0, kart, oranTablosu));
+  } catch (err) {
+    console.error('Taksit seçenekleri alınamadı:', err);
+    res.status(500).json({ error: 'Taksit seçenekleri alınamadı.' });
+  }
+});
 
 // ==========================================
 // --- ÖDEME ROTALARI ---
@@ -41,6 +103,10 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
   // DİKKAT: body'deki price / items alanları BİLEREK okunmuyor. Tahsil edilecek
   // tutar ve sepet içeriği, veritabanındaki kayıtlı siparişten alınıyor.
   const { basketId, customer, erisimAnahtari } = req.body;
+  const istenenTaksit = parseInt(req.body.taksit, 10) || 0;
+  if (!GECERLI_TAKSITLER.includes(istenenTaksit)) {
+    return res.status(400).json({ error: "Geçersiz taksit sayısı." });
+  }
 
   if (!basketId) {
     return res.status(400).json({ error: "Sipariş bilgisi eksik, ödeme başlatılamadı." });
@@ -53,23 +119,10 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
   }
 
   try {
-    // GÜVENLİK: Sipariş numarası tek başına yeterli değil — sahibi olduğunu da
-    // kanıtlamak gerekiyor. Üyede bu kanıt oturum token'ı, misafirde sipariş
-    // oluşturulurken verilen erişim anahtarı. İkisi de yoksa erişim yok.
-    const orderRes = req.user?.id
-      ? await client.query(
-          'SELECT id, order_number, total_amount, status FROM orders WHERE order_number = $1 AND user_id = $2',
-          [String(basketId), req.user.id]
-        )
-      : await client.query(
-          'SELECT id, order_number, total_amount, status FROM orders WHERE order_number = $1 AND access_token = $2 AND access_token IS NOT NULL',
-          [String(basketId), String(erisimAnahtari || '')]
-        );
-
-    if (orderRes.rows.length === 0) {
+    const order = await sahibininSiparisi(req, basketId, erisimAnahtari);
+    if (!order) {
       return res.status(404).json({ error: "Sipariş bulunamadı." });
     }
-    const order = orderRes.rows[0];
 
     // Zaten ödenmiş bir siparişin tekrar ödenmesini engelliyoruz.
     const orderStatus = (order.status || '').toUpperCase();
@@ -98,7 +151,25 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
     // Direkt API ondalıklı TL istiyor: nokta ve noktadan sonra iki hane.
     // Karıştırılırsa müşteriden 100 KATI tahsil edilir; bu yüzden ayrı bir
     // değişken ve bu yorum var.
-    const paymentAmount = orderTotal.toFixed(2);   // "2999.99"
+    //
+    // TAKSİT: Seçilen taksitin vade farkı burada tutara ekleniyor (formül ve
+    // gerekçe: lib/taksit.js). Oran ve kartın taksite uygunluğu istemciden
+    // alınmıyor; kartın ilk 8 hanesiyle sunucu kendisi PayTR'ye soruyor.
+    let tahsilTutari = orderTotal;
+    let cardType = '';
+    if (istenenTaksit > 0) {
+      const bin = binAyikla(req.body.bin);
+      if (!bin) return res.status(400).json({ error: "Taksit için kart numarası gerekli." });
+      const [oranTablosu, kart] = await Promise.all([taksitOranlari(), kartBilgisi(bin).catch(() => null)]);
+      const secenek = kart && taksitSecenekleri(orderTotal, kart, oranTablosu).secenekler
+        .find((s) => s.taksit === istenenTaksit);
+      if (!secenek) {
+        return res.status(400).json({ error: "Bu kartla seçilen taksit yapılamıyor. Lütfen başka bir seçenek deneyin." });
+      }
+      tahsilTutari = secenek.toplam;
+      cardType = kart.program;
+    }
+    const paymentAmount = tahsilTutari.toFixed(2);   // "2999.99"
     const userIp = req.ip || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || '127.0.0.1';
     const userName = `${customer.ad || ''} ${customer.soyad || ''}`.trim() || 'Kemborn Müşterisi';
 
@@ -116,29 +187,18 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
     if (shippingLine > 0) {
       userBasket.push(['Kargo Ücreti', shippingLine.toFixed(2), 1]);
     }
+    const vadeFarki = round2(tahsilTutari - orderTotal);
+    if (vadeFarki > 0) {
+      userBasket.push([`Vade Farkı (${istenenTaksit} taksit)`, vadeFarki.toFixed(2), 1]);
+    }
 
     // DİKKAT — iFrame API'den farklı: sepet base64 DEĞİL, düz JSON gönderiliyor.
     const userBasketJson = JSON.stringify(userBasket);
 
     const currency = 'TL';
 
-    // TAKSİT KAPALI — bilinçli bir karar, geçici.
-    //
-    // PayTR'nin Direkt API'sinde tüm işlemler "peşin fiyatına taksit" olarak
-    // işleniyor: müşteri 12 taksit seçse bile sepetteki tutarı öder, aradaki
-    // vade farkı MAĞAZANIN hakedişinden kesilir. Yani 2.999 TL'lik sipariş
-    // 2.999 TL görünür ama hesaba daha azı geçer, taksit arttıkça fark büyür.
-    //
-    // Taksidi açmak için PayTR'den taksit oranlarını alıp vade farkını tutara
-    // eklemek gerekiyor (PayTR'nin verdiği formül):
-    //     tutar / ((100 - taksit oranı) / 100) = taksitli toplam tutar
-    // Bu, sepette gösterilen fiyatı da değiştirir; müşteri "12 taksitte şu
-    // kadar" bilgisini görmeden ödeme adımına gitmemeli.
-    //
-    // O iş yapılana kadar taksit kapalı: eksik tahsilat yapmaktansa taksit
-    // sunmamak tercih edildi.
     const paymentType = 'card';
-    const installmentCount = '0';   // 0 = taksitsiz (tek çekim)
+    const installmentCount = String(istenenTaksit);   // 0 = tek çekim
     const non3d = '0';              // 0 = 3D Secure AÇIK
 
     // PayTR Direkt API hash formülü — sıra dokümandaki ile BİREBİR aynı olmalı.
@@ -175,6 +235,8 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
         paytr_token: paytrToken,
         payment_type: paymentType,
         installment_count: installmentCount,
+        // Hash'e girmiyor; PayTR'nin taksitli işlemde istediği kart programı.
+        card_type: cardType,
         currency,
         test_mode: PAYTR_TEST_MODE,
         non_3d: non3d,
@@ -206,7 +268,7 @@ router.post('/api/payment', verifyTokenOptional, siparisLimiter, async (req, res
 // GİRİLMESİ gerekiyor. localhost çalışırken PayTR bu adrese ulaşamaz,
 // bu yüzden bu adım ancak site gerçekten yayına alındığında tam test edilebilir.
 router.post('/api/paytr-notify', express.urlencoded({ extended: false }), async (req, res) => {
-  const { merchant_oid, status, total_amount, hash } = req.body;
+  const { merchant_oid, status, total_amount, hash, installment_count } = req.body;
 
   try {
     const calculatedHash = crypto
@@ -231,12 +293,16 @@ router.post('/api/paytr-notify', express.urlencoded({ extended: false }), async 
       const previousStatus = (order.status || '').toUpperCase();
       const wasPending = previousStatus === 'ÖDEME BEKLENİYOR' || previousStatus === 'ODEME BEKLENIYOR';
 
-      // GÜVENLİK: Tahsil edilen tutar, siparişin tutarıyla aynı mı? Hash doğru
-      // olsa bile tutar farklıysa siparişi ONAYLAMIYORUZ. (PayTR kuruş cinsinden
+      // GÜVENLİK: Tahsil edilen tutar siparişin tutarını karşılıyor mu? Hash
+      // doğru olsa bile eksikse siparişi ONAYLAMIYORUZ. (PayTR kuruş cinsinden
       // gönderiyor, biz de TL tutarını kuruşa çevirip karşılaştırıyoruz.)
+      //
+      // Eşitlik değil "en az" aranıyor: taksitli ödemede tahsilat, vade farkı
+      // kadar FAZLA. Bu fazlalığı yalnızca biz üretebiliyoruz (payment_amount
+      // imzalı), yani siparişin altında bir tutar gelmesi tek tehlikeli durum.
       const expectedKurus = Math.round((parseFloat(order.total_amount) || 0) * 100);
       const paidKurus = parseInt(total_amount, 10);
-      if (status === 'success' && paidKurus !== expectedKurus) {
+      if (status === 'success' && !(paidKurus >= expectedKurus)) {
         console.error(`PayTR tutar uyuşmazlığı! Sipariş ${order.order_number}: beklenen ${expectedKurus} kuruş, gelen ${paidKurus} kuruş.`);
         logToFile('error.log', `PAYTR TUTAR UYUSMAZLIGI (order ${order.order_number}): beklenen ${expectedKurus}, gelen ${paidKurus}`);
         await client.query("UPDATE orders SET status = 'TUTAR UYUŞMAZLIĞI' WHERE id = $1", [order.id]);
@@ -244,7 +310,12 @@ router.post('/api/paytr-notify', express.urlencoded({ extended: false }), async 
       }
 
       if (status === 'success') {
-        await client.query("UPDATE orders SET status = 'ÖDENDİ' WHERE id = $1", [order.id]);
+        // Vade farkı dahil çekilen tutar ve taksit sayısı, iade ve muhasebe
+        // için saklanıyor. total_amount (ürün + kargo) olduğu gibi kalıyor.
+        await client.query(
+          "UPDATE orders SET status = 'ÖDENDİ', taksit_sayisi = $2, tahsil_edilen_tutar = $3 WHERE id = $1",
+          [order.id, parseInt(installment_count, 10) || 0, paidKurus / 100]
+        );
         // Sadece hâlâ "ÖDEME BEKLENİYOR" durumundaysa stok düş + mail gönder.
         // (PayTR aynı bildirimi tekrar tekrar gönderebilir — wasPending kontrolü
         // olmadan aynı siparişin stoğu birden fazla kez düşer, aynı mail tekrar gider.)

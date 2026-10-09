@@ -9,6 +9,76 @@ import { selectOkStyle } from '../utils/formStil';
 import { formatPrice } from '../utils/format';
 import { olayGonder, urunuBicimle } from '../utils/analitik';
 
+// Ödeme sayfasındaki taksit listesi. Tutarlar sunucudan geliyor; burada
+// hesap yapılmıyor.
+const TaksitSecimi = ({ bilgi, secilen, guncelleniyor, onSec }) => {
+  const baslik = (
+    <p className="block text-xs font-black uppercase tracking-wider text-zinc-400 mb-2">Taksit Seçenekleri</p>
+  );
+
+  if (!bilgi.bin) {
+    return (
+      <div>
+        {baslik}
+        <p className="text-sm font-medium text-zinc-500 bg-zinc-50 border border-dashed border-zinc-200 rounded-2xl px-5 py-4">
+          Kredi kartınızın numarasını girdiğinizde taksit seçenekleri burada görünecek.
+        </p>
+      </div>
+    );
+  }
+
+  if (bilgi.yukleniyor) {
+    return (
+      <div>
+        {baslik}
+        <p className="text-sm font-medium text-zinc-500 px-1 py-3">Kartınıza uygun taksitler sorgulanıyor…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div role="radiogroup" aria-label="Taksit seçenekleri">
+      {baslik}
+      {bilgi.neden && (
+        <p className="text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-2">
+          {bilgi.neden}
+        </p>
+      )}
+      <div className="border border-zinc-200 rounded-2xl divide-y divide-zinc-100 overflow-hidden">
+        {bilgi.secenekler.map((s) => {
+          const aktif = s.taksit === secilen;
+          return (
+            <button
+              key={s.taksit}
+              type="button"
+              role="radio"
+              aria-checked={aktif}
+              disabled={guncelleniyor}
+              onClick={() => onSec(s.taksit)}
+              className={`w-full min-h-[52px] flex items-center gap-3 px-4 py-3 text-left transition-colors disabled:cursor-wait ${aktif ? 'bg-cyan-50' : 'bg-white hover:bg-zinc-50'}`}
+            >
+              <span className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${aktif ? 'border-cyan-600' : 'border-zinc-300'}`}>
+                {aktif && <span className="w-2.5 h-2.5 rounded-full bg-cyan-600" />}
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold text-zinc-900 text-[15px]">
+                  {s.taksit === 0 ? 'Tek Çekim' : `${s.taksit} Taksit`}
+                </span>
+                {s.taksit > 0 && (
+                  <span className="block text-xs font-medium text-zinc-500">
+                    {s.taksit} × {formatPrice(s.aylik)} TL
+                  </span>
+                )}
+              </span>
+              <span className="font-black text-zinc-900 text-[15px] whitespace-nowrap">{formatPrice(s.toplam)} TL</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const CheckoutPage = () => {
   const { cart = [] } = useCart();
   const { user } = useAuth();
@@ -17,6 +87,16 @@ const CheckoutPage = () => {
   // PayTR Direkt API: sunucu imzayı ve formun gizli alanlarını üretiyor,
   // kart bilgileri bu sayfadaki formdan DOĞRUDAN PayTR'ye gidiyor.
   const [odeme, setOdeme] = useState(null); // { formAction, alanlar }
+  // Oluşturulan sipariş: taksit değişince ödeme formu bunun için yeniden imzalanıyor.
+  const [siparis, setSiparis] = useState(null); // { orderNumber, erisimAnahtari }
+  // TAKSİT. Kartın yalnızca ilk 8 hanesi (BIN) state'e giriyor — BIN kartın
+  // bankasını ve türünü belirtir, kartı tanımlamaz; kart verisi sayılmaz.
+  // Numaranın geri kalanı yine sadece DOM'da (aşağıdaki "uncontrolled" notu).
+  const [taksitBilgisi, setTaksitBilgisi] = useState({ bin: null, secenekler: [], neden: null, yukleniyor: false });
+  const [secilenTaksit, setSecilenTaksit] = useState(0);
+  const [formGuncelleniyor, setFormGuncelleniyor] = useState(false);
+  // Sırası karışan BIN cevaplarını ayıklamak için: en son yazılan BIN.
+  const sonBin = useRef(null);
   // Sunucu, sepetteki fiyatların değiştiğini bildirirse doğru tutarı buraya
   // yazıyoruz ve müşteriye güncel tutarı gösteriyoruz.
   const [serverTotal, setServerTotal] = useState(null);
@@ -127,6 +207,74 @@ const CheckoutPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart.length]);
 
+  // Ödeme formunun gizli alanlarını (tutar + imza) sunucudan alır. Tutar ve
+  // imza taksit sayısına bağlı; bu yüzden taksit her değiştiğinde yeniden çağrılıyor.
+  const odemeFormuAl = async (sip, taksit, bin) => {
+    const paymentResponse = await apiFetch(`/api/payment`, {
+      method: 'POST',
+      body: JSON.stringify({
+        basketId: sip.orderNumber,
+        customer: formData,
+        taksit,
+        ...(bin ? { bin } : {}),
+        ...(sip.erisimAnahtari ? { erisimAnahtari: sip.erisimAnahtari } : {})
+      })
+    });
+    const paymentData = await paymentResponse.json();
+    if (!paymentResponse.ok || !paymentData?.alanlar) {
+      throw new Error(paymentData?.error || "Ödeme formu alınamadı");
+    }
+    return paymentData;
+  };
+
+  const taksitSec = async (taksit, bin = taksitBilgisi.bin) => {
+    if (!siparis) return;
+    setFormGuncelleniyor(true);
+    try {
+      setOdeme(await odemeFormuAl(siparis, taksit, bin));
+      setSecilenTaksit(taksit);
+    } catch (error) {
+      toast.error(error.message || "Taksit seçilemedi, lütfen tekrar deneyin.");
+    } finally {
+      setFormGuncelleniyor(false);
+    }
+  };
+
+  // Kart numarası yazıldıkça çağrılıyor; ilk 8 hane değiştiyse o kartın
+  // taksit seçeneklerini soruyor. Seçili taksit yeni kartta yoksa tek çekime dönülüyor.
+  const binDegisti = async (bin) => {
+    if (bin === sonBin.current) return;
+    sonBin.current = bin;
+
+    if (!bin) {
+      setTaksitBilgisi({ bin: null, secenekler: [], neden: null, yukleniyor: false });
+      if (secilenTaksit > 0) taksitSec(0, null);
+      return;
+    }
+
+    setTaksitBilgisi(t => ({ ...t, bin, yukleniyor: true }));
+    let sonuc = { secenekler: [], neden: 'Taksit seçenekleri alınamadı, tek çekim yapılabilir.' };
+    try {
+      const yanit = await apiFetch(`/api/taksit-secenekleri`, {
+        method: 'POST',
+        body: JSON.stringify({
+          basketId: siparis.orderNumber,
+          bin,
+          ...(siparis.erisimAnahtari ? { erisimAnahtari: siparis.erisimAnahtari } : {})
+        })
+      });
+      if (yanit.ok) sonuc = await yanit.json();
+    } catch {
+      // ağ hatası: varsayılan mesajla tek çekim
+    }
+    if (sonBin.current !== bin) return; // bu arada başka bir kart yazılmış
+
+    setTaksitBilgisi({ bin, secenekler: sonuc.secenekler || [], neden: sonuc.neden || null, yukleniyor: false });
+    if (secilenTaksit > 0 && !(sonuc.secenekler || []).some(s => s.taksit === secilenTaksit)) {
+      taksitSec(0, bin);
+    }
+  };
+
   const handleCompleteOrder = async () => {
     if (isCartEmpty) return;
 
@@ -206,24 +354,12 @@ const CheckoutPage = () => {
         sessionStorage.setItem(`kemborn_siparis_${generatedOrderNumber}`, erisimAnahtari);
       }
 
-      const paymentResponse = await apiFetch(`/api/payment`, {
-        method: 'POST',
-        body: JSON.stringify({
-          basketId: generatedOrderNumber,
-          customer: formData,
-          ...(erisimAnahtari ? { erisimAnahtari } : {})
-        })
-      });
-
-      const paymentData = await paymentResponse.json();
-
-      if (paymentResponse.ok && paymentData?.alanlar) {
-        toast.dismiss(loadingToast);
-        setOdeme(paymentData);
-        setLoading(false);
-      } else {
-        throw new Error(paymentData.error || "Ödeme formu alınamadı");
-      }
+      const yeniSiparis = { orderNumber: generatedOrderNumber, erisimAnahtari };
+      const paymentData = await odemeFormuAl(yeniSiparis, 0, null);
+      toast.dismiss(loadingToast);
+      setSiparis(yeniSiparis);
+      setOdeme(paymentData);
+      setLoading(false);
     } catch (error) {
       console.error("Ödeme/Kayıt hatası:", error);
       toast.dismiss(loadingToast);
@@ -293,7 +429,21 @@ const CheckoutPage = () => {
             // Değer yalnızca DOM'da okunup DOM'a geri yazılıyor, hiçbir yerde
             // saklanmıyor.
             const alan = e.currentTarget.elements.card_number;
-            if (alan) alan.value = alan.value.replace(/\s/g, '');
+            const rakam = alan ? alan.value.replace(/\s/g, '') : '';
+
+            // Taksit seçilirken imzalanan tutar o karta göre hesaplandı; tutar
+            // yenilenirken ya da kart sonradan değiştirilmişse göndermiyoruz.
+            if (formGuncelleniyor || taksitBilgisi.yukleniyor) {
+              e.preventDefault();
+              toast("Taksit bilgisi güncelleniyor, bir saniye…");
+              return;
+            }
+            if (secilenTaksit > 0 && rakam.slice(0, 8) !== taksitBilgisi.bin) {
+              e.preventDefault();
+              toast.error("Kart numarası değişti, lütfen taksit seçiminizi kontrol edin.");
+              return;
+            }
+            if (alan) alan.value = rakam;
           }}
           className="bg-white p-6 sm:p-8 rounded-[2rem] border border-zinc-200 shadow-sm space-y-4"
         >
@@ -328,10 +478,19 @@ const CheckoutPage = () => {
               onInput={(e) => {
                 const rakam = e.target.value.replace(/\D/g, '').slice(0, 16);
                 e.target.value = rakam.replace(/(\d{4})(?=\d)/g, '$1 ');
+                // Dışarı yalnızca ilk 8 hane çıkıyor (taksit sorgusu için).
+                binDegisti(rakam.length >= 8 ? rakam.slice(0, 8) : null);
               }}
               className={`${kartInput} tracking-widest`}
             />
           </div>
+
+          <TaksitSecimi
+            bilgi={taksitBilgisi}
+            secilen={secilenTaksit}
+            guncelleniyor={formGuncelleniyor}
+            onSec={(t) => t !== secilenTaksit && taksitSec(t)}
+          />
 
           <div className="grid grid-cols-3 gap-3">
             <div>
@@ -365,9 +524,11 @@ const CheckoutPage = () => {
 
           <button
             type="submit"
-            className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white py-4 rounded-2xl font-black text-lg hover:bg-cyan-600 transition-all mt-2"
+            disabled={formGuncelleniyor}
+            className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white py-4 rounded-2xl font-black text-lg hover:bg-cyan-600 transition-all mt-2 disabled:opacity-60"
           >
             <FiLock size={18} /> {formatPrice(alanlar.payment_amount)} TL Öde
+            {secilenTaksit > 0 && <span className="font-bold text-base opacity-80">· {secilenTaksit} Taksit</span>}
           </button>
 
           <p className="text-center text-xs font-medium text-zinc-400 pt-1">

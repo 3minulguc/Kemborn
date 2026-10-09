@@ -12,6 +12,9 @@ import { useFavorites } from '../hooks/useFavorites';
 import { temizHtml } from '../utils/sanitize';
 import { apiFetch } from '../utils/apiFetch';
 import { getToken } from '../utils/auth';
+import TaksitTablosu from '../components/TaksitTablosu';
+import { enDusukAylik } from '../utils/taksit';
+import { useTaksitOranlari } from '../hooks/useTaksitOranlari';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -32,6 +35,10 @@ const ProductDetail = () => {
   });
   
   const [activeTab, setActiveTab] = useState('info');
+  
+  const taksitOranlari = useTaksitOranlari();
+  
+  const sekmelerRef = useRef(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
@@ -336,6 +343,25 @@ const ProductDetail = () => {
             <p className={`text-2xl md:text-3xl font-black ${isEntirelyOutOfStock ? 'text-zinc-400 line-through' : 'text-cyan-700'}`}>
               {formatPrice(product.price)} TL
             </p>
+            {(() => {
+              const ozet = !isEntirelyOutOfStock && enDusukAylik(parseFloat(product.price) || 0, taksitOranlari);
+              return ozet && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('taksit');
+                    sekmelerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Mobilde sekme şeridi yatay kayıyor; son sekme ekran dışında kalmasın
+                    // (scrollIntoView DEĞİL: ikinci bir scrollIntoView sayfanın dikey kaymasını iptal ediyor)
+                    const serit = sekmelerRef.current?.querySelector('[data-sekme="taksit"]')?.parentElement;
+                    serit?.scrollTo({ left: serit.scrollWidth, behavior: 'smooth' });
+                  }}
+                  className="text-sm md:text-base font-medium text-zinc-500 hover:text-cyan-700 underline underline-offset-4 decoration-zinc-300 min-h-[44px] -my-2 text-left"
+                >
+                  {ozet.taksit} taksite varan seçenekler · aylık <b className="text-zinc-900">{formatPrice(ozet.aylik)} TL</b>'den
+                </button>
+              );
+            })()}
             
             <p className="text-zinc-500 text-base md:text-lg leading-relaxed py-2 whitespace-pre-wrap">
               {product.page_description || product.short_description || "Bu ürün için henüz bir açıklama girilmemiştir."}
@@ -434,19 +460,20 @@ const ProductDetail = () => {
       {/* ========================================================== */}
       {/* SEKMELER ALANI (Mobilde yatay kaydırılabilir, ezilmez yapıldı) */}
       {/* ========================================================== */}
-      <div className="bg-white rounded-3xl border border-zinc-200 p-5 md:p-8 mb-16 shadow-sm overflow-hidden">
+      <div ref={sekmelerRef} className="bg-white rounded-3xl border border-zinc-200 p-5 md:p-8 mb-16 shadow-sm overflow-hidden scroll-mt-24">
         
         {/* Sekme Butonları (Scroll eklendi) */}
         <div className="flex border-b border-zinc-200 mb-6 md:mb-8 overflow-x-auto no-scrollbar scroll-smooth">
-          {['info', 'specs', 'warranty'].map(tab => (
+          {['info', 'specs', 'warranty', 'taksit'].map(tab => (
             <button 
               key={tab}
+              data-sekme={tab}
               onClick={() => setActiveTab(tab)}
               className={`pb-3 md:pb-4 mr-6 md:mr-8 font-black text-sm md:text-lg whitespace-nowrap transition-colors flex-shrink-0 ${
                 activeTab === tab ? 'border-b-2 border-cyan-600 text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
               }`}
             >
-              {tab === 'info' ? 'Ürün Detayları' : tab === 'specs' ? 'Teknik Özellikler' : 'Garanti Bilgisi'}
+              {{ info: 'Ürün Detayları', specs: 'Teknik Özellikler', warranty: 'Garanti Bilgisi', taksit: 'Taksit Seçenekleri' }[tab]}
             </button>
           ))}
         </div>
@@ -494,6 +521,10 @@ const ProductDetail = () => {
                 <p>{String(product.technical_specs)}</p>
               )}
             </div>
+          )}
+
+          {activeTab === 'taksit' && (
+            <TaksitTablosu fiyat={parseFloat(product.price) || 0} veri={taksitOranlari} />
           )}
 
           {activeTab === 'warranty' && (
