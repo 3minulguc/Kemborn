@@ -41,6 +41,7 @@ const ProductDetail = () => {
   const sekmelerRef = useRef(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState('');
+  const [colorWarning, setColorWarning] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const touchStartXRef = useRef(null);
@@ -58,9 +59,10 @@ const ProductDetail = () => {
         if (foundProduct) {
           setProduct(foundProduct);
           setSelectedMediaIndex(0);
-          if (foundProduct.colors && foundProduct.colors.length > 0) {
-            setSelectedColor(foundProduct.colors[0]);
-          }
+          // Renk bilerek önceden seçilmiyor: ilk renk (Siyah) otomatik seçili
+          // gelince müşteri fark etmeden yanlış renk sipariş edebiliyordu.
+          setSelectedColor('');
+          setColorWarning(false);
           olayGonder('view_item', {
             currency: 'TRY',
             value: Number(foundProduct.price) || 0,
@@ -93,6 +95,11 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (!product || isOutOfStock) return;
+    if (needsColor) {
+      setColorWarning(true);
+      toast.error('Lütfen bir renk seçin.');
+      return;
+    }
     // Adet ve renk ayrı parametre olarak gitmeli: ürün nesnesinin içine
     // konunca addToCart varsayılanları (1 adet, Siyah) üstüne yazıyordu.
     addToCart(product, quantity, selectedColor || 'Standart');
@@ -151,16 +158,19 @@ const ProductDetail = () => {
   const availableColors = Array.isArray(product.colors) ? product.colors : [];
   const stockByColor = (product.stock_by_color && typeof product.stock_by_color === 'object') ? product.stock_by_color : {};
   const usesColorStock = availableColors.length > 0 && Object.keys(stockByColor).length > 0;
-  // Renk bazlı stok varsa SEÇİLEN rengin stoğuna bak, yoksa eski genel stoğa bak
+  const needsColor = availableColors.length > 0 && !selectedColor;
+  const colorStocks = Object.values(stockByColor).map(n => parseInt(n, 10) || 0);
+  // Renk bazlı stok varsa SEÇİLEN rengin stoğuna bak (renk henüz seçilmediyse
+  // en çok stoklu renge), yoksa eski genel stoğa bak
   const currentStock = usesColorStock
-    ? (parseInt(stockByColor[selectedColor], 10) || 0)
+    ? (selectedColor ? (parseInt(stockByColor[selectedColor], 10) || 0) : Math.max(0, ...colorStocks))
     : parseInt(product.stock_quantity || 0, 10);
   // "Sepete Ekle" butonu SADECE seçili rengin stoğuna bakar
   const isOutOfStock = currentStock <= 0;
   // Görseli karartan büyük "TÜKENDİ" uyarısı ise ÜRÜNÜN TÜMÜYLE (tüm renkleriyle) tükenip
   // tükenmediğine bakar — sadece bir renk tükendi diye tüm ürünü "tükendi" göstermek yanıltıcı olur.
   const isEntirelyOutOfStock = usesColorStock
-    ? Object.values(stockByColor).every(n => (parseInt(n, 10) || 0) <= 0)
+    ? colorStocks.every(n => n <= 0)
     : isOutOfStock;
   const galleryImages = Array.isArray(product.images) && product.images.length > 0 ? product.images : (product.image_url ? [product.image_url] : []);
   // Galeri medyaları: önce görseller, en sona video (varsa) eklenir
@@ -377,7 +387,7 @@ const ProductDetail = () => {
                     return (
                       <button 
                         key={color}
-                        onClick={() => !colorOutOfStock && setSelectedColor(color)}
+                        onClick={() => { if (!colorOutOfStock) { setSelectedColor(color); setColorWarning(false); } }}
                         disabled={colorOutOfStock}
                         title={colorOutOfStock ? `${color} tükendi` : undefined}
                         className={`px-4 md:px-6 py-2.5 md:py-3 rounded-xl border text-sm font-bold transition-all relative ${
@@ -385,7 +395,9 @@ const ProductDetail = () => {
                             ? 'border-zinc-100 text-zinc-300 bg-zinc-50 cursor-not-allowed line-through'
                             : selectedColor === color 
                               ? 'border-cyan-600 bg-cyan-50 text-cyan-700 shadow-sm' 
-                              : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50'
+                              : colorWarning
+                                ? 'border-red-300 text-zinc-600 hover:border-red-400 hover:bg-zinc-50'
+                                : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50'
                         }`}
                       >
                         {color}{colorOutOfStock ? ' (Tükendi)' : ''}
@@ -393,6 +405,9 @@ const ProductDetail = () => {
                     );
                   })}
                 </div>
+                {colorWarning && (
+                  <p role="alert" className="mt-2 text-sm font-bold text-red-600">Lütfen bir renk seçin.</p>
+                )}
               </div>
             )}
 

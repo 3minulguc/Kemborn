@@ -101,7 +101,12 @@ const FavoritesPage = () => {
               
               <div className="flex gap-2 shrink-0 justify-end sm:justify-start">
                 <button 
-                  onClick={() => addToCart(item, 1, item.colors?.[0] || 'Standart')}
+                  onClick={() => (
+                    // Renkli üründe renk müşteriye sorulmadan seçilmesin: ürün sayfasına git
+                    item.colors?.length
+                      ? navigate(`/product/${item.id}`)
+                      : addToCart(item, 1, 'Standart')
+                  )}
                   className="p-3 bg-zinc-900 rounded-xl hover:bg-cyan-600 text-white transition-all shadow-sm"
                   title="Sepete Ekle"
                 >
