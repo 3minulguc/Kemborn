@@ -93,11 +93,9 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (!product || isOutOfStock) return;
-    addToCart({ 
-      ...product, 
-      quantity: quantity, 
-      color: selectedColor || 'Standart' 
-    });
+    // Adet ve renk ayrı parametre olarak gitmeli: ürün nesnesinin içine
+    // konunca addToCart varsayılanları (1 adet, Siyah) üstüne yazıyordu.
+    addToCart(product, quantity, selectedColor || 'Standart');
   };
 
   const handleFavoriteToggle = async () => {
