@@ -14,7 +14,7 @@ const AuthPage = () => {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   
   const [formData, setFormData] = useState({
-    ad: '', soyad: '', email: '', password: '', telefon: ''
+    ad: '', soyad: '', email: '', password: '', passwordTekrar: '', telefon: ''
   });
   // KVKK gereği, kişisel veri toplamadan (kayıt) önce kullanıcının
   // aydınlatma metnini okuduğunu onaylaması gerekiyor.
@@ -83,6 +83,11 @@ const AuthPage = () => {
         return;
     }
 
+    if (!isLogin && formData.password !== formData.passwordTekrar) {
+        toast.error("Şifreler eşleşmiyor.");
+        return;
+    }
+
     if (!isLogin && !kvkkOnayi) {
         toast.error("Kayıt olabilmek için Gizlilik Politikası ve KVKK Aydınlatma Metni'ni onaylamanız gerekiyor.");
         return;
@@ -128,7 +133,7 @@ const AuthPage = () => {
         } else {
           toast.success("Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
           setIsLogin(true);
-          setFormData({ ad: '', soyad: '', email: '', password: '', telefon: '' });
+          setFormData({ ad: '', soyad: '', email: '', password: '', passwordTekrar: '', telefon: '' });
           setKvkkOnayi(false);
         }
       } else {
@@ -221,6 +226,13 @@ const AuthPage = () => {
                   <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} className="absolute right-1 top-1/2 -translate-y-1/2 p-3 text-zinc-400 hover:text-cyan-600 transition-colors">
                     {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                   </button>
+                </div>
+              )}
+
+              {!isLogin && !isForgotPassword && (
+                <div className="relative">
+                  <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 text-lg" />
+                  <input name="passwordTekrar" value={formData.passwordTekrar} onChange={handleInputChange} type={showPassword ? "text" : "password"} placeholder="Şifreniz (Tekrar)" autoComplete="new-password" className={inputClass} required />
                 </div>
               )}
 
